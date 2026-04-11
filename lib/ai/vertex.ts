@@ -24,13 +24,13 @@ function loadGoogleAuthOptions(): GoogleAuthOptions | undefined {
   }
 }
 
-// Verified against Model Garden in hermes-vision-prod on 2026-04-11.
+// Gemini 3.1 Flash-Lite — see https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite-preview
 export const VERTEX_MODEL_IDS = {
-  orchestrator: "gemini-3.1-pro-preview",
-  researcher: "gemini-3-flash-preview",
-  signalExtractor: "gemini-3.1-pro-preview",
-  anglePlanner: "gemini-3.1-pro-preview",
-  draftGenerator: "gemini-3.1-pro-preview",
+  orchestrator: "gemini-3.1-flash-lite-preview",
+  researcher: "gemini-3.1-flash-lite-preview",
+  signalExtractor: "gemini-3.1-flash-lite-preview",
+  anglePlanner: "gemini-3.1-flash-lite-preview",
+  draftGenerator: "gemini-3.1-flash-lite-preview",
 } as const;
 
 export const VERTEX_PROJECT = project;
