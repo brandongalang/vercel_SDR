@@ -12,6 +12,7 @@ import {
   runResearcherInputSchema,
 } from "@/lib/pipeline/schemas";
 import { runResearchThread } from "@/lib/pipeline/spawn-researcher";
+import { yieldStreamFlush } from "@/lib/pipeline/yield-stream-flush";
 
 function getFreeformContextBlock(freeformContext?: string) {
   const trimmed = freeformContext?.trim();
@@ -153,6 +154,7 @@ export async function runResearchAgent(input: {
     startedAt: orchestratorStartedAt,
     model: VERTEX_MODEL_IDS.orchestrator,
   });
+  await yieldStreamFlush();
 
   async function runThreadWithTrace(args: {
     topic: string;
@@ -179,6 +181,7 @@ export async function runResearchAgent(input: {
       queryHints: args.queryHints,
       includeDomains: args.includeDomains,
     });
+    await yieldStreamFlush();
 
     try {
       const result = await runResearchThread({
@@ -215,6 +218,7 @@ export async function runResearchAgent(input: {
         findings: result.report.findings.slice(0, 5).map(trimFindingForTrace),
         gaps: result.report.gaps,
       });
+      await yieldStreamFlush();
 
       return result;
     } catch (error) {
@@ -236,6 +240,7 @@ export async function runResearchAgent(input: {
         includeDomains: args.includeDomains,
         error: getTraceErrorMessage(error),
       });
+      await yieldStreamFlush();
 
       throw error;
     }
@@ -318,6 +323,7 @@ export async function runResearchAgent(input: {
       summary: packet.orchestratorSummary,
       uncertainty: packet.uncertainty,
     });
+    await yieldStreamFlush();
 
     return {
       packet,
@@ -338,6 +344,7 @@ export async function runResearchAgent(input: {
       model: VERTEX_MODEL_IDS.orchestrator,
       error: getTraceErrorMessage(error),
     });
+    await yieldStreamFlush();
 
     throw error;
   }

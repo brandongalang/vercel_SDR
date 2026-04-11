@@ -17,6 +17,7 @@ import {
 import { lookupMockCrm } from "@/lib/pipeline/tools/crm-lookup";
 import { getMockProductSignals } from "@/lib/pipeline/tools/product-signals";
 import { exaSearch } from "@/lib/pipeline/tools/web-search";
+import { yieldStreamFlush } from "@/lib/pipeline/yield-stream-flush";
 
 function buildResearchPrompt(input: {
   leadInput: LeadInput;
@@ -120,6 +121,7 @@ End with a concise, high-signal summary that can be handed back to a parent orch
             startedAt,
             input: args,
           });
+          await yieldStreamFlush();
 
           try {
             const output = await exaSearch(args);
@@ -137,6 +139,7 @@ End with a concise, high-signal summary that can be handed back to a parent orch
               input: args,
               output: trimWebSearchForTrace(output),
             });
+            await yieldStreamFlush();
 
             return output;
           } catch (error) {
@@ -153,6 +156,7 @@ End with a concise, high-signal summary that can be handed back to a parent orch
               input: args,
               error: getTraceErrorMessage(error),
             });
+            await yieldStreamFlush();
 
             throw error;
           }
@@ -176,6 +180,7 @@ End with a concise, high-signal summary that can be handed back to a parent orch
             startedAt,
             input: args,
           });
+          await yieldStreamFlush();
 
           try {
             const output = lookupMockCrm(args);
@@ -193,6 +198,7 @@ End with a concise, high-signal summary that can be handed back to a parent orch
               input: args,
               output,
             });
+            await yieldStreamFlush();
 
             return output;
           } catch (error) {
@@ -209,6 +215,7 @@ End with a concise, high-signal summary that can be handed back to a parent orch
               input: args,
               error: getTraceErrorMessage(error),
             });
+            await yieldStreamFlush();
 
             throw error;
           }
@@ -232,6 +239,7 @@ End with a concise, high-signal summary that can be handed back to a parent orch
             startedAt,
             input: args,
           });
+          await yieldStreamFlush();
 
           try {
             const output = getMockProductSignals(args);
@@ -249,6 +257,7 @@ End with a concise, high-signal summary that can be handed back to a parent orch
               input: args,
               output,
             });
+            await yieldStreamFlush();
 
             return output;
           } catch (error) {
@@ -265,6 +274,7 @@ End with a concise, high-signal summary that can be handed back to a parent orch
               input: args,
               error: getTraceErrorMessage(error),
             });
+            await yieldStreamFlush();
 
             throw error;
           }
