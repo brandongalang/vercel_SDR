@@ -31,6 +31,8 @@ export default i.schema({
       // SDR actions
       feedback: i.any(),
       outcome: i.any(),
+      /** Full PROMPT_VERSIONS map stamped at run time — enables DSPy version-attributed analytics */
+      promptVersions: i.json(),
       // Timestamps
       createdAt: i.number(),
       updatedAt: i.number(),

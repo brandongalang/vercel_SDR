@@ -1,4 +1,4 @@
-import { AnalyticsDateRange, AnalyticsSnapshot, PlaybookRow } from "./types";
+import { AnalyticsDateRange, AnalyticsSnapshot, DspyCompileRun, PlaybookRow } from "./types";
 
 const baseTopPlays: PlaybookRow[] = [
   { id: "p1", combo: "Product-qualified + Activation help", volume: 142, metricLabel: "Positive Reply", metricValue: 8.2, metricTrend: 1.4, metricType: "positive", note: "Strongest converting pair. Reps rarely edit this because the timing is undeniable in the generated copy." },
@@ -177,3 +177,41 @@ export function formatAnalyticsDateRangeLabel(range: AnalyticsDateRange) {
 
   return `${formatter.format(start)} – ${formatter.format(end)}`;
 }
+
+/**
+ * Mock DSPy compile run history.
+ * Represents the offline optimization loop: each entry is one compile event
+ * where a DSPy optimizer produced a new frozen prompt artifact.
+ * Metric deltas are relative to the previous version.
+ */
+export const MOCK_DSPY_COMPILE_RUNS: DspyCompileRun[] = [
+  {
+    id: "compile-v1-to-v2",
+    compiledAt: "2026-02-17",
+    optimizer: "BootstrapFewShot",
+    promptVersionBefore: "2026-01-20.draft-generator.v1",
+    promptVersionAfter: "2026-02-17.draft-generator.v2",
+    trainWindowDays: 28,
+    jobsUsed: 64,
+    deltas: {
+      cleanAcceptRate: +9.4,
+      editRate: -9.4,
+      positiveRate: +2.1,
+    },
+  },
+  {
+    id: "compile-v2-to-v3",
+    compiledAt: "2026-04-11",
+    optimizer: "MIPROv2",
+    promptVersionBefore: "2026-02-17.draft-generator.v2",
+    promptVersionAfter: "2026-04-11.draft-generator.v3",
+    trainWindowDays: 53,
+    jobsUsed: 118,
+    deltas: {
+      cleanAcceptRate: +11.2,
+      editRate: -11.2,
+      positiveRate: +3.4,
+      replyRate: +1.8,
+    },
+  },
+];

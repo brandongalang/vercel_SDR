@@ -784,6 +784,185 @@ Best,`,
   },
 ];
 
+// ─── DSPy prompt version epochs (mock) ───────────────────────────────────────
+// Three synthetic compile epochs used to populate the version-attributed analytics panel.
+// v1 = baseline (high edit rate, low positive), v2 = first compile, v3 = current (best clean accept).
+
+const DSPY_PROMPT_VERSIONS_V1: Record<string, string> = {
+  researchOrchestrator: "2026-01-20.research-orchestrator.v1",
+  researchThread: "2026-01-20.research-thread.v1",
+  signalExtractor: "2026-01-20.signal-extractor.v1",
+  anglePlanner: "2026-01-20.angle-planner.v1",
+  draftGenerator: "2026-01-20.draft-generator.v1",
+};
+
+const DSPY_PROMPT_VERSIONS_V2: Record<string, string> = {
+  researchOrchestrator: "2026-02-17.research-orchestrator.v1",
+  researchThread: "2026-02-17.research-thread.v1",
+  signalExtractor: "2026-02-17.signal-extractor.v1",
+  anglePlanner: "2026-02-17.angle-planner.v2",
+  draftGenerator: "2026-02-17.draft-generator.v2",
+};
+
+const DSPY_PROMPT_VERSIONS_V3: Record<string, string> = {
+  researchOrchestrator: "2026-04-11.research-orchestrator.v1",
+  researchThread: "2026-04-11.research-thread.v1",
+  signalExtractor: "2026-04-11.signal-extractor.v1",
+  anglePlanner: "2026-04-11.angle-planner.v1",
+  draftGenerator: "2026-04-11.draft-generator.v3",
+};
+
+// Version assignment per job ID — older sent jobs use earlier versions to show improvement over time.
+const JOB_PROMPT_VERSIONS: Record<string, Record<string, string>> = {
+  "job-001": DSPY_PROMPT_VERSIONS_V3,
+  "job-002": DSPY_PROMPT_VERSIONS_V3,
+  "job-003": DSPY_PROMPT_VERSIONS_V3,
+  "job-004": DSPY_PROMPT_VERSIONS_V3,
+  "job-005": DSPY_PROMPT_VERSIONS_V3,
+  "job-006": DSPY_PROMPT_VERSIONS_V3,
+  "job-sent-01": DSPY_PROMPT_VERSIONS_V3,
+  "job-sent-02": DSPY_PROMPT_VERSIONS_V2,
+  "job-sent-03": DSPY_PROMPT_VERSIONS_V1,
+  "job-hist-v1-01": DSPY_PROMPT_VERSIONS_V1,
+  "job-hist-v1-02": DSPY_PROMPT_VERSIONS_V1,
+  "job-hist-v1-03": DSPY_PROMPT_VERSIONS_V1,
+  "job-hist-v2-01": DSPY_PROMPT_VERSIONS_V2,
+  "job-hist-v2-02": DSPY_PROMPT_VERSIONS_V2,
+};
+
+// Historical sent jobs to populate v1 and v2 version buckets for analytics
+const HISTORICAL_SENT_JOBS: LegacyMockJob[] = [
+  // v1 bucket — high edit rate, no positive replies
+  {
+    id: "job-hist-v1-01",
+    lead: { name: "Alex Monroe", title: "Engineering Manager" },
+    company: "GridStack",
+    play: "Hiring Signal",
+    researchRun: researchRun({
+      label: "Historical send record",
+      leadSource: "Outbound account list",
+      scope: "v1 baseline draft — rep edited before sending.",
+      contactsScanned: 1, accountsTouched: 1, shortlisted: 1, selectedRank: 1,
+      whyChosen: "Hiring signal plus product activity.", whyNow: "Hiring signal aligned with trial start.",
+      uncertainty: "Moderate.",
+      sourceSummary: [{ label: "Hiring signals", count: 1 }, { label: "Product activity", count: 2 }],
+      candidateComparisons: [], angleDecisions: [],
+    }),
+    angleType: "hiring_signal",
+    status: "sent_stub",
+    pipelineStage: "complete",
+    governance: "review_required",
+    confidence: { tier: "medium", summary: "v1 baseline draft.", reasons: [] },
+    angle: "Hiring angle with product context.", signals: [],
+    draft: { subject: "Platform workflow timing", body: "Hi Alex,\n\nNoticed the hiring push…\n\nBest," },
+    feedback: { edited: true, editorNote: "Rewrote opening — too generic." },
+    outcome: { replied: false, positive: false },
+    timestamps: { created: daysAgo(55), updated: daysAgo(54) },
+  },
+  {
+    id: "job-hist-v1-02",
+    lead: { name: "Sam Okafor", title: "Head of Platform" },
+    company: "Vanta Systems",
+    play: "Web Activity",
+    researchRun: researchRun({
+      label: "Historical send record",
+      leadSource: "Web deanonymization",
+      scope: "v1 baseline draft — rep edited before sending.",
+      contactsScanned: 1, accountsTouched: 1, shortlisted: 1, selectedRank: 1,
+      whyChosen: "Web intent signal.", whyNow: "Multiple docs visits in same week.",
+      uncertainty: "Moderate.",
+      sourceSummary: [{ label: "Web intent", count: 5 }],
+      candidateComparisons: [], angleDecisions: [],
+    }),
+    angleType: "web_intent",
+    status: "sent_stub",
+    pipelineStage: "complete",
+    governance: "review_required",
+    confidence: { tier: "medium", summary: "v1 baseline draft.", reasons: [] },
+    angle: "Web intent angle.", signals: [],
+    draft: { subject: "Docs activity follow-up", body: "Hi Sam,\n\nSaw your team researching deployment docs…\n\nBest," },
+    feedback: { edited: true, editorNote: "CTA was too aggressive." },
+    outcome: { replied: true, positive: false },
+    timestamps: { created: daysAgo(50), updated: daysAgo(49) },
+  },
+  {
+    id: "job-hist-v1-03",
+    lead: { name: "Dana Reyes", title: "VP Product" },
+    company: "Meridian Cloud",
+    play: "Event Signal",
+    researchRun: researchRun({
+      label: "Historical send record",
+      leadSource: "Marketing event scan",
+      scope: "v1 baseline draft — shipped clean but no reply.",
+      contactsScanned: 1, accountsTouched: 1, shortlisted: 1, selectedRank: 1,
+      whyChosen: "Event attendance context.", whyNow: "Attended Vercel launch event.",
+      uncertainty: "Low.", sourceSummary: [{ label: "Event context", count: 1 }],
+      candidateComparisons: [], angleDecisions: [],
+    }),
+    angleType: "event_signal",
+    status: "sent_stub",
+    pipelineStage: "complete",
+    governance: "review_required",
+    confidence: { tier: "low", summary: "v1 baseline draft.", reasons: [] },
+    angle: "Event follow-up angle.", signals: [],
+    draft: { subject: "Following up after the event", body: "Hi Dana,\n\nGreat to see Meridian at the event…\n\nBest," },
+    feedback: { edited: false },
+    outcome: { replied: false, positive: false },
+    timestamps: { created: daysAgo(45), updated: daysAgo(44) },
+  },
+  // v2 bucket — lower edit rate, one positive reply
+  {
+    id: "job-hist-v2-01",
+    lead: { name: "Morgan Ellis", title: "Director of Infrastructure" },
+    company: "Prism Data",
+    play: "PLG Signup",
+    researchRun: researchRun({
+      label: "Historical send record",
+      leadSource: "Product-qualified signup",
+      scope: "v2 draft — shipped clean, got a positive reply.",
+      contactsScanned: 1, accountsTouched: 1, shortlisted: 1, selectedRank: 1,
+      whyChosen: "Strong PLG activation signal.", whyNow: "Trial with heavy preview usage.",
+      uncertainty: "Low.", sourceSummary: [{ label: "Workspace activation", count: 7 }],
+      candidateComparisons: [], angleDecisions: [],
+    }),
+    angleType: "trial_activation",
+    status: "sent_stub",
+    pipelineStage: "complete",
+    governance: "auto_eligible",
+    confidence: { tier: "high", summary: "v2 compile draft.", reasons: [] },
+    angle: "Trial activation angle.", signals: [],
+    draft: { subject: "Preview workflow scale-up", body: "Hi Morgan,\n\nYour team's preview activity looks like serious scale-up territory…\n\nBest," },
+    feedback: { edited: false },
+    outcome: { replied: true, positive: true },
+    timestamps: { created: daysAgo(30), updated: daysAgo(28) },
+  },
+  {
+    id: "job-hist-v2-02",
+    lead: { name: "Casey Liu", title: "Staff Engineer" },
+    company: "Hollow Tree",
+    play: "Tech Migration",
+    researchRun: researchRun({
+      label: "Historical send record",
+      leadSource: "Outbound account list",
+      scope: "v2 draft — minor edit before send.",
+      contactsScanned: 1, accountsTouched: 1, shortlisted: 1, selectedRank: 1,
+      whyChosen: "Tech migration context.", whyNow: "Infra role open, migration signals present.",
+      uncertainty: "Moderate.", sourceSummary: [{ label: "Tech migration signals", count: 3 }],
+      candidateComparisons: [], angleDecisions: [],
+    }),
+    angleType: "tech_migration",
+    status: "sent_stub",
+    pipelineStage: "complete",
+    governance: "review_required",
+    confidence: { tier: "medium", summary: "v2 compile draft.", reasons: [] },
+    angle: "Tech migration angle.", signals: [],
+    draft: { subject: "Migration timing for Hollow Tree", body: "Hi Casey,\n\nSaw the infra migration signals…\n\nBest," },
+    feedback: { edited: true, editorNote: "Adjusted specifics of migration context." },
+    outcome: { replied: false, positive: false },
+    timestamps: { created: daysAgo(25), updated: daysAgo(24) },
+  },
+];
+
 function normalizeLeadSource(raw: string): LeadSource {
   const value = raw.toLowerCase();
   if (value.includes("trial") || value.includes("product")) return "plg_product";
@@ -833,9 +1012,10 @@ function normalizeResearchRun(run: LegacyResearchRun): OutboundJob["researchRun"
   };
 }
 
-export const MOCK_JOBS: OutboundJob[] = LEGACY_MOCK_JOBS.map((job) => ({
+export const MOCK_JOBS: OutboundJob[] = [...LEGACY_MOCK_JOBS, ...HISTORICAL_SENT_JOBS].map((job) => ({
   ...job,
   play: normalizePlay(job.play, job.researchRun.leadSource),
   whyNow: job.researchRun.whyNow,
   researchRun: normalizeResearchRun(job.researchRun),
+  promptVersions: JOB_PROMPT_VERSIONS[job.id] ?? DSPY_PROMPT_VERSIONS_V3,
 }));

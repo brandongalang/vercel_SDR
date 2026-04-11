@@ -20,6 +20,7 @@ import {
   createDefaultAnalyticsDateRange,
   formatAnalyticsDateRangeLabel,
   getNearestAnalyticsSnapshot,
+  MOCK_DSPY_COMPILE_RUNS,
 } from "@/lib/analytics-mock";
 import QueueList from "./QueueList";
 import DetailPanel from "./DetailPanel";
@@ -462,6 +463,7 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
           dateRange={analyticsDateRange}
           setDateRange={setAnalyticsDateRange}
           jobs={jobs}
+          compileRuns={MOCK_DSPY_COMPILE_RUNS}
         />
       ) : (
         <LiveAgentDemo />

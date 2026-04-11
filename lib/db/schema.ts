@@ -44,6 +44,9 @@ export const jobs = pgTable('jobs', {
   sdrEditedSubject: text('sdr_edited_subject'),
   sdrEditedBody: text('sdr_edited_body'),
 
+  // -- DSPy attribution
+  promptVersions: jsonb('prompt_versions').$type<Record<string, string>>(),
+
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

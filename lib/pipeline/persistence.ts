@@ -92,6 +92,7 @@ export function toInstantJobRecord(job: OutboundJob) {
     researchRun: job.researchRun,
     feedback: job.feedback ?? null,
     outcome: job.outcome ?? null,
+    promptVersions: job.promptVersions ?? null,
     createdAt: new Date(job.timestamps.created).getTime(),
     updatedAt: new Date(job.timestamps.updated).getTime(),
     approvedAt: toEpochMilliseconds(job.timestamps.approvedAt),
@@ -171,6 +172,7 @@ export async function persistPipelineRun(input: PersistPipelineRunInput) {
   const job: OutboundJob = {
     id: jobId,
     ...input.job,
+    promptVersions: input.audit.promptVersions,
   };
   const finalAudit = finalizeSuccessfulAudit(input.audit, jobId);
 

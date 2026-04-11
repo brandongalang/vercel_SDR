@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { AnalyticsDateRange, AnalyticsSnapshot, OutboundJob, PlaybookRow } from "@/lib/types";
+import { AnalyticsDateRange, AnalyticsSnapshot, DspyCompileRun, OutboundJob, PlaybookRow } from "@/lib/types";
 import { computeQueueMetrics } from "@/lib/metrics";
 import { ANGLE_CONFIG } from "@/lib/angle-config";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import DspyOptimizationPanel from "@/components/DspyOptimizationPanel";
 
 function MetricCard({
   label,
@@ -117,6 +118,7 @@ export default function AnalyticsPage({
   dateRange,
   setDateRange,
   jobs,
+  compileRuns,
 }: { 
   analytics: AnalyticsSnapshot;
   analyticsWindowLabel: string;
@@ -124,6 +126,7 @@ export default function AnalyticsPage({
   dateRange: AnalyticsDateRange;
   setDateRange: (range: AnalyticsDateRange) => void;
   jobs: OutboundJob[];
+  compileRuns: DspyCompileRun[];
 }) {
   const { summary, byAngle } = useMemo(
     () => computeQueueMetrics(jobs, dateRange),
@@ -337,6 +340,16 @@ export default function AnalyticsPage({
               ))}
             </div>
           </div>
+        </section>
+
+        <section>
+          <div className="mb-4">
+            <h2 className="text-[15px] font-semibold text-zinc-950">DSPy optimization</h2>
+            <p className="mt-0.5 text-[12px] text-zinc-500">
+              Prompt version attribution and offline compile history. Each row in the version table comes from real jobs stamped with <code className="font-mono text-[11px]">promptVersions</code> at pipeline run time.
+            </p>
+          </div>
+          <DspyOptimizationPanel compileRuns={compileRuns} jobs={jobs} />
         </section>
       </div>
     </div>

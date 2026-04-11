@@ -185,6 +185,8 @@ export interface OutboundJob {
   /** Reply / pipeline signals for sent touches — drives success rates in Insights */
   outcome?: JobOutcome;
   timestamps: JobTimestamps;
+  /** Prompt version map stamped at pipeline run time — enables DSPy version-attributed analytics */
+  promptVersions?: Record<string, string>;
 }
 
 export interface WeeklyResponsePoint {
@@ -241,4 +243,43 @@ export interface AnalyticsSnapshot {
   weeklyResponse: WeeklyResponsePoint[];
   topPlays: PlaybookRow[];
   frictionPlays: PlaybookRow[];
+}
+
+// ─── DSPy optimization types ──────────────────────────────────────────────────
+
+/** Metrics for a single prompt version bucket, optionally filtered by angle type */
+export interface DspyVersionRow {
+  /** The draftGenerator prompt version string, e.g. "2026-04-11.draft-generator.v2" */
+  draftPromptVersion: string;
+  /** AngleType filter applied to this row, or null for global (all angles) */
+  angleType: AngleType | null;
+  jobCount: number;
+  withFeedback: number;
+  cleanAccept: number;
+  edited: number;
+  cleanAcceptRate: number | null;
+  editRate: number | null;
+  sentWithOutcome: number;
+  replied: number;
+  positive: number;
+  replyRate: number | null;
+  positiveRate: number | null;
+}
+
+/** A single offline DSPy optimization run — stamped when a new frozen prompt artifact is compiled */
+export interface DspyCompileRun {
+  id: string;
+  compiledAt: string;           // ISO date string
+  optimizer: string;            // e.g. "BootstrapFewShot", "MIPROv2"
+  promptVersionBefore: string;  // draftGenerator version that was the baseline
+  promptVersionAfter: string;   // draftGenerator version produced by this compile
+  trainWindowDays: number;      // how many days of jobs were used as training data
+  jobsUsed: number;             // count of training examples
+  /** Delta metrics vs the previous version (positive = improvement) */
+  deltas: {
+    cleanAcceptRate?: number;
+    editRate?: number;
+    positiveRate?: number;
+    replyRate?: number;
+  };
 }

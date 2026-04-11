@@ -1,5 +1,10 @@
 import { Output, stepCountIs, tool, ToolLoopAgent } from "ai";
-import { vertexModels } from "@/lib/ai/vertex";
+import { VERTEX_MODEL_IDS, vertexModels } from "@/lib/ai/vertex";
+import {
+  getTraceErrorMessage,
+  nowIso,
+  type PipelineTraceEmitter,
+} from "@/lib/pipeline/live-trace";
 import type { LeadInput, ResearchPacket, SubAgentReport } from "@/lib/types";
 import { PROMPT_VERSIONS } from "@/lib/pipeline/prompts";
 import {
@@ -97,29 +102,155 @@ function buildFallbackThreads(leadInput: LeadInput) {
   ];
 }
 
+function slugifyTraceId(value: string) {
+  const slug = value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return slug || "research-thread";
+}
+
+function formatTraceTopic(topic: string) {
+  return topic
+    .split(/[-_]/g)
+    .filter(Boolean)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(" ");
+}
+
+function trimFindingForTrace(finding: SubAgentReport["findings"][number]) {
+  const rawQuote =
+    finding.rawQuote && finding.rawQuote.length > 240
+      ? `${finding.rawQuote.slice(0, 240)}…`
+      : finding.rawQuote;
+
+  return {
+    ...finding,
+    rawQuote,
+  };
+}
+
 export async function runResearchAgent(input: {
   leadInput: LeadInput;
   abortSignal?: AbortSignal;
+  trace?: PipelineTraceEmitter;
 }) {
   const reports: SubAgentReport[] = [];
   const stepTraces: unknown[] = [];
+  const orchestratorNodeId = "research-orchestrator";
+  const orchestratorStartedAt = nowIso();
+  let threadCount = 0;
+
+  input.trace?.({
+    kind: "agent",
+    id: orchestratorNodeId,
+    scope: "research",
+    agentType: "orchestrator",
+    title: "Research orchestrator",
+    subtitle: "Plans coverage and spawns focused research threads",
+    status: "running",
+    startedAt: orchestratorStartedAt,
+    model: VERTEX_MODEL_IDS.orchestrator,
+  });
+
+  async function runThreadWithTrace(args: {
+    topic: string;
+    researchGoal: string;
+    queryHints: string[];
+    includeDomains: string[];
+  }) {
+    const threadId = `research-thread-${++threadCount}-${slugifyTraceId(args.topic)}`;
+    const startedAt = nowIso();
+
+    input.trace?.({
+      kind: "agent",
+      id: threadId,
+      parentId: orchestratorNodeId,
+      scope: "research",
+      agentType: "subagent",
+      title: `Sub-agent · ${formatTraceTopic(args.topic)}`,
+      subtitle: "Focused evidence gathering",
+      status: "running",
+      startedAt,
+      model: VERTEX_MODEL_IDS.researcher,
+      topic: args.topic,
+      goal: args.researchGoal,
+      queryHints: args.queryHints,
+      includeDomains: args.includeDomains,
+    });
+
+    try {
+      const result = await runResearchThread({
+        leadInput: input.leadInput,
+        topic: args.topic,
+        researchGoal: args.researchGoal,
+        queryHints: args.queryHints,
+        includeDomains: args.includeDomains,
+        abortSignal: input.abortSignal,
+        trace: input.trace,
+        traceParentId: threadId,
+      });
+
+      reports.push(result.report);
+      stepTraces.push({ topic: result.report.topic, steps: result.steps });
+
+      input.trace?.({
+        kind: "agent",
+        id: threadId,
+        parentId: orchestratorNodeId,
+        scope: "research",
+        agentType: "subagent",
+        title: `Sub-agent · ${formatTraceTopic(args.topic)}`,
+        subtitle: "Focused evidence gathering",
+        status: "completed",
+        startedAt,
+        completedAt: nowIso(),
+        model: VERTEX_MODEL_IDS.researcher,
+        topic: args.topic,
+        goal: args.researchGoal,
+        queryHints: args.queryHints,
+        includeDomains: args.includeDomains,
+        summary: result.report.summary,
+        findings: result.report.findings.slice(0, 5).map(trimFindingForTrace),
+        gaps: result.report.gaps,
+      });
+
+      return result;
+    } catch (error) {
+      input.trace?.({
+        kind: "agent",
+        id: threadId,
+        parentId: orchestratorNodeId,
+        scope: "research",
+        agentType: "subagent",
+        title: `Sub-agent · ${formatTraceTopic(args.topic)}`,
+        subtitle: "Focused evidence gathering",
+        status: "error",
+        startedAt,
+        completedAt: nowIso(),
+        model: VERTEX_MODEL_IDS.researcher,
+        topic: args.topic,
+        goal: args.researchGoal,
+        queryHints: args.queryHints,
+        includeDomains: args.includeDomains,
+        error: getTraceErrorMessage(error),
+      });
+
+      throw error;
+    }
+  }
 
   const spawnResearcher = tool({
     description: "Spawn a focused research subagent for one topic and receive a concise summary back.",
     inputSchema: runResearcherInputSchema,
-    execute: async ({ topic, researchGoal, queryHints, includeDomains }, { abortSignal }) => {
-      const result = await runResearchThread({
-        leadInput: input.leadInput,
+    execute: async ({ topic, researchGoal, queryHints, includeDomains }) => {
+      const result = await runThreadWithTrace({
         topic,
         researchGoal,
         queryHints,
         includeDomains,
-        abortSignal,
       });
-
-      reports.push(result.report);
-      stepTraces.push({ topic, steps: result.steps });
-
       return result.report;
     },
     toModelOutput: ({ output }) => ({
@@ -140,48 +271,74 @@ export async function runResearchAgent(input: {
     stopWhen: stepCountIs(10),
   });
 
-  const result = await orchestrator.generate({
-    prompt: buildOrchestratorPrompt(input.leadInput),
-    abortSignal: input.abortSignal,
-  });
+  try {
+    const result = await orchestrator.generate({
+      prompt: buildOrchestratorPrompt(input.leadInput),
+      abortSignal: input.abortSignal,
+    });
 
-  if (reports.length === 0) {
-    const fallbackResults = await Promise.all(
-      buildFallbackThreads(input.leadInput).map((thread) =>
-        runResearchThread({
-          leadInput: input.leadInput,
-          topic: thread.topic,
-          researchGoal: thread.researchGoal,
-          queryHints: thread.queryHints,
-          includeDomains: thread.includeDomains,
-          abortSignal: input.abortSignal,
-        }),
-      ),
-    );
+    if (reports.length === 0) {
+      await Promise.all(
+        buildFallbackThreads(input.leadInput).map((thread) =>
+          runThreadWithTrace({
+            topic: thread.topic,
+            researchGoal: thread.researchGoal,
+            queryHints: thread.queryHints,
+            includeDomains: thread.includeDomains,
+          }),
+        ),
+      );
+    }
 
-    reports.push(...fallbackResults.map((thread) => thread.report));
-    stepTraces.push(
-      ...fallbackResults.map((thread) => ({
-        topic: thread.report.topic,
-        steps: thread.steps,
-      })),
-    );
+    const output = result.output;
+    const packet: ResearchPacket = {
+      leadInput: input.leadInput,
+      reports,
+      threadSummaries:
+        output.threadSummaries.length > 0
+          ? output.threadSummaries
+          : reports.map((report) => report.summary),
+      orchestratorSummary:
+        output.orchestratorSummary ||
+        "Used fallback research planning after the orchestrator returned without spawning any research threads.",
+      uncertainty: output.uncertainty,
+    };
+
+    input.trace?.({
+      kind: "agent",
+      id: orchestratorNodeId,
+      scope: "research",
+      agentType: "orchestrator",
+      title: "Research orchestrator",
+      subtitle: "Plans coverage and spawns focused research threads",
+      status: "completed",
+      startedAt: orchestratorStartedAt,
+      completedAt: nowIso(),
+      model: VERTEX_MODEL_IDS.orchestrator,
+      summary: packet.orchestratorSummary,
+      uncertainty: packet.uncertainty,
+    });
+
+    return {
+      packet,
+      steps: result.steps,
+      threadTraces: stepTraces,
+    };
+  } catch (error) {
+    input.trace?.({
+      kind: "agent",
+      id: orchestratorNodeId,
+      scope: "research",
+      agentType: "orchestrator",
+      title: "Research orchestrator",
+      subtitle: "Plans coverage and spawns focused research threads",
+      status: "error",
+      startedAt: orchestratorStartedAt,
+      completedAt: nowIso(),
+      model: VERTEX_MODEL_IDS.orchestrator,
+      error: getTraceErrorMessage(error),
+    });
+
+    throw error;
   }
-
-  const output = result.output;
-  const packet: ResearchPacket = {
-    leadInput: input.leadInput,
-    reports,
-    threadSummaries: output.threadSummaries.length > 0 ? output.threadSummaries : reports.map((report) => report.summary),
-    orchestratorSummary:
-      output.orchestratorSummary ||
-      "Used fallback research planning after the orchestrator returned without spawning any research threads.",
-    uncertainty: output.uncertainty,
-  };
-
-  return {
-    packet,
-    steps: result.steps,
-    threadTraces: stepTraces,
-  };
 }

@@ -1,4 +1,4 @@
-import type { AnalyticsDateRange, AngleType, OutboundJob } from "./types";
+import type { AnalyticsDateRange, AngleType, DspyVersionRow, OutboundJob } from "./types";
 import { ANGLE_CONFIG } from "./angle-config";
 
 export interface QueueMetricsSummary {
@@ -219,4 +219,70 @@ export function computeQueueMetrics(jobs: OutboundJob[], dateRange?: AnalyticsDa
     );
 
   return { summary, byAngle };
+}
+
+/**
+ * Groups jobs by their draftGenerator prompt version and computes the DSPy optimization
+ * metrics for each bucket. Optionally filtered to a single angleType.
+ *
+ * Returns one row per (draftPromptVersion, angleType) combination — plus a global row
+ * (angleType: null) for each version showing the aggregate across all angles.
+ */
+export function computeDspyVersionMetrics(
+  jobs: OutboundJob[],
+  angleFilter?: AngleType | null,
+): DspyVersionRow[] {
+  const versionedJobs = jobs.filter((j) => j.promptVersions?.draftGenerator);
+
+  const angleTypes: Array<AngleType | null> =
+    angleFilter !== undefined
+      ? [angleFilter]
+      : [null, ...(Object.keys(ANGLE_CONFIG) as AngleType[])];
+
+  const versions = [
+    ...new Set(versionedJobs.map((j) => j.promptVersions!.draftGenerator)),
+  ].sort();
+
+  const rows: DspyVersionRow[] = [];
+
+  for (const version of versions) {
+    const vJobs = versionedJobs.filter(
+      (j) => j.promptVersions!.draftGenerator === version,
+    );
+
+    for (const angleType of angleTypes) {
+      const subset = angleType == null ? vJobs : vJobs.filter((j) => j.angleType === angleType);
+
+      if (subset.length === 0) continue;
+
+      const approvedPath = subset.filter(isApprovedPath);
+      const withFeedback = approvedPath.filter((j) => j.feedback != null);
+      const cleanAccept = withFeedback.filter((j) => !j.feedback!.edited).length;
+      const edited = withFeedback.filter((j) => j.feedback!.edited).length;
+      const fb = cleanAccept + edited;
+
+      const sentJobs = subset.filter((j) => j.status === "sent_stub" && j.outcome != null);
+      const replied = sentJobs.filter((j) => j.outcome!.replied).length;
+      const positive = sentJobs.filter((j) => j.outcome!.positive).length;
+      const o = sentJobs.length;
+
+      rows.push({
+        draftPromptVersion: version,
+        angleType,
+        jobCount: subset.length,
+        withFeedback: withFeedback.length,
+        cleanAccept,
+        edited,
+        cleanAcceptRate: fb > 0 ? Math.round((cleanAccept / fb) * 1000) / 10 : null,
+        editRate: fb > 0 ? Math.round((edited / fb) * 1000) / 10 : null,
+        sentWithOutcome: o,
+        replied,
+        positive,
+        replyRate: o > 0 ? Math.round((replied / o) * 1000) / 10 : null,
+        positiveRate: o > 0 ? Math.round((positive / o) * 1000) / 10 : null,
+      });
+    }
+  }
+
+  return rows;
 }

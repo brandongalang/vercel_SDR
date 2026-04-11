@@ -1,0 +1,114 @@
+{
+  "meta": {
+    "title": "Vercel SDR — example outbound messages",
+    "description": "First-touch email drafts from the demo pipeline mock data. These illustrate angle types (hiring signal, social post, event, tech migration, trial activation) and tone patterns the app reviews before send.",
+    "source": "lib/mock-data.ts (LEGACY_MOCK_JOBS)",
+    "generated": "2026-04-11"
+  },
+  "examples": [
+    {
+      "id": "job-001",
+      "angleType": "hiring_signal",
+      "play": "PLG Signup",
+      "lead": { "name": "Sarah Kim", "title": "VP Engineering" },
+      "company": "Acme Corp",
+      "tactic": "Pair public hiring language with internal trial/preview activation so the opener feels timely, not generic.",
+      "subject": "Scaling preview workflow as Acme ramps up",
+      "body": "Hi Sarah,\n\nSaw Acme is hiring around frontend platform workflow just as your Vercel workspace activity picked up this week.\n\nThat usually means preview environments and release coordination are becoming more important fast. We have been helping engineering teams tighten that part of the rollout without adding more internal process. Open to a quick compare-notes conversation?\n\nBest,",
+      "highlightedSpan": "That usually means preview environments and release coordination are becoming more important fast."
+    },
+    {
+      "id": "job-002",
+      "angleType": "social_post",
+      "play": "Web Activity",
+      "lead": { "name": "Devin Ross", "title": "Director of Platform" },
+      "company": "LedgerLoop",
+      "tactic": "Lead with the prospect’s own narrative (reducing sprawl) and support with docs-intent signals without sounding surveillance-heavy.",
+      "subject": "Platform consolidation timing at LedgerLoop",
+      "body": "Hi Devin,\n\nYour note about reducing platform sprawl stood out, especially since LedgerLoop has been back in the weeds on routing and middleware questions this week.\n\nWe work with platform teams when that consolidation effort starts turning into release-workflow decisions. If that is on your plate this quarter, open to a quick comparison call?\n\nBest,",
+      "highlightedSpan": "We work with platform teams when that consolidation effort starts turning into release-workflow decisions."
+    },
+    {
+      "id": "job-003",
+      "angleType": "event_signal",
+      "play": "Event Signal",
+      "lead": { "name": "Alana Brooks", "title": "CTO" },
+      "company": "Northstar Health",
+      "tactic": "Anchor on a public event (webinar) for regulated context; keep internal page visits as supporting evidence only.",
+      "subject": "Secure release workflow for regulated teams",
+      "body": "Hi Alana,\n\nSaw Northstar joined the healthcare infrastructure webinar on secure release workflow. That topic tends to come up when teams want tighter control without slowing engineers down.\n\nWe have been helping regulated engineering orgs simplify preview access, auditability, and release guardrails. Would a short conversation be useful?\n\nBest,",
+      "highlightedSpan": "That topic tends to come up when teams want tighter control without slowing engineers down."
+    },
+    {
+      "id": "job-004",
+      "angleType": "tech_migration",
+      "play": "Tech Stack",
+      "lead": { "name": "Jon Park", "title": "Head of Platform" },
+      "company": "BrightOps",
+      "tactic": "Tie public engineering content (release workflow) to recurring product usage so the pitch stays operational.",
+      "subject": "Simplifying release workflow at BrightOps",
+      "body": "Hi Jon,\n\nSaw BrightOps has been talking publicly about simplifying frontend release workflow just as your Vercel usage started to look more serious this week.\n\nThat is usually the moment preview handoff and release coordination start becoming real platform work. We have been helping teams tighten that up without adding another process layer. Worth a quick compare-notes call?\n\nBest,",
+      "highlightedSpan": "That is usually the moment preview handoff and release coordination start becoming real platform work."
+    },
+    {
+      "id": "job-005",
+      "angleType": "trial_activation",
+      "play": "PLG Signup",
+      "lead": { "name": "Nora Bell", "title": "Engineering Manager" },
+      "company": "Caregrid",
+      "tactic": "Low-signal lead: intentionally light, helpful activation follow-up — calibration example for when not to oversell.",
+      "subject": "Getting value from a new Vercel workspace",
+      "body": "Hi Nora,\n\nLooks like your team recently started testing Vercel. Reaching out in case it would help to compare how other engineering teams get value quickly in the first couple of weeks.\n\nHappy to share notes if useful.\n\nBest,",
+      "highlightedSpan": null,
+      "note": "Mock confidence is low; product treats this as archive-friendly, not a strong pitch."
+    },
+    {
+      "id": "job-006",
+      "angleType": "trial_activation",
+      "play": "PLG Signup",
+      "lead": { "name": "Priya Nair", "title": "Engineering Manager" },
+      "company": "CloudBase",
+      "tactic": "Early-stage activation: offer setup help and end with an open question to learn their evaluation priority.",
+      "subject": "Getting value from your new Vercel setup",
+      "body": "Hi Priya,\n\nLooks like your team is getting started with Vercel. Wanted to reach out early in case it would help to compare how other engineering teams get value in the first couple of weeks.\n\nHappy to do a quick setup call or answer any questions. What are you evaluating first?\n\nBest,",
+      "highlightedSpan": "What are you evaluating first?"
+    },
+    {
+      "id": "job-sent-01",
+      "angleType": "hiring_signal",
+      "play": "Hiring Signal",
+      "lead": { "name": "Chris Patel", "title": "Director of Engineering" },
+      "company": "Northwind Labs",
+      "tactic": "Historical stub used for analytics calibration (positive reply outcome in mock).",
+      "subject": "(sent) Preview workflow scale-up",
+      "body": "Hi Chris,\n\nSaw the platform hiring push as your Vercel usage picked up…\n\nBest,",
+      "isStub": true,
+      "outcome": { "replied": true, "positive": true }
+    },
+    {
+      "id": "job-sent-02",
+      "angleType": "social_post",
+      "play": "Web Activity",
+      "lead": { "name": "Jordan Lee", "title": "Platform Lead" },
+      "company": "PixelForge",
+      "tactic": "Historical stub: SDR softened tone before send (edited: true in mock).",
+      "subject": "(sent) Platform simplification timing",
+      "body": "Hi Jordan,\n\nYour post on simplifying the platform stack caught my eye…\n\nBest,",
+      "isStub": true,
+      "feedback": { "edited": true, "editorNote": "Softened the opening and CTA." },
+      "outcome": { "replied": true, "positive": false }
+    },
+    {
+      "id": "job-sent-03",
+      "angleType": "event_signal",
+      "play": "Event Signal",
+      "lead": { "name": "Taylor Brooks", "title": "Head of Growth" },
+      "company": "SignalNine",
+      "tactic": "Historical stub: lightweight post-workshop follow-up.",
+      "subject": "(sent) Following up after the workshop",
+      "body": "Hi Taylor,\n\nFollowing up after the workshop while your team is getting started…\n\nBest,",
+      "isStub": true,
+      "outcome": { "replied": false, "positive": false }
+    }
+  ]
+}
