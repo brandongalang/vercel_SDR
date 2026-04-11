@@ -15,6 +15,15 @@ import {
   Server,
   Sparkles,
 } from "lucide-react";
+import { MessageResponse } from "@/components/ai-elements/message";
+import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolInput,
+  ToolOutput,
+  type ToolState,
+} from "@/components/ai-elements/tool";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,10 +32,6 @@ import type { PipelineAgentUIMessage } from "@/lib/pipeline/pipeline-agent";
 import type { PipelineTraceNode } from "@/lib/pipeline/live-trace";
 import type { LeadInput, LeadSource, PlayType } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-// ─── Types ─────────────────────────────────────────────────────────────────────
-
-type ToolState = "input-streaming" | "input-available" | "output-available" | "output-error" | "idle";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -75,88 +80,119 @@ function FieldLabel({ children }: { children: ReactNode }) {
   );
 }
 
-function ToolCardShell({
-  icon: Icon,
-  label,
-  state,
-  children,
-}: {
-  icon: ElementType;
-  label: string;
-  state: ToolState;
-  children?: ReactNode;
-}) {
-  const isRunning = state === "input-streaming" || state === "input-available";
-  const isDone = state === "output-available";
-  const isError = state === "output-error";
+function isRunningToolState(state: ToolState) {
+  return state === "input-streaming" || state === "input-available";
+}
 
+function getToolPartErrorText(part: { state?: string; errorText?: string }) {
+  return part.state === "output-error" ? part.errorText : undefined;
+}
+
+function shouldForceToolOpen(state: ToolState) {
+  return isRunningToolState(state);
+}
+
+function getDefaultToolOpen(state: ToolState) {
+  return state !== "output-available";
+}
+
+function getToolOpenStateBucket(state: ToolState) {
+  if (isRunningToolState(state)) return "running";
+  return state;
+}
+
+function formatCompactValue(value: unknown): string | null {
+  if (value == null) return null;
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) {
+    return value
+      .slice(0, 3)
+      .map((item) => formatCompactValue(item))
+      .filter((item): item is string => Boolean(item))
+      .join(" · ");
+  }
+
+  if (typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, entry]) => entry != null)
+      .slice(0, 2)
+      .map(([key, entry]) => `${key}: ${formatCompactValue(entry)}`);
+
+    return entries.join(" · ");
+  }
+
+  return null;
+}
+
+function TimelineBranch({
+  children,
+  level = 1,
+}: {
+  children: ReactNode;
+  level?: 1 | 2;
+}) {
   return (
-    <div
-      className={cn(
-        "rounded-xl border px-4 py-3 shadow-sm transition-colors",
-        isRunning && "border-amber-200 bg-amber-50",
-        isDone && "border-emerald-200 bg-emerald-50",
-        isError && "border-red-200 bg-red-50",
-        !isRunning && !isDone && !isError && "border-zinc-200 bg-white",
-      )}
-    >
-      <div className="flex items-start gap-3">
-        <div
-          className={cn(
-            "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border",
-            isRunning && "border-amber-300 bg-amber-100 text-amber-700",
-            isDone && "border-emerald-300 bg-emerald-100 text-emerald-700",
-            isError && "border-red-300 bg-red-100 text-red-700",
-            !isRunning && !isDone && !isError && "border-zinc-200 bg-zinc-50 text-zinc-500",
-          )}
-        >
-          {isRunning ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : isDone ? (
-            <CheckCircle2 className="h-4 w-4" />
-          ) : isError ? (
-            <AlertTriangle className="h-4 w-4" />
-          ) : (
-            <Icon className="h-4 w-4" />
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[13px] font-medium text-zinc-900">{label}</p>
-            <span
-              className={cn(
-                "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide",
-                isRunning && "border-amber-200 bg-amber-50 text-amber-700",
-                isDone && "border-emerald-200 bg-emerald-50 text-emerald-700",
-                isError && "border-red-200 bg-red-50 text-red-700",
-                !isRunning && !isDone && !isError && "border-zinc-200 bg-zinc-50 text-zinc-500",
-              )}
-            >
-              {isRunning ? "Running" : isDone ? "Done" : isError ? "Error" : "Pending"}
-            </span>
-          </div>
-          {children ? <div className="mt-2">{children}</div> : null}
-        </div>
-      </div>
+    <div className={cn("relative", level === 1 ? "pl-6" : "pl-11")}>
+      <div
+        aria-hidden="true"
+        className={cn(
+          "absolute top-0 bottom-0 w-px bg-zinc-200",
+          level === 1 ? "left-[11px]" : "left-[31px]",
+        )}
+      />
+      <div
+        aria-hidden="true"
+        className={cn(
+          "absolute top-5 h-px bg-zinc-200",
+          level === 1 ? "left-[11px] w-3" : "left-[31px] w-4",
+        )}
+      />
+      {children}
     </div>
   );
 }
 
-// ─── Idle preview card ─────────────────────────────────────────────────────────
-
-function IdleToolCard({
+function PipelineToolRow({
+  type,
+  title,
+  state,
   icon,
-  label,
   description,
+  trailing,
+  children,
+  className,
+  contentClassName,
 }: {
-  icon: ElementType;
-  label: string;
-  description: string;
+  type: string;
+  title: string;
+  state: ToolState;
+  icon: ReactNode;
+  description?: ReactNode;
+  trailing?: ReactNode;
+  children?: ReactNode;
+  className?: string;
+  contentClassName?: string;
 }) {
+  const toolKey = `${type}-${getToolOpenStateBucket(state)}`;
+
   return (
-    <ToolCardShell icon={icon} label={label} state="idle">
-      <p className="text-[12px] leading-relaxed text-zinc-400">{description}</p>
-    </ToolCardShell>
+    <Tool
+      key={toolKey}
+      defaultOpen={getDefaultToolOpen(state)}
+      forceOpen={shouldForceToolOpen(state)}
+      className={cn("border-zinc-200 bg-white shadow-sm", className)}
+    >
+      <ToolHeader
+        type={type}
+        state={state}
+        title={title}
+        icon={icon}
+        description={description}
+        trailing={trailing}
+      />
+      {children ? <ToolContent className={contentClassName}>{children}</ToolContent> : null}
+    </Tool>
   );
 }
 
@@ -323,33 +359,96 @@ function ResearchToolOutput({ node }: { node: ResearchToolNode }) {
   return null;
 }
 
+function getResearchToolSummary(node: ResearchToolNode) {
+  if (node.status === "error") {
+    return node.error ?? "Tool call failed.";
+  }
+
+  if (node.status === "completed" && node.output) {
+    if (node.toolName === "web_search") {
+      const output = node.output as { results?: Array<unknown>; query?: string };
+      return output.results?.length
+        ? `${output.results.length} result${output.results.length === 1 ? "" : "s"} for ${output.query ?? "query"}`
+        : "Search finished.";
+    }
+
+    return formatCompactValue(node.output) ?? "Output captured.";
+  }
+
+  return formatCompactValue(node.input) ?? "Streaming tool payload…";
+}
+
 function ResearchToolCallCard({ node }: { node: ResearchToolNode }) {
-  const icon = node.toolName === "web_search" ? Globe : node.toolName === "crm_lookup" ? Database : Server;
+  const state = traceStatusToToolState(node.status);
+  const icon =
+    node.toolName === "web_search" ? (
+      <Globe className="h-4 w-4" />
+    ) : node.toolName === "crm_lookup" ? (
+      <Database className="h-4 w-4" />
+    ) : (
+      <Server className="h-4 w-4" />
+    );
   const startedAt = formatTimestampLabel(node.startedAt);
   const completedAt = formatTimestampLabel(node.completedAt);
+  const output =
+    node.output ? (
+      <div className="space-y-3">
+        <ResearchToolOutput node={node} />
+        <PayloadDisclosure label="Raw payload" value={node.output} />
+      </div>
+    ) : node.status === "running" ? (
+      <MessageResponse className="text-amber-800">
+        Tool call is running with live payload capture.
+      </MessageResponse>
+    ) : null;
 
   return (
-    <ToolCardShell icon={icon} label={node.title} state={traceStatusToToolState(node.status)}>
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
-          <span className="font-mono uppercase tracking-wide">{node.toolName.replace(/_/g, " ")}</span>
-          {startedAt ? <span>started {startedAt}</span> : null}
-          {completedAt ? <span>finished {completedAt}</span> : null}
+    <PipelineToolRow
+      type={`tool-${node.toolName}`}
+      title={node.title}
+      state={state}
+      icon={icon}
+      className="rounded-lg border-zinc-200/80 bg-white shadow-none"
+      contentClassName="space-y-3"
+      description={
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-mono uppercase tracking-wide">
+              {node.toolName.replace(/_/g, " ")}
+            </span>
+            {startedAt ? <span>started {startedAt}</span> : null}
+            {completedAt ? <span>finished {completedAt}</span> : null}
+          </div>
+          <p className="text-zinc-600">{getResearchToolSummary(node)}</p>
         </div>
-
-        {node.status === "running" ? (
-          <p className="text-[12px] text-amber-800">Tool call is running with live payload capture.</p>
-        ) : null}
-
-        <PayloadDisclosure label="Tool input" value={node.input} />
-
-        {node.output ? <ResearchToolOutput node={node} /> : null}
-        {node.output ? <PayloadDisclosure label="Tool payload" value={node.output} /> : null}
-
-        {node.error ? <p className="text-[12px] text-red-700">{node.error}</p> : null}
-      </div>
-    </ToolCardShell>
+      }
+    >
+      <ToolInput input={node.input} />
+      <ToolOutput
+        title="Output"
+        output={output}
+        errorText={node.status === "error" && !node.output ? node.error : undefined}
+      />
+    </PipelineToolRow>
   );
+}
+
+function getSubagentSummary(node: SubagentTraceNode, toolCount: number) {
+  if (node.status === "error") {
+    return node.error ?? "Sub-agent failed.";
+  }
+
+  if (node.summary) {
+    return node.summary;
+  }
+
+  if (node.status === "completed") {
+    return `${toolCount} tool call${toolCount === 1 ? "" : "s"} completed.`;
+  }
+
+  return toolCount > 0
+    ? `${toolCount} tool call${toolCount === 1 ? "" : "s"} streaming.`
+    : "Preparing first tool call…";
 }
 
 function ResearchSubagentCard({
@@ -359,152 +458,124 @@ function ResearchSubagentCard({
   node: SubagentTraceNode;
   toolNodes: ResearchToolNode[];
 }) {
+  const state = traceStatusToToolState(node.status);
   const startedAt = formatTimestampLabel(node.startedAt);
   const completedAt = formatTimestampLabel(node.completedAt);
 
   return (
-    <ToolCardShell icon={Globe} label={node.title} state={traceStatusToToolState(node.status)}>
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
-          {node.topic ? <span className="font-mono uppercase tracking-wide">{node.topic}</span> : null}
-          {startedAt ? <span>started {startedAt}</span> : null}
-          {completedAt ? <span>finished {completedAt}</span> : null}
+    <PipelineToolRow
+      type="subagent"
+      title={node.title}
+      state={state}
+      icon={<Globe className="h-4 w-4" />}
+      className="rounded-lg border-zinc-200/80 bg-zinc-50/70 shadow-none"
+      contentClassName="space-y-3"
+      trailing={
+        <span className="inline-flex rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-zinc-500">
+          {toolNodes.length} tool{toolNodes.length === 1 ? "" : "s"}
+        </span>
+      }
+      description={
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            {node.topic ? (
+              <span className="font-mono uppercase tracking-wide">{node.topic}</span>
+            ) : null}
+            {startedAt ? <span>started {startedAt}</span> : null}
+            {completedAt ? <span>finished {completedAt}</span> : null}
+          </div>
+          <p className="text-zinc-600">{getSubagentSummary(node, toolNodes.length)}</p>
         </div>
+      }
+    >
+      <ToolInput
+        title="Sub-agent config"
+        input={{
+          topic: node.topic,
+          goal: node.goal,
+          queryHints: node.queryHints,
+          includeDomains: node.includeDomains,
+          model: node.model,
+        }}
+      />
 
-        {node.goal ? <p className="text-[12px] leading-relaxed text-zinc-600">{node.goal}</p> : null}
+      {toolNodes.length > 0 ? (
+        <div className="space-y-2">
+          {toolNodes.map((toolNode) => (
+            <TimelineBranch key={toolNode.id} level={2}>
+              <ResearchToolCallCard node={toolNode} />
+            </TimelineBranch>
+          ))}
+        </div>
+      ) : node.status === "running" ? (
+        <MessageResponse className="text-amber-800">
+          Waiting on the first tool call from this sub-agent…
+        </MessageResponse>
+      ) : null}
 
-        {node.queryHints?.length ? (
-          <div className="flex flex-wrap gap-1.5">
-            {node.queryHints.map((hint) => (
-              <span
-                key={hint}
-                className="inline-flex rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-mono text-zinc-600"
-              >
-                {hint}
-              </span>
-            ))}
-          </div>
-        ) : null}
+      {node.summary ? (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+          <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-emerald-700">
+            Summary
+          </p>
+          <MessageResponse className="mt-1 text-emerald-950">{node.summary}</MessageResponse>
+        </div>
+      ) : null}
 
-        {toolNodes.length > 0 ? (
-          <div className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50/80 p-3">
-            <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-zinc-500">
-              Tool calls
-            </p>
-            {toolNodes.map((toolNode) => (
-              <ResearchToolCallCard key={toolNode.id} node={toolNode} />
-            ))}
-          </div>
-        ) : node.status === "running" ? (
-          <p className="text-[12px] text-amber-800">Waiting on the first tool call from this sub-agent…</p>
-        ) : null}
-
-        {node.summary ? (
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
-            <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-emerald-700">
-              Summary
-            </p>
-            <p className="mt-1 text-[12px] leading-relaxed text-emerald-950">{node.summary}</p>
-          </div>
-        ) : null}
-
-        {node.findings?.length ? (
-          <div className="space-y-2">
-            <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-zinc-500">
-              Key findings
-            </p>
-            {node.findings.map((finding) => (
-              <div key={`${finding.sourceUrl}-${finding.text}`} className="rounded-lg border border-zinc-200 bg-white px-3 py-2">
-                <p className="text-[12px] leading-relaxed text-zinc-800">{finding.text}</p>
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
-                  <span className="font-mono uppercase tracking-wide">{finding.confidence} confidence</span>
-                  {finding.date ? <span>{finding.date}</span> : null}
-                  <a href={finding.sourceUrl} target="_blank" rel="noreferrer" className="hover:underline">
-                    Source
-                  </a>
-                </div>
-                {finding.rawQuote ? (
-                  <p className="mt-2 border-l-2 border-zinc-200 pl-3 text-[12px] italic leading-relaxed text-zinc-600">
-                    {finding.rawQuote}
-                  </p>
-                ) : null}
+      {node.findings?.length ? (
+        <div className="space-y-2">
+          <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-zinc-500">
+            Key findings
+          </p>
+          {node.findings.map((finding) => (
+            <div
+              key={`${finding.sourceUrl}-${finding.text}`}
+              className="rounded-lg border border-zinc-200 bg-white px-3 py-2"
+            >
+              <MessageResponse className="text-zinc-800">{finding.text}</MessageResponse>
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
+                <span className="font-mono uppercase tracking-wide">
+                  {finding.confidence} confidence
+                </span>
+                {finding.date ? <span>{finding.date}</span> : null}
+                <a
+                  href={finding.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:underline"
+                >
+                  Source
+                </a>
               </div>
-            ))}
-          </div>
-        ) : null}
-
-        {node.gaps?.length ? (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-            <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-amber-700">
-              Gaps
-            </p>
-            <ul className="mt-1 space-y-1 text-[12px] leading-relaxed text-amber-900">
-              {node.gaps.map((gap) => (
-                <li key={gap}>• {gap}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-
-        <PayloadDisclosure
-          label="Sub-agent config"
-          value={{
-            topic: node.topic,
-            goal: node.goal,
-            queryHints: node.queryHints,
-            includeDomains: node.includeDomains,
-            model: node.model,
-          }}
-        />
-
-        {node.error ? <p className="text-[12px] text-red-700">{node.error}</p> : null}
-      </div>
-    </ToolCardShell>
-  );
-}
-
-function ResearchOrchestratorCard({
-  node,
-  threadCount,
-}: {
-  node: OrchestratorTraceNode;
-  threadCount: number;
-}) {
-  const startedAt = formatTimestampLabel(node.startedAt);
-  const completedAt = formatTimestampLabel(node.completedAt);
-
-  return (
-    <ToolCardShell icon={Sparkles} label={node.title} state={traceStatusToToolState(node.status)}>
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
-          <span className="font-mono uppercase tracking-wide">{node.model}</span>
-          {startedAt ? <span>started {startedAt}</span> : null}
-          {completedAt ? <span>finished {completedAt}</span> : null}
+              {finding.rawQuote ? (
+                <MessageResponse className="mt-2 border-l-2 border-zinc-200 pl-3 italic text-zinc-600">
+                  {finding.rawQuote}
+                </MessageResponse>
+              ) : null}
+            </div>
+          ))}
         </div>
-        <p className="text-[12px] text-zinc-600">
-          Spawned <span className="font-medium text-zinc-900">{threadCount}</span> focused research thread
-          {threadCount === 1 ? "" : "s"}.
-        </p>
-        {node.summary ? (
-          <p className="text-[12px] leading-relaxed text-zinc-700">{node.summary}</p>
-        ) : node.status === "running" ? (
-          <p className="text-[12px] text-amber-800">Planning coverage and deciding which threads to launch…</p>
-        ) : null}
-        {node.uncertainty ? (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-            <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-amber-700">
-              Remaining uncertainty
-            </p>
-            <p className="mt-1 text-[12px] leading-relaxed text-amber-950">{node.uncertainty}</p>
-          </div>
-        ) : null}
-        {node.error ? <p className="text-[12px] text-red-700">{node.error}</p> : null}
-      </div>
-    </ToolCardShell>
+      ) : null}
+
+      {node.gaps?.length ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+          <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-amber-700">
+            Gaps
+          </p>
+          <ul className="mt-1 space-y-1 text-[12px] leading-relaxed text-amber-900">
+            {node.gaps.map((gap) => (
+              <li key={gap}>• {gap}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {node.error ? <MessageResponse className="text-red-900">{node.error}</MessageResponse> : null}
+    </PipelineToolRow>
   );
 }
 
-function ResearchTracePanel({ nodes }: { nodes: TraceNode[] }) {
+function ResearchTimeline({ nodes }: { nodes: TraceNode[] }) {
   const orchestrator = nodes.find(
     (node): node is OrchestratorTraceNode =>
       node.kind === "agent" && node.agentType === "orchestrator",
@@ -519,24 +590,64 @@ function ResearchTracePanel({ nodes }: { nodes: TraceNode[] }) {
     return null;
   }
 
+  const orphanTools = toolNodes.filter(
+    (toolNode) => !threads.some((thread) => thread.id === toolNode.parentId),
+  );
+
   return (
-    <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-3">
-      <div className="flex items-center gap-2 pb-3">
-        <Sparkles className="h-4 w-4 text-zinc-500" />
-        <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-zinc-500">
-          Nested research trace
-        </p>
-      </div>
-      <div className="space-y-3">
-        {orchestrator ? <ResearchOrchestratorCard node={orchestrator} threadCount={threads.length} /> : null}
-        {threads.map((thread) => (
-          <ResearchSubagentCard
-            key={thread.id}
-            node={thread}
-            toolNodes={toolNodes.filter((node) => node.parentId === thread.id)}
-          />
-        ))}
-      </div>
+    <div className="space-y-3">
+      {orchestrator ? (
+        <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+          <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-zinc-500">
+            <span>{orchestrator.model}</span>
+            {orchestrator.startedAt ? (
+              <span>{formatTimestampLabel(orchestrator.startedAt)}</span>
+            ) : null}
+          </div>
+          <MessageResponse className="mt-2 text-zinc-700">
+            {orchestrator.summary
+              ? orchestrator.summary
+              : orchestrator.status === "running"
+                ? "Planning coverage and launching focused research threads…"
+                : `Spawned ${threads.length} focused research thread${threads.length === 1 ? "" : "s"}.`}
+          </MessageResponse>
+          {orchestrator.uncertainty ? (
+            <MessageResponse className="mt-2 text-amber-900">
+              Remaining uncertainty: {orchestrator.uncertainty}
+            </MessageResponse>
+          ) : null}
+          {orchestrator.error ? (
+            <MessageResponse className="mt-2 text-red-900">{orchestrator.error}</MessageResponse>
+          ) : null}
+        </div>
+      ) : null}
+
+      {threads.length > 0 ? (
+        <div className="space-y-2">
+          {threads.map((thread) => (
+            <TimelineBranch key={thread.id} level={1}>
+              <ResearchSubagentCard
+                node={thread}
+                toolNodes={toolNodes.filter((toolNode) => toolNode.parentId === thread.id)}
+              />
+            </TimelineBranch>
+          ))}
+        </div>
+      ) : orchestrator?.status === "running" ? (
+        <MessageResponse className="pl-6 text-amber-800">
+          Waiting for the first sub-agent to start…
+        </MessageResponse>
+      ) : null}
+
+      {orphanTools.length > 0 ? (
+        <div className="space-y-2">
+          {orphanTools.map((toolNode) => (
+            <TimelineBranch key={toolNode.id} level={1}>
+              <ResearchToolCallCard node={toolNode} />
+            </TimelineBranch>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -553,50 +664,74 @@ function RunResearchCard({
     state === "output-available"
       ? (part as Extract<RunResearchPart, { state: "output-available" }>).output
       : null;
-
-  return (
-    <ToolCardShell icon={Globe} label="Run research" state={state}>
+  const errorText = getToolPartErrorText(part);
+  const summaryOutput =
+    output ? (
       <div className="space-y-3">
-        {(state === "input-streaming" || state === "input-available") ? (
-          <p className="text-[12px] text-amber-800">
-            Spawning research threads and synthesizing findings…
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+          <p className="text-[12px] text-emerald-900">
+            <span className="font-medium">{output.threadsCompleted} threads</span> completed
           </p>
-        ) : null}
+          <MessageResponse className="mt-1 text-emerald-950">
+            {output.orchestratorSummary}
+          </MessageResponse>
+        </div>
 
-        {output ? (
-          <div className="space-y-3">
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
-              <p className="text-[12px] text-emerald-900">
-                <span className="font-medium">{output.threadsCompleted} threads</span> completed
-              </p>
-              <p className="mt-1 text-[12px] leading-relaxed text-emerald-950">
-                {output.orchestratorSummary}
-              </p>
-            </div>
-
-            {output.reports.length ? (
-              <div className="space-y-2">
-                {output.reports.map((report) => (
-                  <div key={report.topic} className="rounded-lg border border-zinc-200 bg-white px-3 py-2">
-                    <p className="text-[12px] font-medium text-zinc-900">{report.topic}</p>
-                    <p className="mt-1 text-[12px] leading-relaxed text-zinc-600">{report.summary}</p>
-                  </div>
-                ))}
+        {output.reports.length ? (
+          <div className="space-y-2">
+            {output.reports.map((report) => (
+              <div
+                key={report.topic}
+                className="rounded-lg border border-zinc-200 bg-white px-3 py-2"
+              >
+                <p className="text-[12px] font-medium text-zinc-900">{report.topic}</p>
+                <MessageResponse className="mt-1 text-zinc-600">{report.summary}</MessageResponse>
               </div>
-            ) : null}
-
-            {output.uncertainty ? (
-              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-800">
-                <span className="font-mono font-semibold uppercase tracking-wide">Open question: </span>
-                {output.uncertainty}
-              </p>
-            ) : null}
+            ))}
           </div>
         ) : null}
 
-        <ResearchTracePanel nodes={traceNodes} />
+        {output.uncertainty ? (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+            <p className="text-[10px] font-mono font-semibold uppercase tracking-wide text-amber-700">
+              Open question
+            </p>
+            <MessageResponse className="mt-1 text-amber-900">
+              {output.uncertainty}
+            </MessageResponse>
+          </div>
+        ) : null}
       </div>
-    </ToolCardShell>
+    ) : isRunningToolState(state) ? (
+      <MessageResponse className="text-amber-800">
+        Spawning research threads and synthesizing findings…
+      </MessageResponse>
+    ) : null;
+  const summaryText = output
+    ? `${output.threadsCompleted} thread${output.threadsCompleted === 1 ? "" : "s"} completed`
+    : isRunningToolState(state)
+      ? "Spawning research threads and streaming live tool calls."
+      : "Spawn focused sub-agents and stream their live tool calls.";
+
+  return (
+    <PipelineToolRow
+      type={part.type}
+      title="Run research"
+      state={state}
+      icon={<Globe className="h-4 w-4" />}
+      contentClassName="space-y-4"
+      trailing={
+        output ? (
+          <span className="inline-flex rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-zinc-500">
+            {output.threadsCompleted} thread{output.threadsCompleted === 1 ? "" : "s"}
+          </span>
+        ) : null
+      }
+      description={summaryText}
+    >
+        <ToolOutput title="Research packet" output={summaryOutput} errorText={errorText} />
+        <ResearchTimeline nodes={traceNodes} />
+    </PipelineToolRow>
   );
 }
 
@@ -606,12 +741,23 @@ function ExtractSignalsCard({ part }: { part: ExtractSignalsPart }) {
     state === "output-available"
       ? (part as Extract<ExtractSignalsPart, { state: "output-available" }>).output
       : null;
+  const errorText = getToolPartErrorText(part);
+  const description =
+    output && !("error" in output)
+      ? `${output.signalCount} ranked · ${output.discardedCount} discarded`
+      : isRunningToolState(state)
+        ? "Ranking research findings into scored signals…"
+        : "Rank research into scored signals.";
 
   return (
-    <ToolCardShell icon={Server} label="Extract signals" state={state}>
-      {(state === "input-streaming" || state === "input-available") ? (
-        <p className="text-[12px] text-amber-800">Ranking research findings into scored signals…</p>
-      ) : null}
+    <PipelineToolRow
+      type={part.type}
+      title="Extract signals"
+      state={state}
+      icon={<Server className="h-4 w-4" />}
+      contentClassName="space-y-3"
+      description={description}
+    >
       {output && !("error" in output) ? (
         <div className="space-y-3">
           <p className="text-[12px] text-emerald-900">
@@ -662,7 +808,8 @@ function ExtractSignalsCard({ part }: { part: ExtractSignalsPart }) {
       {output && "error" in output ? (
         <p className="text-[12px] text-red-700">{output.error}</p>
       ) : null}
-    </ToolCardShell>
+      {!output && errorText ? <p className="text-[12px] text-red-700">{errorText}</p> : null}
+    </PipelineToolRow>
   );
 }
 
@@ -672,12 +819,23 @@ function PlanAngleCard({ part }: { part: PlanAnglePart }) {
     state === "output-available"
       ? (part as Extract<PlanAnglePart, { state: "output-available" }>).output
       : null;
+  const errorText = getToolPartErrorText(part);
+  const description =
+    output && !("error" in output)
+      ? output.angle
+      : isRunningToolState(state)
+        ? "Choosing the strongest outbound angle…"
+        : "Choose the best outbound angle.";
 
   return (
-    <ToolCardShell icon={Crosshair} label="Plan angle" state={state}>
-      {(state === "input-streaming" || state === "input-available") ? (
-        <p className="text-[12px] text-amber-800">Choosing the strongest outbound angle…</p>
-      ) : null}
+    <PipelineToolRow
+      type={part.type}
+      title="Plan angle"
+      state={state}
+      icon={<Crosshair className="h-4 w-4" />}
+      contentClassName="space-y-3"
+      description={description}
+    >
       {output && !("error" in output) ? (
         <div className="space-y-3">
           <div>
@@ -708,7 +866,8 @@ function PlanAngleCard({ part }: { part: PlanAnglePart }) {
       {output && "error" in output ? (
         <p className="text-[12px] text-red-700">{output.error}</p>
       ) : null}
-    </ToolCardShell>
+      {!output && errorText ? <p className="text-[12px] text-red-700">{errorText}</p> : null}
+    </PipelineToolRow>
   );
 }
 
@@ -718,12 +877,23 @@ function GenerateDraftCard({ part }: { part: GenerateDraftPart }) {
     state === "output-available"
       ? (part as Extract<GenerateDraftPart, { state: "output-available" }>).output
       : null;
+  const errorText = getToolPartErrorText(part);
+  const description =
+    output && !("error" in output)
+      ? output.subject
+      : isRunningToolState(state)
+        ? "Writing the personalized outbound email…"
+        : "Generate the outbound draft.";
 
   return (
-    <ToolCardShell icon={PenTool} label="Generate draft" state={state}>
-      {(state === "input-streaming" || state === "input-available") ? (
-        <p className="text-[12px] text-amber-800">Writing the personalized outbound email…</p>
-      ) : null}
+    <PipelineToolRow
+      type={part.type}
+      title="Generate draft"
+      state={state}
+      icon={<PenTool className="h-4 w-4" />}
+      contentClassName="space-y-3"
+      description={description}
+    >
       {output && !("error" in output) ? (
         <div className="space-y-3">
           <p className="text-[13px] font-semibold text-zinc-900">{output.subject}</p>
@@ -745,7 +915,8 @@ function GenerateDraftCard({ part }: { part: GenerateDraftPart }) {
       {output && "error" in output ? (
         <p className="text-[12px] text-red-700">{output.error}</p>
       ) : null}
-    </ToolCardShell>
+      {!output && errorText ? <p className="text-[12px] text-red-700">{errorText}</p> : null}
+    </PipelineToolRow>
   );
 }
 
@@ -755,12 +926,23 @@ function PersistJobCard({ part }: { part: PersistJobPart }) {
     state === "output-available"
       ? (part as Extract<PersistJobPart, { state: "output-available" }>).output
       : null;
+  const errorText = getToolPartErrorText(part);
+  const description =
+    output && !("error" in output)
+      ? `Job ${output.jobId}`
+      : isRunningToolState(state)
+        ? "Writing job and audit record to the queue…"
+        : "Save the completed job to the queue.";
 
   return (
-    <ToolCardShell icon={Database} label="Save to queue" state={state}>
-      {(state === "input-streaming" || state === "input-available") ? (
-        <p className="text-[12px] text-amber-800">Writing job and audit record to the queue…</p>
-      ) : null}
+    <PipelineToolRow
+      type={part.type}
+      title="Save to queue"
+      state={state}
+      icon={<Database className="h-4 w-4" />}
+      contentClassName="space-y-3"
+      description={description}
+    >
       {output && !("error" in output) ? (
         <div className="space-y-1">
           <p className="text-[12px] text-emerald-900">Job saved to review queue</p>
@@ -772,7 +954,8 @@ function PersistJobCard({ part }: { part: PersistJobPart }) {
       {output && "error" in output ? (
         <p className="text-[12px] text-red-700">{output.error}</p>
       ) : null}
-    </ToolCardShell>
+      {!output && errorText ? <p className="text-[12px] text-red-700">{errorText}</p> : null}
+    </PipelineToolRow>
   );
 }
 
@@ -919,11 +1102,17 @@ export default function LiveAgentDemo() {
     [messages],
   );
   const researchTraceNodes = useMemo(
-    () =>
+    () => {
+      const latestNodes = new Map<string, TraceNode>();
+
       allParts
         .filter((part): part is TracePart => part.type === "data-trace-node")
-        .map((part) => part.data)
-        .sort((left, right) => left.order - right.order),
+        .forEach((part) => {
+          latestNodes.set(part.data.id, part.data);
+        });
+
+      return [...latestNodes.values()].sort((left, right) => left.order - right.order);
+    },
     [allParts],
   );
 
@@ -1191,7 +1380,7 @@ export default function LiveAgentDemo() {
             </form>
           </section>
 
-          {/* Live agent trace — always visible; shows idle previews before first run */}
+          {/* Live agent trace */}
           <section className="rounded-2xl border border-zinc-200 bg-white px-6 py-5 shadow-sm">
             <div className="flex items-center justify-between pb-4">
               <div className="flex items-center gap-2">
@@ -1208,14 +1397,12 @@ export default function LiveAgentDemo() {
             </div>
             <div className="space-y-4">
               {messages.length === 0 ? (
-                PIPELINE_PHASES.map((phase) => (
-                  <IdleToolCard
-                    key={phase.id}
-                    icon={phase.icon}
-                    label={phase.label}
-                    description={phase.description}
-                  />
-                ))
+                <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/70 px-4 py-6">
+                  <p className="text-[13px] font-medium text-zinc-700">Timeline will stream here</p>
+                  <p className="mt-1 text-[12px] leading-relaxed text-zinc-500">
+                    Rows appear only when the live agent starts each phase, with research threads and tool calls nested underneath.
+                  </p>
+                </div>
               ) : (
                 messages.map((message) =>
                   message.parts?.map((part, partIndex) => {
