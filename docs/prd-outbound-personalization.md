@@ -87,6 +87,11 @@ The bottleneck is **trust**: reps stake **reputation** on what sends. The system
 
 **Trust UX:** Ranking + categorization over walls of text.
 
+### 4.3 Analytics UX Strategy
+The Analytics Dashboard avoids dense reporting grids and passive bar charts. It functions as an **Actionable Impact Dashboard**:
+- **Impact Funnel**: Surfaces adoption and speed metrics (e.g. `Avg Review Time`) alongside output metrics (`Positive Reply/Meeting Rate`) to prove actual ROI and SDR time-saved.
+- **Dynamic Combo Matrices**: Replaces rigid playbook lists with discovered pairings. The UI presents "Top Performing Combos" (Signal + Perspective pairings driving outcomes) and "High Friction Combos" (Decisions driving archives/edits). This explicitly reinforces the *bottom-up* nature of the agent.
+
 ---
 
 ## 5. Architecture: funnel (conceptual)
@@ -94,16 +99,18 @@ The bottleneck is **trust**: reps stake **reputation** on what sends. The system
 End-to-end flow for one **outbound job**:
 
 ```text
-[Optional] Disqualify / route (rules) — thin in v0
-    → Retrieve wide (Exa + internal mocks)
-    → Extract + label signals (one logical step; see §7.2)
-    → [Future] Contextualize ensemble (themes across signals)
-    → [Future] Sufficiency gate
-    → Plan: angle + confidence (MVP: single call; see §7.3)
-    → Draft
-    → [Optional] Verify (policy / grounding) — capped loop in future
-    → Human queue (priority by confidence × policy)
-    → [Future] Rewrite / re-plan with implicit feedback
+LeadInput
+    → Stage 1A: Research orchestrator (Gemini 3.1 Pro Preview)
+        → spawns 2–4 Stage 1B sub-researchers (Gemini 3 Flash Preview)
+        → each subagent runs its own bounded tool loop
+        → returns SubAgentReport { findings[], gaps[], summary }
+    → Stage 1C: ResearchPacket handoff
+    → Stage 2: SignalExtractor (structured output)
+    → Stage 3: AnglePlanner (structured output)
+    → Stage 4: DraftGenerator (structured output)
+    → Rules: GovernanceEngine
+    → InstantDB jobs table
+    → Human queue
 ```
 
 **Outbound vs inbound:** This is **outbound** (team initiates). Warm signals (event, PLG) are still **outbound** motion.
@@ -116,19 +123,19 @@ Use this as the **canonical stage list** when implementing or extending the pipe
 
 | Step | Name | What happens |
 |------|------|----------------|
-| 1 | **Pool** | Rows exist per **play** (event, PLG, etc.). Not every lead merits equal research budget later; queue may show `pending` / not yet researched. |
-| 2 | **Widen — research / retrieve** | Pull **candidate** material: Exa hits, internal signals, `LeadContext`. Output is intentionally **messy**: `RawHit[]`, raw internal facts. No obligation to use everything. |
-| 3 | **Narrow — extract + label + score** | Turn candidates into **atomic typed signals**; label (play-fit, internal/external, risk); dedupe. **MVP:** labels emitted **with** extraction (no separate classifier product). Output: **ScoredSignal**-shaped objects. |
-| 4 | **Plan — angle** | From scored signals → **AnglePlan**: one-sentence story + **which signal IDs** are in-bounds + **discarded** list with short reasons. Funnel wall: many signals → **one** hook shape (e.g. one external + one internal). |
-| 5 | **Generate** | Draft **only** from AnglePlan + policy (voice, length, CTA)—**not** from the full research blob. |
-| 6 | **Verify (automated)** | Cheap checks: hook budget, forbidden patterns, grounding (“claim X cites signal Y”), governance. Outcome: `ok` \| `flag` (human or rewrite)—**policy**, not “is it beautiful?” |
-| 7 | **Human queue** | UI: confidence, signals, angle, draft; approve, edit, or kick off rewrite. |
-| 8 | **Rewrite loop (optional)** | Input: original draft + plan + feedback (verify, human presets, free text). Output: new draft. **Same plan** unless human indicates **bad angle** → then **re-plan** or re-research, not only rewrite. |
+| 1 | **Pool** | Lead already exists per play/source. Queue only shows completed jobs; in-flight runs stay off-screen. |
+| 2 | **Research orchestrator** | Gemini 3.1 Pro decides which threads to open based on the lead, play, and source quality. |
+| 3 | **Flash sub-researchers** | Gemini 3 Flash subagents run bounded tool loops over Exa + internal mock tools and return **SubAgentReport** objects. |
+| 4 | **ResearchPacket handoff** | Runtime stores the full `SubAgentReport[]`; the orchestrator sees only summaries. This keeps parent context tight while preserving downstream detail. |
+| 5 | **SignalExtractor** | Structured output converts findings into **atomic scored signals** plus discarded/deprioritized signals. |
+| 6 | **AnglePlanner** | Structured output chooses **one angle**, `whyNow`, confidence, and `usedSignalIds[]`. |
+| 7 | **DraftGenerator** | Draft uses **only** the plan + used signals — not the whole research blob. |
+| 8 | **Governance + queue** | Deterministic rules set `review_required` vs `auto_eligible`; completed job is written to InstantDB for SDR review. |
 
 **Visual:**
 
 ```text
-Leads → Retrieve (wide) → Extract/label/score (narrow) → AnglePlan (narrow) → Draft → Auto-verify → Human → [Rewrite → Draft …] → Done
+LeadInput → Orchestrator → Flash researchers → ResearchPacket → SignalExtractor → AnglePlanner → DraftGenerator → Governance → Human
 ```
 
 ### 5.2 Where confidence lives
@@ -197,33 +204,70 @@ Treat confidence as **“can we stake reputation on this *plan*?”**, not “ho
 
 ### 7.1 Suggested stages (v0)
 
-| Stage | Responsibility |
-|-------|----------------|
-| S0 | Ingest / normalize lead + play + mock CRM context |
-| S1 | Retrieve (Exa + internal; mockable) |
-| S2 | **Signal extraction + labels** — structured output; **no separate classifier service** |
-| S3 | **Angle + confidence** — single call (see §7.3) |
-| S4 | Draft generation |
-| S5 | Optional verify (policy / grounding) |
+| Stage | Model | Responsibility |
+|-------|-------|----------------|
+| S0 | n/a | Ingest / normalize `LeadInput` |
+| S1A | Gemini 3.1 Pro Preview | Dynamic research orchestration |
+| S1B | Gemini 3 Flash Preview | Topic-specific sub-research loops with tools |
+| S1C | n/a | Assemble `ResearchPacket` |
+| S2 | Gemini 3.1 Pro Preview | **Signal extraction + labels** in one structured call |
+| S3 | Gemini 3.1 Pro Preview | **Angle + confidence** in one structured call |
+| S4 | Gemini 3.1 Pro Preview | Draft generation from plan + used signals only |
+| S5 | deterministic rules | Governance + queue eligibility |
 
 ### 7.2 Signals + labels in one pass
 
-The **research / extraction** agent outputs **structured signals** each with labels (e.g. kind, scope, strength, evidence pointer, source). That is **one logical step** in the product.
+The research layer does **not** emit UI-ready signals directly. It emits **atomic findings** with co-located provenance:
 
-- If context is too large or quality is weak, implementation may use **two LLM calls** (e.g. compress → structure) **without** adding a separate “classifier” product module.
+```ts
+Finding {
+  text;
+  sourceUrl;
+  date?;
+  signalHint?;
+  strengthHint?;
+  confidence;
+  rawQuote?;
+}
+```
+
+The **SignalExtractor** then converts `SubAgentReport[]` into **ScoredSignal[]** in one structured step. This keeps exploration separate from schema enforcement.
 
 ### 7.3 Single angle + confidence call (MVP)
 
-**One** generation produces:
+**One** structured generation produces:
 
 - `angle` (one sentence)  
 - `confidence` (score/tier + short reasons)  
-- `used_signal_ids[]`  
-- optional `discarded_signals[]` (short reasons)
+- `whyNow`
+- `used_signal_ids[]`
 
-**Future:** **Proposer** (2–4 candidates) + **ranker** (different metrics, DSPy-friendly); optional **conditional** second pass when confidence is low.
+Draft generation is a **separate** structured step that receives only the plan plus the signals referenced by `used_signal_ids[]`.
 
 **Confidence:** Primarily **evidence + plan** (signal strength + angle coherence), not prose polish. **Routing:** low confidence → review-required / no auto-send; generation may still produce a draft for speed.
+
+### 7.4 Research handoff objects
+
+The critical implementation boundary is between research and structure:
+
+```ts
+SubAgentReport {
+  topic;
+  findings: Finding[];
+  gaps: string[];
+  summary: string;
+}
+
+ResearchPacket {
+  leadInput;
+  reports: SubAgentReport[];
+  threadSummaries: string[];
+  orchestratorSummary: string;
+  uncertainty?;
+}
+```
+
+The runtime stores the full `reports[]` for downstream stages. The orchestrator model itself only reasons over the compact summaries.
 
 ---
 
@@ -255,22 +299,38 @@ Log events for future optimization: `job_created`, `review_opened`, `approved`, 
 
 ### 8.4 V0 vs implementation
 
-**V0:** Implement **pipeline + types + logging**; document **DSPy** mapping in this PRD. **Shipping** DSPy optimizers is **optional** for the demo; interview narrative: *stages are modular signatures ready for per-stage metrics and implicit feedback.*
+**Current implementation:** ship the real pipeline path with:
+
+- AI SDK `ToolLoopAgent` for the research orchestrator and subagents
+- Structured output calls for SignalExtractor, AnglePlanner, and DraftGenerator
+- Prompt versioning in code
+- Deterministic governance before queue insertion
+
+**Deferred:** DSPy teleprompting / compilation. Interview narrative: *the modules are already stable signatures, so optimization can layer on after reviewed examples exist.*
+
+### 8.5 Human-in-the-Loop Configuration Philosophy
+The system relies on **Bottom-Up Synthesis**. We do **not** configure rigid top-down playbooks (e.g., "Always use Prompt X for Workflow Y"). The agent natively discovers angles based on aggregated input signals. Therefore, SDR Ops configuration is strictly limited to:
+1. **Governance Constraints:** Defining hard negative guardrails (e.g., "Do not mention competitor pricing").
+2. **Golden Demonstrations:** Hand-picking exceptional historical touches to seed DSPy's few-shot teleprompter.
+3. **Strategic Hints:** Providing soft directional heuristics (e.g., "If they have heavy React usage, try mentioning the new v0 Enterprise tier") that DSPy continuously tests for positive reply yield.
 
 ---
 
 ## 9. Data model (reference)
 
-**OutboundJob** (illustrative):
+**OutboundJob** (implemented shape):
 
-- `id`, `lead`, `company`, `play`  
-- `status`, `governance`  
+- `id`, `lead`, `company`  
+- `play` — `{ type, label, context?, leadSource }`
+- `whyNow`
+- `status`, `governance`, `pipelineStatus`, `pipelineStage`
 - `confidence` — `{ score?, tier, summary, reasons? }`  
 - `angle` (string)  
-- `signals[]` — `{ id, category, label, value, source, rank, usedInAngle, evidenceUrl? }`  
+- `signals[]` — `{ id, category, label, value, source, rank, usedInAngle, signalDate?, evidenceUrl? }`  
 - `discardedSignals[]` (optional)  
 - `draft` — `{ subject, body, highlightedSpan? }`  
-- `draftOriginal?`, `timestamps`, `feedback?` (`edited`, `editorNote?`)
+- `researchRun` — `{ orchestratorSummary, threadSummaries[], uncertainty?, reports[] }`
+- `timestamps`, `feedback?` (`edited`, `editorNote?`)
 
 ---
 
@@ -349,6 +409,7 @@ Event **registration/attendance**, **product signups** (e.g. Vercel), **web page
 - [ ] Confirm **data model** in §9 matches implemented types.  
 - [ ] Confirm logging/events in §8.3 for future analytics.  
 - [ ] If adding DSPy later: preserve **modular stage boundaries** in §7–8.  
+- [ ] Read `lib/pipeline/prompts/vercel-product-context.md` before changing angle or draft prompts.  
 - [ ] Update **§12 Revision history** when changing scope.
 
 ---
@@ -359,3 +420,5 @@ Event **registration/attendance**, **product signups** (e.g. Vercel), **web page
 |------|--------|
 | 2026-04-10 | Initial PRD from problem framing, architecture, MVP, DSPy discussion |
 | 2026-04-10 | Added resume note for agents; §5.1–5.4 detailed funnel, confidence, rewrite, sequence context; Appendix A (interview distillate), B (brainstorm merge), C (resume checklist) |
+| 2026-04-11 | UX overhaul to Actionable Analytics Impact Funnel; Explicit documentation of DSPy Bottom-up Synthesis vs Top-down Playbooks. |
+| 2026-04-11 | Finalized and implemented live pipeline: Gemini 3.1 Pro orchestrator, Gemini 3 Flash sub-researchers, `ResearchPacket` handoff, structured S2–S4 chain, deterministic governance, and InstantDB write path. |
