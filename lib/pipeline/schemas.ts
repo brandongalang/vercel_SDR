@@ -11,6 +11,7 @@ import {
   SIGNAL_SOURCE_VALUES,
   SIGNAL_STRENGTH_VALUES,
 } from "@/lib/pipeline/vocab";
+import { REGENERATION_PRESETS } from "@/lib/regeneration-presets";
 
 export const confidenceTierSchema = z.enum(CONFIDENCE_TIER_VALUES);
 export const governanceRuleSchema = z.enum(GOVERNANCE_RULE_VALUES);
@@ -121,6 +122,36 @@ export const draftOutputSchema = z.object({
   subject: z.string().min(1),
   body: z.string().min(1),
   highlightedSpan: z.string().optional(),
+});
+
+export const regenerationPresetSchema = z.enum(
+  REGENERATION_PRESETS.map((preset) => preset.id) as [
+    (typeof REGENERATION_PRESETS)[number]["id"],
+    ...(typeof REGENERATION_PRESETS)[number]["id"][],
+  ],
+);
+
+export const regenerateDraftRequestSchema = z.object({
+  job: z.object({
+    lead: z.object({
+      name: z.string().min(1),
+      title: z.string().min(1),
+    }),
+    company: z.string().min(1),
+    play: playSchema,
+    whyNow: z.string().min(1),
+    angleType: angleTypeSchema,
+    angle: z.string().min(1),
+    confidence: z.object({
+      tier: confidenceTierSchema,
+      summary: z.string().min(1),
+      reasons: z.array(z.string()).optional(),
+    }),
+    signals: z.array(scoredSignalSchema).min(1),
+    draft: draftOutputSchema,
+  }),
+  adjustments: z.array(regenerationPresetSchema).min(1).max(3),
+  note: z.string().trim().max(500).optional(),
 });
 
 export const runResearcherInputSchema = z.object({

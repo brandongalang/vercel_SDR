@@ -5,6 +5,7 @@ import {
   getLiveDraftGeneratorArtifact,
   getVercelProductContext,
 } from "@/lib/pipeline/prompts";
+import type { RegenerationPreset } from "@/lib/regeneration-presets";
 import { draftOutputSchema } from "@/lib/pipeline/schemas";
 import type { AnglePlan, LeadInput, ScoredSignal } from "@/lib/types";
 
@@ -20,6 +21,15 @@ function resolveHighlightedSpan(body: string, highlightedSpan?: string) {
 export async function runDraftGenerator(input: {
   leadInput: LeadInput;
   anglePlan: AnglePlan;
+  regeneration?: {
+    adjustments: RegenerationPreset[];
+    currentDraft: {
+      subject: string;
+      body: string;
+      highlightedSpan?: string;
+    };
+    note?: string;
+  };
   signals: ScoredSignal[];
 }) {
   const productContext = await getVercelProductContext();
@@ -36,6 +46,7 @@ export async function runDraftGenerator(input: {
       artifact: promptArtifact,
       leadInput: input.leadInput,
       productContext,
+      regeneration: input.regeneration,
       usedSignals,
     }),
   });

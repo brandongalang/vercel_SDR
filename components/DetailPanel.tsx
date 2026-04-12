@@ -4,6 +4,11 @@ import { useRef, useState } from "react";
 import { OutboundJob } from "@/lib/types";
 import { ANGLE_CONFIG } from "@/lib/angle-config";
 import {
+  REGENERATION_PRESETS,
+  summarizeRegenerationRequest,
+  type RegenerationPreset,
+} from "@/lib/regeneration-presets";
+import {
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -21,7 +26,6 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ExternalLink, PencilLine, RotateCcw, CheckCircle, ShieldAlert, ShieldCheck, Info, Archive, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { mockRegeneratedBody } from "@/lib/regenerate-mock";
 
 function renderBodyWithHighlight(body: string, span?: string) {
   if (!span) return <span className="whitespace-pre-wrap leading-relaxed">{body}</span>;
@@ -40,14 +44,7 @@ function renderBodyWithHighlight(body: string, span?: string) {
   );
 }
 
-type Preset = "shorter" | "softer_cta" | "less_hype" | "more_direct";
-
-const PRESETS: { id: Preset; label: string }[] = [
-  { id: "shorter", label: "Shorter" },
-  { id: "softer_cta", label: "Softer CTA" },
-  { id: "less_hype", label: "Less hype" },
-  { id: "more_direct", label: "More direct" },
-];
+const MAX_REGENERATION_PRESETS = 3;
 
 function formatLeadSource(source: OutboundJob["play"]["leadSource"]) {
   return source.replace(/_/g, " ");
@@ -74,9 +71,10 @@ export default function DetailPanel({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [regenOpen, setRegenOpen] = useState(false);
-  const [regenPreset, setRegenPreset] = useState<Preset>("shorter");
+  const [regenPresets, setRegenPresets] = useState<RegenerationPreset[]>([]);
   const [regenNote, setRegenNote] = useState("");
   const [regenBusy, setRegenBusy] = useState(false);
+  const [regenError, setRegenError] = useState<string | null>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   if (!job) {
@@ -113,20 +111,79 @@ export default function DetailPanel({
     setIsEditing(false);
   };
 
-  const handleRegenerateApply = () => {
+  const handleRegenerateToggle = (preset: RegenerationPreset) => {
+    setRegenError(null);
+    setRegenPresets((current) => {
+      if (current.includes(preset)) {
+        return current.filter((value) => value !== preset);
+      }
+
+      if (current.length >= MAX_REGENERATION_PRESETS) {
+        return current;
+      }
+
+      return [...current, preset];
+    });
+  };
+
+  const handleRegenerateApply = async () => {
+    if (regenPresets.length === 0) {
+      setRegenError("Pick at least one adjustment.");
+      return;
+    }
+
     setRegenBusy(true);
-    window.setTimeout(() => {
-      const nextBody = mockRegeneratedBody(job.draft.body, regenPreset);
+    setRegenError(null);
+
+    try {
       const note = regenNote.trim();
-      onDraftUpdate(job.id, {
-        subject: job.draft.subject,
-        body: nextBody,
-        highlightedSpan: undefined,
+      const response = await fetch("/api/jobs/regenerate", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          job: {
+            lead: job.lead,
+            company: job.company,
+            play: job.play,
+            whyNow: job.whyNow,
+            angleType: job.angleType,
+            angle: job.angle,
+            confidence: {
+              tier: job.confidence.tier,
+              summary: job.confidence.summary,
+              reasons: job.confidence.reasons,
+            },
+            signals: job.signals,
+            draft: job.draft,
+          },
+          adjustments: regenPresets,
+          note: note || undefined,
+        }),
       });
-      onRegenerateNote(job.id, note || undefined);
-      setRegenBusy(false);
+
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string; draft?: OutboundJob["draft"] }
+        | null;
+
+      if (!response.ok || !payload?.draft) {
+        throw new Error(payload?.error ?? "Failed to regenerate draft");
+      }
+
+      onDraftUpdate(job.id, payload.draft);
+      onRegenerateNote(
+        job.id,
+        summarizeRegenerationRequest(regenPresets, note || undefined) || undefined,
+      );
       setRegenOpen(false);
-    }, 650);
+      setRegenPresets([]);
+      setRegenNote("");
+    } catch (error) {
+      setRegenError(error instanceof Error ? error.message : "Failed to regenerate draft");
+    } finally {
+      setRegenBusy(false);
+    }
   };
 
   const gov =
@@ -615,30 +672,59 @@ export default function DetailPanel({
         </div>
       </div>
 
-      <Sheet open={regenOpen} onOpenChange={setRegenOpen}>
+      <Sheet
+        open={regenOpen}
+        onOpenChange={(open) => {
+          setRegenOpen(open);
+          if (!open) {
+            setRegenError(null);
+            setRegenPresets([]);
+            setRegenNote("");
+          }
+        }}
+      >
         <SheetContent side="bottom" className="rounded-t-xl border-t max-h-[85vh] overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Regenerate draft</SheetTitle>
             <SheetDescription>
-              Keeps the same angle plan — adjusts tone. In production this calls your rewrite module with structured feedback.
+              Keeps the same angle plan and signals, then rewrites only the draft with structured
+              adjustments.
             </SheetDescription>
           </SheetHeader>
           <div className="px-4 space-y-4">
             <div>
-              <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground mb-2">Preset</p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground mb-2">
+                  Adjustments
+                </p>
+                <span className="text-[11px] text-muted-foreground">
+                  Choose up to {MAX_REGENERATION_PRESETS}
+                </span>
+              </div>
               <div className="flex flex-wrap gap-2">
-                {PRESETS.map((p) => (
+                {REGENERATION_PRESETS.map((preset) => {
+                  const isSelected = regenPresets.includes(preset.id);
+                  const disableSelect =
+                    !isSelected && regenPresets.length >= MAX_REGENERATION_PRESETS;
+
+                  return (
                   <Button
-                    key={p.id}
+                    key={preset.id}
                     type="button"
                     size="sm"
-                    variant={regenPreset === p.id ? "secondary" : "outline"}
-                    onClick={() => setRegenPreset(p.id)}
+                    variant={isSelected ? "secondary" : "outline"}
+                    disabled={disableSelect}
+                    onClick={() => handleRegenerateToggle(preset.id)}
                   >
-                    {p.label}
+                    {preset.label}
                   </Button>
-                ))}
+                  );
+                })}
               </div>
+              <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
+                Useful for things like making the draft shorter, more direct, less creepy, or more
+                executive without re-running research or changing the angle.
+              </p>
             </div>
             <div>
               <label htmlFor="regen-note" className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
@@ -652,12 +738,19 @@ export default function DetailPanel({
                 className="mt-2 w-full min-h-[72px] rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/40"
               />
             </div>
+            {regenError && (
+              <p className="text-[12px] text-destructive">{regenError}</p>
+            )}
           </div>
           <SheetFooter className="flex-row justify-end gap-2 sm:justify-end">
             <Button type="button" variant="outline" onClick={() => setRegenOpen(false)}>
               Cancel
             </Button>
-            <Button type="button" disabled={regenBusy} onClick={handleRegenerateApply}>
+            <Button
+              type="button"
+              disabled={regenBusy || regenPresets.length === 0}
+              onClick={handleRegenerateApply}
+            >
               {regenBusy ? "Working…" : "Apply regenerate"}
             </Button>
           </SheetFooter>
