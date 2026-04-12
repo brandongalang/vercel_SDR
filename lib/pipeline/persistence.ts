@@ -6,17 +6,13 @@ import {
   startPipelineAuditPhase,
   type PipelineRunAudit,
 } from "@/lib/pipeline/run-job";
+import { getRequiredServerEnv } from "@/lib/server/env";
 import type { OutboundJob } from "@/lib/types";
 
-const INSTANT_APP_ID =
-  process.env.NEXT_PUBLIC_INSTANT_APP_ID ?? "52c6a678-6f76-4082-ae80-b3c7a65a9216";
+const INSTANT_APP_ID = getRequiredServerEnv("NEXT_PUBLIC_INSTANT_APP_ID");
 
 function getAdminDb() {
-  const adminToken = process.env.INSTANT_ADMIN_TOKEN;
-
-  if (!adminToken) {
-    throw new Error("Missing INSTANT_ADMIN_TOKEN");
-  }
+  const adminToken = getRequiredServerEnv("INSTANT_ADMIN_TOKEN");
 
   return init_experimental({
     appId: INSTANT_APP_ID,

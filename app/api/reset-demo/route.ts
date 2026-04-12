@@ -1,27 +1,31 @@
 import { init_experimental } from "@instantdb/admin";
 import demoSnapshotData from "@/data/demo-snapshot.json";
 import { toInstantJobRecord } from "@/lib/pipeline/persistence";
+import {
+  getRequiredServerEnv,
+  isAuthorizedDemoResetRequest,
+  isDemoResetEnabled,
+} from "@/lib/server/env";
 import type { OutboundJob } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const INSTANT_APP_ID =
-  process.env.NEXT_PUBLIC_INSTANT_APP_ID ?? "52c6a678-6f76-4082-ae80-b3c7a65a9216";
+export async function POST(request: Request) {
+  if (!isDemoResetEnabled()) {
+    return Response.json({ error: "Not found" }, { status: 404 });
+  }
 
-export async function POST() {
-  const adminToken = process.env.INSTANT_ADMIN_TOKEN;
-
-  if (!adminToken) {
-    return Response.json(
-      { error: "Missing INSTANT_ADMIN_TOKEN" },
-      { status: 500 },
-    );
+  if (!isAuthorizedDemoResetRequest(request)) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
+    const appId = getRequiredServerEnv("NEXT_PUBLIC_INSTANT_APP_ID");
+    const adminToken = getRequiredServerEnv("INSTANT_ADMIN_TOKEN");
+
     const db = init_experimental({
-      appId: INSTANT_APP_ID,
+      appId,
       adminToken,
     });
     const snapshotJobs = demoSnapshotData as OutboundJob[];

@@ -1,7 +1,13 @@
 import { init } from "@instantdb/react";
 import schema from "@/instant.schema";
 
+const appId = process.env.NEXT_PUBLIC_INSTANT_APP_ID;
+
+if (!appId) {
+  throw new Error("Missing NEXT_PUBLIC_INSTANT_APP_ID");
+}
+
 export const db = init({
-  appId: "52c6a678-6f76-4082-ae80-b3c7a65a9216",
+  appId,
   schema,
 });
