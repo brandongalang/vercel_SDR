@@ -28,11 +28,12 @@ export function getToolPartErrorText(part: { state?: string; errorText?: string 
 }
 
 export function shouldForceToolOpen(state: ToolState) {
-  return isRunningToolState(state);
+  void state;
+  return false;
 }
 
 export function getDefaultToolOpen(state: ToolState) {
-  return state !== "idle";
+  return state === "input-streaming" || state === "input-available" || state === "output-error";
 }
 
 export function formatCompactValue(value: unknown): string | null {
@@ -70,7 +71,7 @@ export function formatTimestampLabel(value?: string) {
 export function PayloadDisclosure({ label, value }: { label: string; value: unknown }) {
   if (value == null) return null;
   return (
-    <details className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+    <details className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2">
       <summary className="cursor-pointer text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-zinc-500">
         {label}
       </summary>
@@ -119,6 +120,8 @@ export function PipelineToolRow({
   children,
   className,
   contentClassName,
+  defaultOpen,
+  forceOpen,
 }: {
   type: string;
   title: string;
@@ -129,12 +132,15 @@ export function PipelineToolRow({
   children?: ReactNode;
   className?: string;
   contentClassName?: string;
+  defaultOpen?: boolean;
+  forceOpen?: boolean;
 }) {
   return (
     <Tool
-      defaultOpen={getDefaultToolOpen(state)}
-      forceOpen={shouldForceToolOpen(state)}
-      className={cn("border-zinc-200 bg-white shadow-sm", className)}
+      key={`${type}-${state}`}
+      defaultOpen={defaultOpen ?? getDefaultToolOpen(state)}
+      forceOpen={forceOpen ?? shouldForceToolOpen(state)}
+      className={cn("border-zinc-200/80 bg-white shadow-none", className)}
     >
       <ToolHeader
         type={type}

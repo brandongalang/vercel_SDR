@@ -4,6 +4,11 @@ import { DefaultChatTransport } from "ai";
 import { useChat } from "@ai-sdk/react";
 import { useMemo, useState, type FormEvent } from "react";
 import { AlertTriangle, Loader2, Play as PlayIcon, Sparkles } from "lucide-react";
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+} from "@/components/ai-elements/message";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -362,68 +367,76 @@ export default function LiveAgentDemo() {
                   </p>
                 </div>
               ) : (
-                messages.map((message) =>
-                  message.parts?.map((part, partIndex) => {
-                    if (part.type === "text" && part.text?.trim()) {
-                      return (
-                        <div
-                          key={`${message.id}-text-${partIndex}`}
-                          className="rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-3"
-                        >
-                          <p className="mb-1.5 text-[10px] font-mono uppercase tracking-wide text-zinc-400">
-                            Orchestrator
-                          </p>
-                          <p className="text-[13px] leading-relaxed text-zinc-700">{part.text}</p>
-                        </div>
-                      );
-                    }
-                    if (part.type === "tool-run_research") {
-                      return (
-                        <RunResearchCard
-                          key={`${message.id}-${partIndex}`}
-                          part={part as RunResearchPart}
-                          traceNodes={researchTraceNodes}
-                        />
-                      );
-                    }
-                    if (part.type === "tool-extract_signals") {
-                      return (
-                        <ExtractSignalsCard
-                          key={`${message.id}-${partIndex}`}
-                          part={part as ExtractSignalsPart}
-                        />
-                      );
-                    }
-                    if (part.type === "tool-plan_angle") {
-                      return (
-                        <PlanAngleCard
-                          key={`${message.id}-${partIndex}`}
-                          part={part as PlanAnglePart}
-                        />
-                      );
-                    }
-                    if (part.type === "tool-generate_draft") {
-                      return (
-                        <GenerateDraftCard
-                          key={`${message.id}-${partIndex}`}
-                          part={part as GenerateDraftPart}
-                        />
-                      );
-                    }
-                    if (part.type === "tool-persist_job") {
-                      return (
-                        <PersistJobCard
-                          key={`${message.id}-${partIndex}`}
-                          part={part as PersistJobPart}
-                        />
-                      );
-                    }
-                    if (part.type === "data-trace-node" || part.type === "step-start") {
-                      return null;
-                    }
-                    return null;
-                  })
-                )
+                messages.map((message) => (
+                  <Message from={message.role} key={message.id}>
+                    <MessageContent
+                      className={cn(
+                        message.role === "assistant" ? "gap-3" : "gap-2",
+                      )}
+                    >
+                      {message.parts?.map((part, partIndex) => {
+                        if (part.type === "text" && part.text?.trim()) {
+                          return (
+                            <MessageResponse
+                              key={`${message.id}-text-${partIndex}`}
+                              className={cn(
+                                "text-[13px] leading-relaxed",
+                                message.role === "assistant" ? "text-zinc-700" : "text-zinc-900",
+                              )}
+                            >
+                              {part.text}
+                            </MessageResponse>
+                          );
+                        }
+                        if (part.type === "tool-run_research") {
+                          return (
+                            <RunResearchCard
+                              key={`${message.id}-${partIndex}`}
+                              part={part as RunResearchPart}
+                              traceNodes={researchTraceNodes}
+                            />
+                          );
+                        }
+                        if (part.type === "tool-extract_signals") {
+                          return (
+                            <ExtractSignalsCard
+                              key={`${message.id}-${partIndex}`}
+                              part={part as ExtractSignalsPart}
+                            />
+                          );
+                        }
+                        if (part.type === "tool-plan_angle") {
+                          return (
+                            <PlanAngleCard
+                              key={`${message.id}-${partIndex}`}
+                              part={part as PlanAnglePart}
+                            />
+                          );
+                        }
+                        if (part.type === "tool-generate_draft") {
+                          return (
+                            <GenerateDraftCard
+                              key={`${message.id}-${partIndex}`}
+                              part={part as GenerateDraftPart}
+                            />
+                          );
+                        }
+                        if (part.type === "tool-persist_job") {
+                          return (
+                            <PersistJobCard
+                              key={`${message.id}-${partIndex}`}
+                              part={part as PersistJobPart}
+                            />
+                          );
+                        }
+                        if (part.type === "data-trace-node" || part.type === "step-start") {
+                          return null;
+                        }
+                        return null;
+                      })}
+                    </MessageContent>
+                  </Message>
+                ))
               )}
             </div>
           </section>

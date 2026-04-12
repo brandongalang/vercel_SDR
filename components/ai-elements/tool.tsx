@@ -103,7 +103,10 @@ function Tool({
     >
       <div
         data-slot="tool"
-        className={cn("overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm", className)}
+        className={cn(
+          "overflow-hidden rounded-lg border border-zinc-200/80 bg-white/90 shadow-none backdrop-blur-sm",
+          className,
+        )}
         {...props}
       >
         {children}
@@ -141,23 +144,23 @@ function ToolHeader({
       aria-controls={contentId}
       aria-expanded={open}
       className={cn(
-        "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-zinc-50/80",
+        "flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-zinc-50/80",
         className,
       )}
       onClick={() => setOpen(!open)}
     >
       {icon ? (
-        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-zinc-600">
+        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-zinc-600">
           {icon}
         </span>
       ) : null}
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-[13px] font-medium text-zinc-950">{title ?? type}</p>
+          <p className="text-[12px] font-medium text-zinc-950">{title ?? type}</p>
           <span
             className={cn(
-              "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide",
+              "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-wide",
               badge.className,
             )}
           >
@@ -197,7 +200,7 @@ function ToolContent({
     <div
       id={contentId}
       data-slot="tool-content"
-      className={cn("border-t border-zinc-200 px-4 py-3", className)}
+      className={cn("border-t border-zinc-100 px-3 pb-3 pt-2.5", className)}
       {...props}
     >
       {children}
@@ -247,7 +250,7 @@ function ToolSection({
   return (
     <div
       className={cn(
-        "rounded-lg border px-3 py-2",
+        "rounded-md border px-3 py-2",
         tone === "error"
           ? "border-red-200 bg-red-50"
           : "border-zinc-200 bg-zinc-50",

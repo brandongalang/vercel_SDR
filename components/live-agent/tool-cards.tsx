@@ -44,20 +44,6 @@ export function RunResearchCard({
           </MessageResponse>
         </div>
 
-        {output.reports.length ? (
-          <div className="space-y-2">
-            {output.reports.map((report) => (
-              <div
-                key={report.topic}
-                className="rounded-lg border border-zinc-200 bg-white px-3 py-2"
-              >
-                <p className="text-[12px] font-medium text-zinc-900">{report.topic}</p>
-                <MessageResponse className="mt-1 text-zinc-600">{report.summary}</MessageResponse>
-              </div>
-            ))}
-          </div>
-        ) : null}
-
         {output.uncertainty ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
             <p className="text-[10px] font-mono font-semibold uppercase tracking-wide text-amber-700">

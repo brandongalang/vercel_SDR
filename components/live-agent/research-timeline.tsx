@@ -1,14 +1,31 @@
 "use client";
 
-import { Database, Globe, Server } from "lucide-react";
+import {
+  Brain,
+  CheckCircle2,
+  Clock3,
+  Database,
+  Globe,
+  Loader2,
+  Server,
+  Sparkles,
+} from "lucide-react";
+import {
+  ChainOfThought,
+  ChainOfThoughtContent,
+  ChainOfThoughtHeader,
+  ChainOfThoughtSearchResult,
+  ChainOfThoughtSearchResults,
+  ChainOfThoughtStep,
+} from "@/components/ai-elements/chain-of-thought";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { ToolInput, ToolOutput } from "@/components/ai-elements/tool";
+import { Task, TaskContent, TaskItem, TaskTrigger } from "@/components/ai-elements/task";
 import {
   formatCompactValue,
   formatTimestampLabel,
   PayloadDisclosure,
   PipelineToolRow,
-  TimelineBranch,
 } from "@/components/live-agent/helpers";
 import type {
   OrchestratorTraceNode,
@@ -22,6 +39,35 @@ function traceStatusToToolState(status: TraceNode["status"]): ToolState {
   if (status === "completed") return "output-available";
   if (status === "error") return "output-error";
   return "input-available";
+}
+
+function traceStatusToThoughtStatus(
+  status: TraceNode["status"],
+): "complete" | "active" | "pending" {
+  if (status === "completed") return "complete";
+  if (status === "running") return "active";
+  return "pending";
+}
+
+function getWorkflowTone(status: TraceNode["status"]) {
+  if (status === "completed") {
+    return {
+      icon: <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />,
+      textClassName: "text-zinc-800",
+    };
+  }
+
+  if (status === "running") {
+    return {
+      icon: <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-600" />,
+      textClassName: "text-zinc-800",
+    };
+  }
+
+  return {
+    icon: <Clock3 className="h-3.5 w-3.5 text-zinc-400" />,
+    textClassName: "text-zinc-500",
+  };
 }
 
 function ResearchToolOutput({ node }: { node: ResearchToolNode }) {
@@ -43,8 +89,8 @@ function ResearchToolOutput({ node }: { node: ResearchToolNode }) {
           {output.results.length} result{output.results.length === 1 ? "" : "s"} for {output.query}
         </p>
         <div className="space-y-2">
-          {output.results.map((result) => (
-            <div key={`${result.url}-${result.title}`} className="rounded-lg border border-zinc-200 bg-white px-3 py-2">
+          {output.results.slice(0, 4).map((result) => (
+            <div key={`${result.url}-${result.title}`} className="rounded-md border border-zinc-200 bg-white px-3 py-2">
               <a
                 href={result.url}
                 target="_blank"
@@ -55,16 +101,6 @@ function ResearchToolOutput({ node }: { node: ResearchToolNode }) {
               </a>
               {result.publishedDate ? (
                 <p className="mt-1 text-[11px] text-zinc-500">{result.publishedDate}</p>
-              ) : null}
-              {result.summary ? (
-                <p className="mt-1 text-[12px] leading-relaxed text-zinc-600">{result.summary}</p>
-              ) : null}
-              {result.highlights?.length ? (
-                <ul className="mt-2 space-y-1 text-[12px] leading-relaxed text-zinc-600">
-                  {result.highlights.map((highlight) => (
-                    <li key={highlight}>• {highlight}</li>
-                  ))}
-                </ul>
               ) : null}
             </div>
           ))}
@@ -166,8 +202,6 @@ function ResearchToolCallCard({ node }: { node: ResearchToolNode }) {
     ) : (
       <Server className="h-4 w-4" />
     );
-  const startedAt = formatTimestampLabel(node.startedAt);
-  const completedAt = formatTimestampLabel(node.completedAt);
   const output =
     node.output ? (
       <div className="space-y-3">
@@ -186,19 +220,11 @@ function ResearchToolCallCard({ node }: { node: ResearchToolNode }) {
       title={node.title}
       state={state}
       icon={icon}
-      className="rounded-lg border-zinc-200/80 bg-white shadow-none"
+      className="rounded-md border-zinc-200/70 bg-white/90 shadow-none"
       contentClassName="space-y-3"
+      defaultOpen={false}
       description={
-        <div className="space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono uppercase tracking-wide">
-              {node.toolName.replace(/_/g, " ")}
-            </span>
-            {startedAt ? <span>started {startedAt}</span> : null}
-            {completedAt ? <span>finished {completedAt}</span> : null}
-          </div>
-          <p className="text-zinc-600">{getResearchToolSummary(node)}</p>
-        </div>
+        getResearchToolSummary(node)
       }
     >
       <ToolInput input={node.input} />
@@ -219,53 +245,77 @@ function getSubagentSummary(node: SubagentTraceNode, toolCount: number) {
     return node.summary;
   }
   if (node.status === "completed") {
-    return `${toolCount} tool call${toolCount === 1 ? "" : "s"} completed.`;
+    return toolCount > 0
+      ? `${toolCount} tool call${toolCount === 1 ? "" : "s"} completed.`
+      : "Research thread completed.";
   }
   return toolCount > 0
     ? `${toolCount} tool call${toolCount === 1 ? "" : "s"} streaming.`
     : "Preparing first tool call…";
 }
 
-function ResearchSubagentCard({
+function ResearchSubagentStep({
   node,
   toolNodes,
 }: {
   node: SubagentTraceNode;
   toolNodes: ResearchToolNode[];
 }) {
-  const state = traceStatusToToolState(node.status);
+  const thoughtStatus = traceStatusToThoughtStatus(node.status);
   const startedAt = formatTimestampLabel(node.startedAt);
   const completedAt = formatTimestampLabel(node.completedAt);
 
   return (
-    <PipelineToolRow
-      type="subagent"
-      title={node.title}
-      state={state}
-      icon={<Globe className="h-4 w-4" />}
-      className="rounded-lg border-zinc-200/80 bg-zinc-50/70 shadow-none"
-      contentClassName="space-y-3"
-      trailing={
-        <span className="inline-flex rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-zinc-500">
-          {toolNodes.length} tool{toolNodes.length === 1 ? "" : "s"}
-        </span>
-      }
-      description={
-        <div className="space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            {node.topic ? (
-              <span className="font-mono uppercase tracking-wide">{node.topic}</span>
-            ) : null}
-            {startedAt ? <span>started {startedAt}</span> : null}
-            {completedAt ? <span>finished {completedAt}</span> : null}
-          </div>
-          <p className="text-zinc-600">{getSubagentSummary(node, toolNodes.length)}</p>
+    <ChainOfThoughtStep
+      icon={Globe}
+      status={thoughtStatus}
+      className={node.status === "error" ? "text-red-700" : undefined}
+      label={
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-medium text-zinc-900">{node.topic ?? node.title}</span>
+          <span className="inline-flex rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-zinc-500">
+            {toolNodes.length} tool{toolNodes.length === 1 ? "" : "s"}
+          </span>
+          {startedAt ? (
+            <span className="text-[11px] text-zinc-500">started {startedAt}</span>
+          ) : null}
+          {completedAt ? (
+            <span className="text-[11px] text-zinc-500">finished {completedAt}</span>
+          ) : null}
         </div>
       }
+      description={
+        getSubagentSummary(node, toolNodes.length)
+      }
     >
-      <ToolInput
-        title="Sub-agent config"
-        input={{
+      {node.queryHints?.length ? (
+        <ChainOfThoughtSearchResults>
+          {node.queryHints.map((hint) => (
+            <ChainOfThoughtSearchResult key={hint}>{hint}</ChainOfThoughtSearchResult>
+          ))}
+        </ChainOfThoughtSearchResults>
+      ) : null}
+
+      {toolNodes.length > 0 ? (
+        <details className="rounded-md border border-zinc-200 bg-white px-3 py-2">
+          <summary className="cursor-pointer text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-zinc-500">
+            Raw tool activity ({toolNodes.length})
+          </summary>
+          <div className="mt-2 space-y-2">
+            {toolNodes.map((toolNode) => (
+              <ResearchToolCallCard key={toolNode.id} node={toolNode} />
+            ))}
+          </div>
+        </details>
+      ) : node.status === "running" ? (
+        <MessageResponse className="text-amber-800">
+          Waiting on the first tool call from this sub-agent…
+        </MessageResponse>
+      ) : null}
+
+      <PayloadDisclosure
+        label="Thread config"
+        value={{
           topic: node.topic,
           goal: node.goal,
           queryHints: node.queryHints,
@@ -273,20 +323,6 @@ function ResearchSubagentCard({
           model: node.model,
         }}
       />
-
-      {toolNodes.length > 0 ? (
-        <div className="space-y-2">
-          {toolNodes.map((toolNode) => (
-            <TimelineBranch key={toolNode.id} level={2}>
-              <ResearchToolCallCard node={toolNode} />
-            </TimelineBranch>
-          ))}
-        </div>
-      ) : node.status === "running" ? (
-        <MessageResponse className="text-amber-800">
-          Waiting on the first tool call from this sub-agent…
-        </MessageResponse>
-      ) : null}
 
       {node.summary ? (
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
@@ -298,55 +334,57 @@ function ResearchSubagentCard({
       ) : null}
 
       {node.findings?.length ? (
-        <div className="space-y-2">
-          <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-zinc-500">
-            Key findings
-          </p>
-          {node.findings.map((finding) => (
-            <div
-              key={`${finding.sourceUrl}-${finding.text}`}
-              className="rounded-lg border border-zinc-200 bg-white px-3 py-2"
-            >
-              <MessageResponse className="text-zinc-800">{finding.text}</MessageResponse>
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
-                <span className="font-mono uppercase tracking-wide">
-                  {finding.confidence} confidence
-                </span>
-                {finding.date ? <span>{finding.date}</span> : null}
-                <a
-                  href={finding.sourceUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hover:underline"
-                >
-                  Source
-                </a>
+        <details className="rounded-md border border-zinc-200 bg-white px-3 py-2">
+          <summary className="cursor-pointer text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-zinc-500">
+            Key findings ({node.findings.length})
+          </summary>
+          <div className="mt-2 space-y-2">
+            {node.findings.map((finding) => (
+              <div
+                key={`${finding.sourceUrl}-${finding.text}`}
+                className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2"
+              >
+                <MessageResponse className="text-zinc-800">{finding.text}</MessageResponse>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
+                  <span className="font-mono uppercase tracking-wide">
+                    {finding.confidence} confidence
+                  </span>
+                  {finding.date ? <span>{finding.date}</span> : null}
+                  <a
+                    href={finding.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:underline"
+                  >
+                    Source
+                  </a>
+                </div>
+                {finding.rawQuote ? (
+                  <MessageResponse className="mt-2 border-l-2 border-zinc-200 pl-3 italic text-zinc-600">
+                    {finding.rawQuote}
+                  </MessageResponse>
+                ) : null}
               </div>
-              {finding.rawQuote ? (
-                <MessageResponse className="mt-2 border-l-2 border-zinc-200 pl-3 italic text-zinc-600">
-                  {finding.rawQuote}
-                </MessageResponse>
-              ) : null}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </details>
       ) : null}
 
       {node.gaps?.length ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-          <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-amber-700">
-            Gaps
-          </p>
-          <ul className="mt-1 space-y-1 text-[12px] leading-relaxed text-amber-900">
+        <details className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+          <summary className="cursor-pointer text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-amber-700">
+            Gaps ({node.gaps.length})
+          </summary>
+          <ul className="mt-2 space-y-1 text-[12px] leading-relaxed text-amber-900">
             {node.gaps.map((gap) => (
               <li key={gap}>• {gap}</li>
             ))}
           </ul>
-        </div>
+        </details>
       ) : null}
 
       {node.error ? <MessageResponse className="text-red-900">{node.error}</MessageResponse> : null}
-    </PipelineToolRow>
+    </ChainOfThoughtStep>
   );
 }
 
@@ -368,61 +406,166 @@ export function ResearchTimeline({ nodes }: { nodes: TraceNode[] }) {
   const orphanTools = toolNodes.filter(
     (toolNode) => !threads.some((thread) => thread.id === toolNode.parentId),
   );
+  const completedThreads = threads.filter((thread) => thread.status === "completed").length;
+  const completedTools = toolNodes.filter((toolNode) => toolNode.status === "completed").length;
+  const activeThread = threads.find((thread) => thread.status === "running");
+  const taskTitle = orchestrator?.status === "completed"
+    ? `Deep research complete · ${threads.length} threads · ${toolNodes.length} tool calls`
+    : orchestrator?.status === "running"
+      ? `Deep research running · ${threads.length} thread${threads.length === 1 ? "" : "s"} active`
+      : "Deep research workflow";
 
   return (
     <div className="space-y-3">
-      {orchestrator ? (
-        <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
-          <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-zinc-500">
-            <span>{orchestrator.model}</span>
-            {orchestrator.startedAt ? (
-              <span>{formatTimestampLabel(orchestrator.startedAt)}</span>
-            ) : null}
-          </div>
-          <MessageResponse className="mt-2 text-zinc-700">
-            {orchestrator.summary
-              ? orchestrator.summary
-              : orchestrator.status === "running"
+      <Task defaultOpen={orchestrator?.status !== "completed"}>
+        <TaskTrigger title={taskTitle} />
+        <TaskContent>
+          <WorkflowTaskItem
+            label="Orchestrator planned coverage"
+            status={orchestrator?.status ?? "running"}
+            detail={
+              orchestrator?.summary ??
+              (orchestrator?.status === "running"
                 ? "Planning coverage and launching focused research threads…"
-                : `Spawned ${threads.length} focused research thread${threads.length === 1 ? "" : "s"}.`}
-          </MessageResponse>
+                : "Waiting for the orchestrator to start.")
+            }
+          />
+          <WorkflowTaskItem
+            label={`${completedThreads}/${threads.length} research thread${threads.length === 1 ? "" : "s"} completed`}
+            status={
+              threads.length > 0 && completedThreads === threads.length ? "completed" : "running"
+            }
+            detail={
+              activeThread
+                ? `Active thread: ${activeThread.topic ?? activeThread.title}`
+                : threads.length > 0
+                  ? "All focused sub-agents have finished."
+                  : "Waiting for the first sub-agent to start."
+            }
+          />
+          <WorkflowTaskItem
+            label={`${completedTools}/${toolNodes.length} tool call${toolNodes.length === 1 ? "" : "s"} completed`}
+            status={
+              toolNodes.length > 0 && completedTools === toolNodes.length ? "completed" : "running"
+            }
+            detail={
+              toolNodes.length > 0
+                ? "Search, CRM, and product-signal lookups stream underneath each thread."
+                : "Tool calls will appear once sub-agents start gathering evidence."
+            }
+          />
+          <WorkflowTaskItem
+            label="Research packet synthesized"
+            status={orchestrator?.status === "completed" ? "completed" : "running"}
+            detail={
+              orchestrator?.uncertainty
+                ? `Remaining uncertainty: ${orchestrator.uncertainty}`
+                : "The orchestrator will summarize findings once threads are complete."
+            }
+          />
+        </TaskContent>
+      </Task>
+
+      <ChainOfThought defaultOpen={orchestrator?.status !== "completed"}>
+        <ChainOfThoughtHeader>Deep research workflow</ChainOfThoughtHeader>
+        <ChainOfThoughtContent>
+          {orchestrator ? (
+            <ChainOfThoughtStep
+              icon={Brain}
+              status={traceStatusToThoughtStatus(orchestrator.status)}
+              label={
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium text-zinc-900">Orchestrator</span>
+                  <span className="inline-flex rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-zinc-500">
+                    {orchestrator.model}
+                  </span>
+                  {orchestrator.startedAt ? (
+                    <span className="text-[11px] text-zinc-500">
+                      {formatTimestampLabel(orchestrator.startedAt)}
+                    </span>
+                  ) : null}
+                </div>
+              }
+              description={
+                orchestrator.summary ??
+                (orchestrator.status === "running"
+                  ? "Planning coverage and delegating focused research threads."
+                  : `Spawned ${threads.length} focused research thread${threads.length === 1 ? "" : "s"}.`)
+              }
+            >
+              {threads.length > 0 ? (
+                <ChainOfThoughtSearchResults>
+                  {threads.map((thread) => (
+                    <ChainOfThoughtSearchResult key={thread.id}>
+                      {thread.topic ?? thread.title}
+                    </ChainOfThoughtSearchResult>
+                  ))}
+                </ChainOfThoughtSearchResults>
+              ) : null}
           {orchestrator.uncertainty ? (
-            <MessageResponse className="mt-2 text-amber-900">
+            <MessageResponse className="text-amber-900">
               Remaining uncertainty: {orchestrator.uncertainty}
             </MessageResponse>
           ) : null}
-          {orchestrator.error ? (
-            <MessageResponse className="mt-2 text-red-900">{orchestrator.error}</MessageResponse>
+              {orchestrator.error ? (
+                <MessageResponse className="text-red-900">{orchestrator.error}</MessageResponse>
+              ) : null}
+            </ChainOfThoughtStep>
           ) : null}
-        </div>
-      ) : null}
 
-      {threads.length > 0 ? (
-        <div className="space-y-2">
           {threads.map((thread) => (
-            <TimelineBranch key={thread.id} level={1}>
-              <ResearchSubagentCard
-                node={thread}
-                toolNodes={toolNodes.filter((toolNode) => toolNode.parentId === thread.id)}
-              />
-            </TimelineBranch>
+            <ResearchSubagentStep
+              key={thread.id}
+              node={thread}
+              toolNodes={toolNodes.filter((toolNode) => toolNode.parentId === thread.id)}
+            />
           ))}
-        </div>
-      ) : orchestrator?.status === "running" ? (
-        <MessageResponse className="pl-6 text-amber-800">
-          Waiting for the first sub-agent to start…
-        </MessageResponse>
-      ) : null}
 
-      {orphanTools.length > 0 ? (
-        <div className="space-y-2">
-          {orphanTools.map((toolNode) => (
-            <TimelineBranch key={toolNode.id} level={1}>
-              <ResearchToolCallCard node={toolNode} />
-            </TimelineBranch>
-          ))}
-        </div>
-      ) : null}
+          {orphanTools.length > 0 ? (
+            <ChainOfThoughtStep
+              icon={Sparkles}
+              status={completedTools === orphanTools.length ? "complete" : "active"}
+              label="Direct tool activity"
+              description="These tool calls were emitted outside a tracked sub-agent thread."
+            >
+              <details className="rounded-md border border-zinc-200 bg-white px-3 py-2">
+                <summary className="cursor-pointer text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-zinc-500">
+                  Raw tool activity ({orphanTools.length})
+                </summary>
+                <div className="mt-2 space-y-2">
+                  {orphanTools.map((toolNode) => (
+                    <ResearchToolCallCard key={toolNode.id} node={toolNode} />
+                  ))}
+                </div>
+              </details>
+            </ChainOfThoughtStep>
+          ) : null}
+        </ChainOfThoughtContent>
+      </ChainOfThought>
     </div>
+  );
+}
+
+function WorkflowTaskItem({
+  label,
+  status,
+  detail,
+}: {
+  label: string;
+  status: TraceNode["status"];
+  detail: string;
+}) {
+  const tone = getWorkflowTone(status);
+
+  return (
+    <TaskItem className="text-zinc-700">
+      <div className="flex items-start gap-2">
+        <span className="mt-0.5">{tone.icon}</span>
+        <div>
+          <p className={tone.textClassName}>{label}</p>
+          <p className="mt-0.5 text-[12px] leading-relaxed text-zinc-500">{detail}</p>
+        </div>
+      </div>
+    </TaskItem>
   );
 }
