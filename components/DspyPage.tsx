@@ -92,6 +92,50 @@ interface OptimizationArtifact {
 
 const OPTIMIZATION_ARTIFACT = optimizedArtifactData as OptimizationArtifact;
 
+/** Full runtime prompt as one markdown document (instruction + summary + few-shots), for display as plain text. */
+function buildDraftGeneratorPromptMarkdown(input: {
+  label: string;
+  releaseDate: string;
+  packageLabel: string;
+  summary: string;
+  instruction: string;
+  demos: DraftGeneratorPromptDemo[];
+}): string {
+  const lines: string[] = [];
+  lines.push(`# ${input.label}`);
+  lines.push("");
+  lines.push(`_${input.releaseDate} · ${input.packageLabel}_`);
+  lines.push("");
+  if (input.summary.trim()) {
+    lines.push(`> ${input.summary.trim().replace(/\n/g, "\n> ")}`);
+    lines.push("");
+  }
+  lines.push(`## Instruction`);
+  lines.push("");
+  lines.push(input.instruction.trim());
+  lines.push("");
+  lines.push(`## Few-shot examples`);
+  lines.push("");
+  if (input.demos.length === 0) {
+    lines.push(`*(none — the model receives the instruction and live lead context only.)*`);
+  } else {
+    for (let i = 0; i < input.demos.length; i++) {
+      const demo = input.demos[i];
+      lines.push(`### Example ${i + 1}`);
+      lines.push("");
+      lines.push(`**Signal:** ${demo.topSignal.label}`);
+      lines.push("");
+      lines.push(`**Lead context:** ${demo.leadContext}`);
+      lines.push("");
+      lines.push(`**Subject:** ${demo.draft.subject}`);
+      lines.push("");
+      lines.push(demo.draft.body.trim());
+      lines.push("");
+    }
+  }
+  return lines.join("\n").trimEnd();
+}
+
 function delay(ms: number) {
   return new Promise<void>((resolve) => {
     globalThis.setTimeout(resolve, ms);
@@ -336,66 +380,17 @@ function PromptSnapshotCard({
         </div>
       </div>
 
-      <div className="mb-3">
-        <p className="mb-1.5 text-[10px] font-mono uppercase tracking-widest text-zinc-400">
-          Instruction
-        </p>
-        <div className="rounded-lg border border-zinc-200 bg-zinc-50/80 px-3 py-3">
-          <p className="whitespace-pre-wrap font-mono text-[11.5px] leading-relaxed text-zinc-700">
-            {snapshot.instruction}
-          </p>
-        </div>
-      </div>
-
-      <div>
-        <p className="mb-1.5 text-[10px] font-mono uppercase tracking-widest text-zinc-400">
-          Summary
-        </p>
-        <p className="text-[12px] leading-relaxed text-zinc-600">{snapshot.summary}</p>
-      </div>
-
-      <div className="mt-3">
-        <p className="mb-1.5 text-[10px] font-mono uppercase tracking-widest text-zinc-400">
-          Few-shot examples in runtime prompt
-        </p>
-        {snapshot.demos.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-zinc-200 bg-white px-3 py-3">
-            <p className="text-[12px] leading-relaxed text-zinc-500">
-              No few-shot examples in this version. The model only sees the instruction and the live
-              lead context.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {snapshot.demos.slice(0, 3).map((demo, index) => (
-              <div
-                key={demo.id}
-                className="rounded-lg border border-zinc-200 bg-white px-3 py-3"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-[11px] font-medium text-zinc-900">
-                    Example {index + 1}: {demo.draft.subject}
-                  </p>
-                  <span className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-mono text-zinc-500">
-                    {demo.topSignal.label}
-                  </span>
-                </div>
-                <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
-                  {demo.leadContext}
-                </p>
-                <p className="mt-2 text-[12px] leading-relaxed text-zinc-700">
-                  {demo.draft.body}
-                </p>
-              </div>
-            ))}
-            {snapshot.demos.length > 3 && (
-              <p className="text-[11px] text-zinc-500">
-                + {snapshot.demos.length - 3} more selected demo
-                {snapshot.demos.length - 3 !== 1 ? "s" : ""} are included in the runtime prompt.
-              </p>
-            )}
-          </div>
-        )}
+      <div className="max-h-[min(520px,60vh)] overflow-y-auto rounded-lg border border-zinc-200 bg-white px-4 py-3">
+        <pre className="whitespace-pre-wrap break-words font-mono text-[11.5px] leading-relaxed text-zinc-800">
+          {buildDraftGeneratorPromptMarkdown({
+            label: snapshot.label,
+            releaseDate: snapshot.releaseDate,
+            packageLabel: snapshot.packageLabel,
+            summary: snapshot.summary,
+            instruction: snapshot.instruction,
+            demos: snapshot.demos,
+          })}
+        </pre>
       </div>
     </div>
   );
@@ -416,7 +411,7 @@ function LockedSnapshotCard() {
       </div>
       <div className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
         <p className="text-[12px] leading-relaxed text-zinc-500">
-          Run optimization to reveal the v3 instruction rewrite, selected few-shot demos, and
+          Run optimization to reveal the full v3 prompt markdown (instruction + few-shots) and
           projected candidate metrics.
         </p>
       </div>
@@ -511,8 +506,8 @@ function PromptSnapshotViewer({
           })}
         </div>
         <p className="text-[12px] leading-relaxed text-zinc-500">
-          Each card shows the runtime prompt package the model sees: the instruction plus any
-          selected few-shot examples.
+          Each column shows the full runtime prompt as one markdown document (summary, instruction,
+          and few-shot examples).
         </p>
       </div>
 
@@ -788,9 +783,9 @@ export default function DspyPage({
             <h2 className="text-[15px] font-semibold text-zinc-950">Prompt packages</h2>
           </div>
           <p className="mb-5 text-[12px] text-zinc-500">
-            Each version package combines the instruction and any selected few-shot examples. Before
-            the run, the tab shows the historical v1 → v2 progression. After the run, it unlocks
-            the live v2 → candidate v3 comparison.
+            Each version is shown as plain markdown text: the same document the model sees (instruction
+            plus few-shots). Before the run, compare historical v1 → v2. After the run, unlock live
+            v2 → candidate v3.
           </p>
           <PromptSnapshotViewer
             key={hasOptimized ? "optimized" : "historical"}
