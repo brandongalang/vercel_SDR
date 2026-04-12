@@ -2,25 +2,20 @@
 
 import {
   Brain,
-  CheckCircle2,
-  Clock3,
   Database,
   Globe,
-  Loader2,
   Server,
   Sparkles,
 } from "lucide-react";
 import {
   ChainOfThought,
   ChainOfThoughtContent,
-  ChainOfThoughtHeader,
   ChainOfThoughtSearchResult,
   ChainOfThoughtSearchResults,
   ChainOfThoughtStep,
 } from "@/components/ai-elements/chain-of-thought";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { ToolInput, ToolOutput } from "@/components/ai-elements/tool";
-import { Task, TaskContent, TaskItem, TaskTrigger } from "@/components/ai-elements/task";
 import {
   formatCompactValue,
   formatTimestampLabel,
@@ -47,27 +42,6 @@ function traceStatusToThoughtStatus(
   if (status === "completed") return "complete";
   if (status === "running") return "active";
   return "pending";
-}
-
-function getWorkflowTone(status: TraceNode["status"]) {
-  if (status === "completed") {
-    return {
-      icon: <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />,
-      textClassName: "text-zinc-800",
-    };
-  }
-
-  if (status === "running") {
-    return {
-      icon: <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-600" />,
-      textClassName: "text-zinc-800",
-    };
-  }
-
-  return {
-    icon: <Clock3 className="h-3.5 w-3.5 text-zinc-400" />,
-    textClassName: "text-zinc-500",
-  };
 }
 
 function ResearchToolOutput({ node }: { node: ResearchToolNode }) {
@@ -406,68 +380,16 @@ export function ResearchTimeline({ nodes }: { nodes: TraceNode[] }) {
   const orphanTools = toolNodes.filter(
     (toolNode) => !threads.some((thread) => thread.id === toolNode.parentId),
   );
-  const completedThreads = threads.filter((thread) => thread.status === "completed").length;
   const completedTools = toolNodes.filter((toolNode) => toolNode.status === "completed").length;
-  const activeThread = threads.find((thread) => thread.status === "running");
-  const taskTitle = orchestrator?.status === "completed"
+  const workflowTitle = orchestrator?.status === "completed"
     ? `Deep research complete · ${threads.length} threads · ${toolNodes.length} tool calls`
     : orchestrator?.status === "running"
       ? `Deep research running · ${threads.length} thread${threads.length === 1 ? "" : "s"} active`
-      : "Deep research workflow";
+      : "Deep research";
 
   return (
     <div className="space-y-3">
-      <Task defaultOpen={orchestrator?.status !== "completed"}>
-        <TaskTrigger title={taskTitle} />
-        <TaskContent>
-          <WorkflowTaskItem
-            label="Orchestrator planned coverage"
-            status={orchestrator?.status ?? "running"}
-            detail={
-              orchestrator?.summary ??
-              (orchestrator?.status === "running"
-                ? "Planning coverage and launching focused research threads…"
-                : "Waiting for the orchestrator to start.")
-            }
-          />
-          <WorkflowTaskItem
-            label={`${completedThreads}/${threads.length} research thread${threads.length === 1 ? "" : "s"} completed`}
-            status={
-              threads.length > 0 && completedThreads === threads.length ? "completed" : "running"
-            }
-            detail={
-              activeThread
-                ? `Active thread: ${activeThread.topic ?? activeThread.title}`
-                : threads.length > 0
-                  ? "All focused sub-agents have finished."
-                  : "Waiting for the first sub-agent to start."
-            }
-          />
-          <WorkflowTaskItem
-            label={`${completedTools}/${toolNodes.length} tool call${toolNodes.length === 1 ? "" : "s"} completed`}
-            status={
-              toolNodes.length > 0 && completedTools === toolNodes.length ? "completed" : "running"
-            }
-            detail={
-              toolNodes.length > 0
-                ? "Search, CRM, and product-signal lookups stream underneath each thread."
-                : "Tool calls will appear once sub-agents start gathering evidence."
-            }
-          />
-          <WorkflowTaskItem
-            label="Research packet synthesized"
-            status={orchestrator?.status === "completed" ? "completed" : "running"}
-            detail={
-              orchestrator?.uncertainty
-                ? `Remaining uncertainty: ${orchestrator.uncertainty}`
-                : "The orchestrator will summarize findings once threads are complete."
-            }
-          />
-        </TaskContent>
-      </Task>
-
       <ChainOfThought defaultOpen={orchestrator?.status !== "completed"}>
-        <ChainOfThoughtHeader>Deep research workflow</ChainOfThoughtHeader>
         <ChainOfThoughtContent>
           {orchestrator ? (
             <ChainOfThoughtStep
@@ -475,9 +397,15 @@ export function ResearchTimeline({ nodes }: { nodes: TraceNode[] }) {
               status={traceStatusToThoughtStatus(orchestrator.status)}
               label={
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium text-zinc-900">Orchestrator</span>
+                  <span className="font-medium text-zinc-900">{workflowTitle}</span>
                   <span className="inline-flex rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-zinc-500">
                     {orchestrator.model}
+                  </span>
+                  <span className="inline-flex rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-zinc-500">
+                    {threads.length} thread{threads.length === 1 ? "" : "s"}
+                  </span>
+                  <span className="inline-flex rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-zinc-500">
+                    {completedTools}/{toolNodes.length} tool call{toolNodes.length === 1 ? "" : "s"}
                   </span>
                   {orchestrator.startedAt ? (
                     <span className="text-[11px] text-zinc-500">
@@ -543,29 +471,5 @@ export function ResearchTimeline({ nodes }: { nodes: TraceNode[] }) {
         </ChainOfThoughtContent>
       </ChainOfThought>
     </div>
-  );
-}
-
-function WorkflowTaskItem({
-  label,
-  status,
-  detail,
-}: {
-  label: string;
-  status: TraceNode["status"];
-  detail: string;
-}) {
-  const tone = getWorkflowTone(status);
-
-  return (
-    <TaskItem className="text-zinc-700">
-      <div className="flex items-start gap-2">
-        <span className="mt-0.5">{tone.icon}</span>
-        <div>
-          <p className={tone.textClassName}>{label}</p>
-          <p className="mt-0.5 text-[12px] leading-relaxed text-zinc-500">{detail}</p>
-        </div>
-      </div>
-    </TaskItem>
   );
 }
