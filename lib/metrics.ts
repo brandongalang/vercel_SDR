@@ -54,6 +54,12 @@ function toMillis(value?: string) {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
+function toPercentage(numerator: number, denominator: number): number | null {
+  return denominator > 0
+    ? Math.round((numerator / denominator) * 1000) / 10
+    : null;
+}
+
 function parseDateInput(value: string) {
   const [year, month, day] = value.split("-").map(Number);
   if (!year || !month || !day) {
@@ -162,16 +168,16 @@ export function computeQueueMetrics(jobs: OutboundJob[], dateRange?: AnalyticsDa
   const editedCount = withFeedback.filter((f) => f.feedback!.edited === true).length;
   const withApprovalFeedback = withFeedback.length;
   const denom = cleanAcceptCount + editedCount;
-  const cleanAcceptRate = denom > 0 ? Math.round((cleanAcceptCount / denom) * 1000) / 10 : null;
-  const editRate = denom > 0 ? Math.round((editedCount / denom) * 1000) / 10 : null;
+  const cleanAcceptRate = toPercentage(cleanAcceptCount, denom);
+  const editRate = toPercentage(editedCount, denom);
 
   const sentJobs = jobs.filter((j) => j.status === "sent_stub");
   const withOutcome = sentJobs.filter((j) => j.outcome != null && hasTrackedOutcomeInRange(j, bounds));
   const replyCount = withOutcome.filter((j) => j.outcome!.replied && isInRange(respondedTimestamp(j), bounds)).length;
   const positiveCount = withOutcome.filter((j) => j.outcome!.positive && isInRange(respondedTimestamp(j), bounds)).length;
   const o = withOutcome.length;
-  const replyRate = o > 0 ? Math.round((replyCount / o) * 1000) / 10 : null;
-  const positiveRate = o > 0 ? Math.round((positiveCount / o) * 1000) / 10 : null;
+  const replyRate = toPercentage(replyCount, o);
+  const positiveRate = toPercentage(positiveCount, o);
 
   const summary: QueueMetricsSummary = {
     totalJobs: bounds ? jobs.filter((j) => isInRange(createdTimestamp(j), bounds)).length : jobs.length,
@@ -293,13 +299,13 @@ export function computeDspyVersionMetrics(
         withFeedback: withFeedback.length,
         cleanAccept,
         edited,
-        cleanAcceptRate: fb > 0 ? Math.round((cleanAccept / fb) * 1000) / 10 : null,
-        editRate: fb > 0 ? Math.round((edited / fb) * 1000) / 10 : null,
+        cleanAcceptRate: toPercentage(cleanAccept, fb),
+        editRate: toPercentage(edited, fb),
         sentWithOutcome: o,
         replied,
         positive,
-        replyRate: o > 0 ? Math.round((replied / o) * 1000) / 10 : null,
-        positiveRate: o > 0 ? Math.round((positive / o) * 1000) / 10 : null,
+        replyRate: toPercentage(replied, o),
+        positiveRate: toPercentage(positive, o),
       });
     }
   }
