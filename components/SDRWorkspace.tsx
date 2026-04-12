@@ -25,7 +25,10 @@ import {
 import QueueList from "./QueueList";
 import DetailPanel from "./DetailPanel";
 import AnalyticsPage from "./AnalyticsPage";
-import DspyPage from "./DspyPage";
+import DspyPage, {
+  INITIAL_DSPY_OPTIMIZATION_STATE,
+  type DspyOptimizationState,
+} from "./DspyPage";
 import LiveAgentDemo from "./LiveAgentDemo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -247,6 +250,9 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
   const [isResettingDemo, setIsResettingDemo] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
   const [workspaceResetVersion, setWorkspaceResetVersion] = useState(0);
+  const [dspyOptimizationState, setDspyOptimizationState] = useState<DspyOptimizationState>(
+    INITIAL_DSPY_OPTIMIZATION_STATE,
+  );
   const selectedAnalytics = useMemo(
     () => getNearestAnalyticsSnapshot(analyticsDateRange, analyticsMap),
     [analyticsDateRange, analyticsMap]
@@ -384,6 +390,7 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
       setRegenerateNotes({});
       setBaselineDrafts({});
       setAnalyticsDateRange(createDefaultAnalyticsDateRange());
+      setDspyOptimizationState(INITIAL_DSPY_OPTIMIZATION_STATE);
       setActiveView("review");
       setWorkspaceResetVersion((value) => value + 1);
     } catch (error) {
@@ -532,7 +539,12 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
           jobs={jobs}
         />
       ) : activeView === "dspy" ? (
-        <DspyPage key={`dspy-${workspaceResetVersion}`} compileRuns={MOCK_DSPY_COMPILE_RUNS} />
+        <DspyPage
+          key={`dspy-${workspaceResetVersion}`}
+          compileRuns={MOCK_DSPY_COMPILE_RUNS}
+          optimizationState={dspyOptimizationState}
+          setOptimizationState={setDspyOptimizationState}
+        />
       ) : (
         <LiveAgentDemo key={`debugger-${workspaceResetVersion}`} />
       )}

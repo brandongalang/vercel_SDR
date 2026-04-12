@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -43,6 +43,20 @@ const RUN_STEPS = [
 
 type OptimizationStatus = "idle" | "running" | "complete";
 type CompareMode = "v2-v3" | "v1-v2";
+
+export type DspyOptimizationState = {
+  optimizationStatus: OptimizationStatus;
+  activeStepIndex: number | null;
+  completedStepCount: number;
+  runError: string | null;
+};
+
+export const INITIAL_DSPY_OPTIMIZATION_STATE: DspyOptimizationState = {
+  optimizationStatus: "idle",
+  activeStepIndex: null,
+  completedStepCount: 0,
+  runError: null,
+};
 
 interface OptimizationArtifact {
   instruction: string;
@@ -528,7 +542,15 @@ function PromptSnapshotViewer({
   );
 }
 
-export default function DspyPage({ compileRuns }: { compileRuns: DspyCompileRun[] }) {
+export default function DspyPage({
+  compileRuns,
+  optimizationState,
+  setOptimizationState,
+}: {
+  compileRuns: DspyCompileRun[];
+  optimizationState: DspyOptimizationState;
+  setOptimizationState: Dispatch<SetStateAction<DspyOptimizationState>>;
+}) {
   const sortedRuns = useMemo(
     () =>
       [...compileRuns].sort(
@@ -536,11 +558,8 @@ export default function DspyPage({ compileRuns }: { compileRuns: DspyCompileRun[
       ),
     [compileRuns],
   );
-  const [optimizationStatus, setOptimizationStatus] = useState<OptimizationStatus>("idle");
-  const [activeStepIndex, setActiveStepIndex] = useState<number | null>(null);
-  const [completedStepCount, setCompletedStepCount] = useState(0);
-  const [runError, setRunError] = useState<string | null>(null);
-
+  const { optimizationStatus, activeStepIndex, completedStepCount, runError } =
+    optimizationState;
   const hasOptimized = optimizationStatus === "complete";
   const revealedRow = hasOptimized ? OPTIMIZATION_ARTIFACT.evaluation.projectedVersionRow : null;
   const optimizedSnapshot = useMemo(() => {
@@ -561,26 +580,37 @@ export default function DspyPage({ compileRuns }: { compileRuns: DspyCompileRun[
   const handleRunOptimization = async () => {
     if (optimizationStatus !== "idle") return;
 
-    setRunError(null);
-    setCompletedStepCount(0);
-    setActiveStepIndex(0);
-    setOptimizationStatus("running");
+    setOptimizationState({
+      optimizationStatus: "running",
+      activeStepIndex: 0,
+      completedStepCount: 0,
+      runError: null,
+    });
 
     try {
       for (let index = 0; index < RUN_STEPS.length; index++) {
-        setActiveStepIndex(index);
-        setCompletedStepCount(index);
+        setOptimizationState((prev) => ({
+          ...prev,
+          activeStepIndex: index,
+          completedStepCount: index,
+        }));
         await delay(index === RUN_STEPS.length - 1 ? 1200 : 950);
       }
 
-      setCompletedStepCount(RUN_STEPS.length);
-      setActiveStepIndex(null);
-      setOptimizationStatus("complete");
+      setOptimizationState((prev) => ({
+        ...prev,
+        completedStepCount: RUN_STEPS.length,
+        activeStepIndex: null,
+        optimizationStatus: "complete",
+      }));
     } catch (error) {
-      setActiveStepIndex(null);
-      setCompletedStepCount(0);
-      setOptimizationStatus("idle");
-      setRunError(error instanceof Error ? error.message : "Optimization failed");
+      setOptimizationState((prev) => ({
+        ...prev,
+        activeStepIndex: null,
+        completedStepCount: 0,
+        optimizationStatus: "idle",
+        runError: error instanceof Error ? error.message : "Optimization failed",
+      }));
     }
   };
 

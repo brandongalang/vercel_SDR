@@ -93,12 +93,7 @@ function shouldForceToolOpen(state: ToolState) {
 }
 
 function getDefaultToolOpen(state: ToolState) {
-  return state !== "output-available";
-}
-
-function getToolOpenStateBucket(state: ToolState) {
-  if (isRunningToolState(state)) return "running";
-  return state;
+  return state !== "idle";
 }
 
 function formatCompactValue(value: unknown): string | null {
@@ -174,11 +169,8 @@ function PipelineToolRow({
   className?: string;
   contentClassName?: string;
 }) {
-  const toolKey = `${type}-${getToolOpenStateBucket(state)}`;
-
   return (
     <Tool
-      key={toolKey}
       defaultOpen={getDefaultToolOpen(state)}
       forceOpen={shouldForceToolOpen(state)}
       className={cn("border-zinc-200 bg-white shadow-sm", className)}
