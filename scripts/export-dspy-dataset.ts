@@ -8,7 +8,7 @@
  *   - promptVersions: the prompt version map used to generate the draft
  *   - pipeline inputs (leadInput, signals, angleType)
  *   - draft output (subject, body)
- *   - labels: { edited, editorNote, replied, positive } — the DSPy training signal
+ *   - labels: { edited, editorNote, replied, positiveReply } — the DSPy training signal
  *
  * Usage:
  *   npx ts-node scripts/export-dspy-dataset.ts [options]
@@ -120,13 +120,14 @@ interface DspyDatasetRow {
     editorNote: string | null;
     /** True if a tracked send received any reply */
     replied: boolean | null;
-    /** True if the reply was classified as positive (meeting, strong intent) */
-    positive: boolean | null;
+    /** True if the lead gave a workable, non-negative reply an SDR can advance. */
+    positiveReply: boolean | null;
   };
 }
 
 function toDatasetRow(job: OutboundJob): DspyDatasetRow {
   const edited = job.feedback?.edited ?? false;
+  const positiveReply = job.outcome?.positive ?? job.feedback?.positiveReply ?? null;
   return {
     id: job.id,
     promptVersions: job.promptVersions ?? null,
@@ -144,8 +145,8 @@ function toDatasetRow(job: OutboundJob): DspyDatasetRow {
       cleanAccept: !edited,
       edited,
       editorNote: job.feedback?.editorNote ?? null,
-      replied: job.outcome?.replied ?? null,
-      positive: job.outcome?.positive ?? null,
+      replied: job.outcome?.replied ?? (positiveReply === true ? true : null),
+      positiveReply,
     },
   };
 }
@@ -185,12 +186,12 @@ async function main() {
   );
 
   // Summary
-  const withOutcome = rows.filter((r) => r.labels.replied !== null).length;
+  const withReplyLabel = rows.filter((r) => r.labels.positiveReply !== null || r.labels.replied !== null).length;
   const cleanAcceptCount = rows.filter((r) => r.labels.cleanAccept).length;
-  const positiveCount = rows.filter((r) => r.labels.positive).length;
+  const positiveCount = rows.filter((r) => r.labels.positiveReply).length;
   console.log(`  Clean accept: ${cleanAcceptCount}/${rows.length}`);
-  console.log(`  With outcome: ${withOutcome}/${rows.length}`);
-  console.log(`  Positive replies: ${positiveCount}/${withOutcome || 1}`);
+  console.log(`  With reply label: ${withReplyLabel}/${rows.length}`);
+  console.log(`  Positive replies: ${positiveCount}/${withReplyLabel || 1}`);
 
   const withVersion = rows.filter((r) => r.promptVersions != null).length;
   if (withVersion < rows.length) {

@@ -1,0 +1,210 @@
+{
+  "instruction": "Lead with the signal. Open with the exact trigger\u2014hiring data, a public post, product usage, or a tech stack indicator\u2014in the first sentence. In one sentence, connect that signal to a concrete outcome Vercel enables: faster iteration, reliability at scale, or developer velocity. Skip pleasantries and filler phrases. The CTA must be a single frictionless ask: offer a specific artifact (benchmark, case study, or 15-min scoped call) rather than a generic meeting request. Total body: under 100 words. Subject line: seven words or fewer, signal-specific, no questions.",
+  "demos": [
+    {
+      "id": "v2-003",
+      "leadContext": "Rita Alvarez is Head of Web Platform at OrbitIQ. Play: Migration Watch. Top signal: App-router migration: Core routes moved from CRA to Next.js.. Play context: public repos moved from CRA to Next.js. Why now: Migration commits accelerated this month and deployment choices are next.. Confidence: Concrete migration activity..",
+      "topSignal": {
+        "label": "App-router migration",
+        "value": "Core routes moved from CRA to Next.js.",
+        "category": "tech_stack",
+        "strength": "strong",
+        "source": "external",
+        "rank": 1
+      },
+      "draft": {
+        "subject": "OrbitIQ migration: deployment checklist",
+        "body": "Hi Rita,\n\nSaw OrbitIQ move key repos from CRA to Next.js recently. Teams usually hit the same friction right after this step: cache policy, preview discipline, and environment parity.\n\nHappy to share a short migration checklist if useful.\n\n\u2014 Alex"
+      },
+      "priorDraft": "Subject: OrbitIQ migration: deployment checklist\nBody:\nHi Rita,\n\nSaw OrbitIQ move key repos from CRA to Next.js recently. Teams usually hit the same friction right after this step: cache policy, preview discipline, and environment parity.\n\nHappy to share a short migration checklist if useful.\n\n\u2014 Alex",
+      "labels": {
+        "cleanAccept": true,
+        "replied": true,
+        "positiveReply": true
+      },
+      "objectiveScore": 1.0,
+      "angleType": "tech_migration"
+    },
+    {
+      "id": "v2-005",
+      "leadContext": "Aisha Khan is Senior Platform Engineer at PulseMetrics. Play: Web Intent. Top signal: ISR intent cluster: 4 ISR doc visits in 3 days.. Play context: repeat visits to ISR and pricing docs. Why now: Intent clustered in a 72-hour window around technical and commercial pages.. Confidence: Useful intent, partial attribution..",
+      "topSignal": {
+        "label": "ISR intent cluster",
+        "value": "4 ISR doc visits in 3 days.",
+        "category": "web_activity",
+        "strength": "moderate",
+        "source": "internal",
+        "rank": 1
+      },
+      "draft": {
+        "subject": "Quick ISR implementation benchmark",
+        "body": "Hi Aisha,\n\nTeams evaluating ISR usually ask the same things: cache invalidation, preview reliability, and release confidence.\n\nIf that's relevant at PulseMetrics, I can share a concise benchmark from similar teams.\n\nWould that help?\n\n\u2014 Alex"
+      },
+      "priorDraft": "Subject: Quick ISR implementation benchmark\nBody:\nHi Aisha,\n\nTeams evaluating ISR usually ask the same things: cache invalidation, preview reliability, and release confidence.\n\nIf that's relevant at PulseMetrics, I can share a concise benchmark from similar teams.\n\nWould that help?\n\n\u2014 Alex",
+      "labels": {
+        "cleanAccept": true,
+        "replied": true,
+        "positiveReply": true
+      },
+      "objectiveScore": 1.0,
+      "angleType": "web_intent"
+    },
+    {
+      "id": "v2-008",
+      "leadContext": "Gabe Singh is Engineering Director at AtlasRetail. Play: Hiring Signal. Top signal: Preview ownership role: Staff posting tied to preview governance and edge delivery.. Play context: new staff web platform role. Why now: The new role includes explicit ownership of preview and release workflow.. Confidence: Strong role signal, moderate certainty..",
+      "topSignal": {
+        "label": "Preview ownership role",
+        "value": "Staff posting tied to preview governance and edge delivery.",
+        "category": "hiring_signal",
+        "strength": "strong",
+        "source": "external",
+        "rank": 1
+      },
+      "draft": {
+        "subject": "Hiring for preview ownership at AtlasRetail",
+        "body": "Hi Gabe,\n\nSaw AtlasRetail open a staff platform role centered on preview governance and edge delivery.\n\nTeams in this phase usually benefit from setting workflow standards before the hiring wave lands.\n\nWould a short walkthrough help?\n\n\u2014 Alex"
+      },
+      "priorDraft": "Subject: Hiring for preview ownership at AtlasRetail\nBody:\nHi Gabe,\n\nSaw AtlasRetail open a staff platform role centered on preview governance and edge delivery.\n\nTeams in this phase usually benefit from setting workflow standards before the hiring wave lands.\n\nWould a short walkthrough help?\n\n\u2014 Alex",
+      "labels": {
+        "cleanAccept": true,
+        "replied": true,
+        "positiveReply": true
+      },
+      "objectiveScore": 1.0,
+      "angleType": "hiring_signal"
+    },
+    {
+      "id": "v2-011",
+      "leadContext": "Derek Osei is Principal Engineer at HarborDesk. Play: Web Intent. Top signal: Edge reliability research: Repeated edge-runtime and SLA doc sessions.. Play context: edge runtime and SLA docs viewed repeatedly. Why now: Intent spiked right after HarborDesk published stricter uptime targets.. Confidence: Good intent fit, soft attribution..",
+      "topSignal": {
+        "label": "Edge reliability research",
+        "value": "Repeated edge-runtime and SLA doc sessions.",
+        "category": "web_activity",
+        "strength": "moderate",
+        "source": "internal",
+        "rank": 1
+      },
+      "draft": {
+        "subject": "HarborDesk reliability goals and edge rollout",
+        "body": "Hi Derek,\n\nSaw HarborDesk's reliability push and thought this might be useful: teams in that phase usually evaluate edge runtime and SLA posture together.\n\nHappy to share a rollout sequence that reduces risk.\n\nWorth a quick discussion?\n\n\u2014 Alex"
+      },
+      "priorDraft": "Subject: HarborDesk reliability goals and edge rollout\nBody:\nHi Derek,\n\nSaw HarborDesk's reliability push and thought this might be useful: teams in that phase usually evaluate edge runtime and SLA posture together.\n\nHappy to share a rollout sequence that reduces risk.\n\nWorth a quick discussion?\n\n\u2014 Alex",
+      "labels": {
+        "cleanAccept": true,
+        "replied": true,
+        "positiveReply": true
+      },
+      "objectiveScore": 1.0,
+      "angleType": "web_intent"
+    },
+    {
+      "id": "v2-017",
+      "leadContext": "Mina Solis is Platform Engineer at SageRoute. Play: Web Intent. Top signal: Middleware research: Repeated middleware doc views in 48 hours.. Play context: middleware docs viewed repeatedly. Why now: Intent activity appeared directly after a latency-sensitive product launch.. Confidence: Targeted intent with partial attribution..",
+      "topSignal": {
+        "label": "Middleware research",
+        "value": "Repeated middleware doc views in 48 hours.",
+        "category": "web_activity",
+        "strength": "moderate",
+        "source": "internal",
+        "rank": 1
+      },
+      "draft": {
+        "subject": "SageRoute's middleware and edge decisions",
+        "body": "Hi Mina,\n\nTeams shipping latency-sensitive products often hit the same middleware and routing decisions.\n\nIf SageRoute is mapping that now, I can share patterns that keep performance predictable without adding complexity.\n\nWould that be useful?\n\n\u2014 Alex"
+      },
+      "priorDraft": "Subject: SageRoute's middleware and edge decisions\nBody:\nHi Mina,\n\nTeams shipping latency-sensitive products often hit the same middleware and routing decisions.\n\nIf SageRoute is mapping that now, I can share patterns that keep performance predictable without adding complexity.\n\nWould that be useful?\n\n\u2014 Alex",
+      "labels": {
+        "cleanAccept": true,
+        "replied": true,
+        "positiveReply": true
+      },
+      "objectiveScore": 1.0,
+      "angleType": "web_intent"
+    },
+    {
+      "id": "v2-020",
+      "leadContext": "Fatima Noor is Director of Engineering at Kiteboard. Play: Hiring Signal. Top signal: Reliability pod hiring: Two openings focused on release reliability controls.. Play context: new reliability engineering pod. Why now: Reliability hiring and executive messaging aligned this month.. Confidence: Clear reliability hiring signal..",
+      "topSignal": {
+        "label": "Reliability pod hiring",
+        "value": "Two openings focused on release reliability controls.",
+        "category": "hiring_signal",
+        "strength": "strong",
+        "source": "external",
+        "rank": 1
+      },
+      "draft": {
+        "subject": "Kiteboard reliability hiring and release controls",
+        "body": "Hi Fatima,\n\nNoticed Kiteboard is building a reliability pod with explicit release-control scope.\n\nTeams making this shift usually benefit from tightening preview and deployment standards early.\n\nWould a quick compare be useful?\n\n\u2014 Alex"
+      },
+      "priorDraft": "Subject: Kiteboard reliability hiring and release controls\nBody:\nHi Fatima,\n\nNoticed Kiteboard is building a reliability pod with explicit release-control scope.\n\nTeams making this shift usually benefit from tightening preview and deployment standards early.\n\nWould a quick compare be useful?\n\n\u2014 Alex",
+      "labels": {
+        "cleanAccept": true,
+        "replied": true,
+        "positiveReply": true
+      },
+      "objectiveScore": 1.0,
+      "angleType": "hiring_signal"
+    }
+  ],
+  "compiledAt": "2026-04-11T00:00:00Z",
+  "optimizer": "MIPROv2",
+  "mode": "mock",
+  "promptVersionBefore": "2026-02-17.draft-generator.v2",
+  "promptVersionAfter": "2026-04-11.draft-generator.v3",
+  "objective": {
+    "label": "0.2 clean-accept proxy + 0.8 workable-reply proxy",
+    "weights": {
+      "cleanAccept": 0.2,
+      "workableReply": 0.8
+    }
+  },
+  "evaluation": {
+    "kind": "projection",
+    "basis": "baseline-v2-plus-compile-deltas",
+    "baselineVersionRow": {
+      "draftPromptVersion": "2026-02-17.draft-generator.v2",
+      "angleType": null,
+      "jobCount": 30,
+      "withFeedback": 30,
+      "cleanAccept": 20,
+      "edited": 10,
+      "cleanAcceptRate": 66.7,
+      "editRate": 33.3,
+      "sentWithOutcome": 30,
+      "replied": 12,
+      "positive": 9,
+      "replyRate": 40.0,
+      "positiveRate": 30.0
+    },
+    "projectedVersionRow": {
+      "draftPromptVersion": "2026-04-11.draft-generator.v3",
+      "angleType": null,
+      "jobCount": 30,
+      "withFeedback": 30,
+      "cleanAccept": 23,
+      "edited": 7,
+      "cleanAcceptRate": 76.7,
+      "editRate": 23.3,
+      "sentWithOutcome": 30,
+      "replied": 13,
+      "positive": 10,
+      "replyRate": 43.3,
+      "positiveRate": 33.3
+    },
+    "deltas": {
+      "cleanAcceptRate": 10.0,
+      "editRate": -10.0,
+      "replyRate": 3.3,
+      "positiveRate": 3.3
+    },
+    "projectionSource": {
+      "dataset": "data/synthetic-jobs-v2.json",
+      "priors": {
+        "cleanAcceptRate": 11.2,
+        "replyRate": 1.8,
+        "positiveRate": 3.4
+      },
+      "rounding": "Projected rates converted to whole-example counts for a revealable v3 row."
+    }
+  }
+}

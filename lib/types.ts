@@ -181,7 +181,12 @@ export interface OutboundJob {
   signals: ScoredSignal[];
   discardedSignals?: DiscardedSignal[];
   draft: { subject: string; body: string; highlightedSpan?: string };
-  feedback?: { edited: boolean; editorNote?: string };
+  feedback?: {
+    edited: boolean;
+    editorNote?: string;
+    /** Workable, non-negative lead reply that an SDR can advance. */
+    positiveReply?: boolean | null;
+  };
   /** Reply / pipeline signals for sent touches — drives success rates in Insights */
   outcome?: JobOutcome;
   timestamps: JobTimestamps;

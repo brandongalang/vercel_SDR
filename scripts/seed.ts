@@ -38,6 +38,7 @@ type JobSeed = {
   researchRun: object;
   feedback: object | null;
   outcome: object | null;
+  promptVersions?: Record<string, string> | null;
   createdAt: number;
   updatedAt: number;
   approvedAt?: number | null;
@@ -45,6 +46,14 @@ type JobSeed = {
   sentAt?: number | null;
   respondedAt?: number | null;
 };
+
+const LIVE_PROMPT_VERSIONS_V2 = {
+  researchOrchestrator: "2026-02-17.research-orchestrator.v1",
+  researchThread: "2026-02-17.research-thread.v1",
+  signalExtractor: "2026-02-17.signal-extractor.v1",
+  anglePlanner: "2026-02-17.angle-planner.v2",
+  draftGenerator: "2026-02-17.draft-generator.v2",
+} satisfies Record<string, string>;
 
 const jobs: JobSeed[] = [
   // ─── 1. trial_activation · review_required · high ───────────────────────
@@ -1059,7 +1068,10 @@ function applyLifecycleTimestamps(job: JobSeed): JobSeed {
   };
 }
 
-const seededJobs = jobs.map(applyLifecycleTimestamps);
+const seededJobs = jobs.map((job) => ({
+  ...applyLifecycleTimestamps(job),
+  promptVersions: job.promptVersions ?? LIVE_PROMPT_VERSIONS_V2,
+}));
 
 async function main() {
   console.log(`Seeding ${seededJobs.length} jobs into InstantDB app ${APP_ID}...`);

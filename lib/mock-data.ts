@@ -786,7 +786,7 @@ Best,`,
 
 // ─── DSPy prompt version epochs (mock) ───────────────────────────────────────
 // Three synthetic compile epochs used to populate the version-attributed analytics panel.
-// v1 = baseline (high edit rate, low positive), v2 = first compile, v3 = current (best clean accept).
+// v1 = baseline, v2 = current live queue, v3 = optimized candidate shown in the DSPy tab.
 
 const DSPY_PROMPT_VERSIONS_V1: Record<string, string> = {
   researchOrchestrator: "2026-01-20.research-orchestrator.v1",
@@ -804,7 +804,7 @@ const DSPY_PROMPT_VERSIONS_V2: Record<string, string> = {
   draftGenerator: "2026-02-17.draft-generator.v2",
 };
 
-const DSPY_PROMPT_VERSIONS_V3: Record<string, string> = {
+export const DSPY_PROMPT_VERSIONS_V3: Record<string, string> = {
   researchOrchestrator: "2026-04-11.research-orchestrator.v1",
   researchThread: "2026-04-11.research-thread.v1",
   signalExtractor: "2026-04-11.signal-extractor.v1",
@@ -814,13 +814,13 @@ const DSPY_PROMPT_VERSIONS_V3: Record<string, string> = {
 
 // Version assignment per job ID — older sent jobs use earlier versions to show improvement over time.
 const JOB_PROMPT_VERSIONS: Record<string, Record<string, string>> = {
-  "job-001": DSPY_PROMPT_VERSIONS_V3,
-  "job-002": DSPY_PROMPT_VERSIONS_V3,
-  "job-003": DSPY_PROMPT_VERSIONS_V3,
-  "job-004": DSPY_PROMPT_VERSIONS_V3,
-  "job-005": DSPY_PROMPT_VERSIONS_V3,
-  "job-006": DSPY_PROMPT_VERSIONS_V3,
-  "job-sent-01": DSPY_PROMPT_VERSIONS_V3,
+  "job-001": DSPY_PROMPT_VERSIONS_V2,
+  "job-002": DSPY_PROMPT_VERSIONS_V2,
+  "job-003": DSPY_PROMPT_VERSIONS_V2,
+  "job-004": DSPY_PROMPT_VERSIONS_V2,
+  "job-005": DSPY_PROMPT_VERSIONS_V2,
+  "job-006": DSPY_PROMPT_VERSIONS_V2,
+  "job-sent-01": DSPY_PROMPT_VERSIONS_V2,
   "job-sent-02": DSPY_PROMPT_VERSIONS_V2,
   "job-sent-03": DSPY_PROMPT_VERSIONS_V1,
   "job-hist-v1-01": DSPY_PROMPT_VERSIONS_V1,
@@ -1017,5 +1017,5 @@ export const MOCK_JOBS: OutboundJob[] = [...LEGACY_MOCK_JOBS, ...HISTORICAL_SENT
   play: normalizePlay(job.play, job.researchRun.leadSource),
   whyNow: job.researchRun.whyNow,
   researchRun: normalizeResearchRun(job.researchRun),
-  promptVersions: JOB_PROMPT_VERSIONS[job.id] ?? DSPY_PROMPT_VERSIONS_V3,
+  promptVersions: JOB_PROMPT_VERSIONS[job.id] ?? DSPY_PROMPT_VERSIONS_V2,
 }));

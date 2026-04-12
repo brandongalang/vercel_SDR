@@ -111,6 +111,22 @@ function respondedTimestamp(job: OutboundJob) {
   return job.timestamps.respondedAt || job.timestamps.updated || job.timestamps.sentAt || job.timestamps.created;
 }
 
+function fallbackReplyLabel(job: OutboundJob) {
+  if (job.outcome?.replied != null) {
+    return job.outcome.replied;
+  }
+
+  return job.outcome == null ? (job.feedback?.positiveReply ?? null) : null;
+}
+
+function fallbackPositiveLabel(job: OutboundJob) {
+  if (job.outcome?.positive != null) {
+    return job.outcome.positive;
+  }
+
+  return job.outcome == null ? (job.feedback?.positiveReply ?? null) : null;
+}
+
 function hasTrackedOutcomeInRange(job: OutboundJob, bounds: ReturnType<typeof getDateRangeBounds>) {
   return (
     isInRange(sentTimestamp(job), bounds) ||
@@ -261,9 +277,13 @@ export function computeDspyVersionMetrics(
       const edited = withFeedback.filter((j) => j.feedback!.edited).length;
       const fb = cleanAccept + edited;
 
-      const sentJobs = subset.filter((j) => j.status === "sent_stub" && j.outcome != null);
-      const replied = sentJobs.filter((j) => j.outcome!.replied).length;
-      const positive = sentJobs.filter((j) => j.outcome!.positive).length;
+      const sentJobs = subset.filter(
+        (j) =>
+          j.status === "sent_stub" &&
+          (j.outcome != null || j.feedback?.positiveReply != null),
+      );
+      const replied = sentJobs.filter((j) => fallbackReplyLabel(j) === true).length;
+      const positive = sentJobs.filter((j) => fallbackPositiveLabel(j) === true).length;
       const o = sentJobs.length;
 
       rows.push({
