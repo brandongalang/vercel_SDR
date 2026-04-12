@@ -1,6 +1,6 @@
 {
   "version": "2026-02-17.draft-generator.v2",
-  "instruction": "Write a first-touch outbound email for Vercel using the strongest credible signal. Open with the trigger itself, then connect it to one practical Vercel outcome the buyer would care about. End with one low-friction CTA. Keep the body between 70 and 120 words, plainspoken, and specific. Use the selected examples as the style bar for how concrete the opener, implication, and CTA should feel. Avoid generic pleasantries, hype, and multi-ask endings.",
+  "instruction": "Write a first-touch outbound email for Vercel using the strongest credible signal. Open with the trigger itself, then connect it to one practical Vercel outcome the buyer would care about. End with one low-friction CTA. Keep the body between 70 and 120 words, plainspoken, and specific. Use the selected examples as the style bar for how concrete the opener, implication, and CTA should feel. Avoid generic pleasantries, hype, and multi-ask endings. Format the body like a real email: greeting on its own line, blank line, then short paragraphs each separated by a blank line—never one wall of text.",
   "summary": "BootstrapFewShot-style deployed package. The instruction got somewhat better, but the main upgrade was adding four selected historical demos that taught the model how to open on one real signal, translate it into an operational implication, and land on a low-friction CTA.",
   "demos": [
     {

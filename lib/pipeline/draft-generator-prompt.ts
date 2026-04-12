@@ -96,6 +96,7 @@ Requirements:
 - If the signal is anonymized internal intent, lead with the operational question it implies instead of exposing tracking details.
 - Keep the email concise, plainspoken, and commercially useful.
 - Do not use generic pleasantries, hype, or multiple asks.
+- Body formatting (required): Write the body as plain text with line breaks. Put the greeting on its own line, then a blank line, then the rest. Separate each short paragraph with a blank line (double newline). Do not output the body as one continuous paragraph or a single block of text—match the spacing in the few-shot examples.
 - If a current draft is provided, treat this as a rewrite, not a fresh strategy reset.
 - Preserve the chosen angle and the same underlying signal set unless the SDR note explicitly asks for a reframing.
 - Return highlightedSpan as an exact substring from the body when possible.
