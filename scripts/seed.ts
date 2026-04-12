@@ -8,8 +8,18 @@
 
 import { init_experimental, id as genId } from "@instantdb/admin";
 
-const APP_ID = "52c6a678-6f76-4082-ae80-b3c7a65a9216";
-const ADMIN_TOKEN = "ea8be4bf-9a21-4943-8824-b9df13ac9a9d";
+function getRequiredEnv(name: string) {
+  const value = process.env[name]?.trim();
+
+  if (!value) {
+    throw new Error(`Missing ${name}`);
+  }
+
+  return value;
+}
+
+const APP_ID = getRequiredEnv("NEXT_PUBLIC_INSTANT_APP_ID");
+const ADMIN_TOKEN = getRequiredEnv("INSTANT_ADMIN_TOKEN");
 
 const db = init_experimental({ appId: APP_ID, adminToken: ADMIN_TOKEN });
 
