@@ -25,8 +25,11 @@ import {
 import QueueList from "./QueueList";
 import DetailPanel from "./DetailPanel";
 import AnalyticsPage from "./AnalyticsPage";
+import DspyPage from "./DspyPage";
 import LiveAgentDemo from "./LiveAgentDemo";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Loader2, RotateCcw } from "lucide-react";
 
 interface SDRWorkspaceProps {
   analyticsMap: Record<string, AnalyticsSnapshot>;
@@ -235,12 +238,15 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
   );
 
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<"review" | "analytics" | "debugger">("review");
+  const [activeView, setActiveView] = useState<"review" | "analytics" | "debugger" | "dspy">("review");
   const [analyticsDateRange, setAnalyticsDateRange] = useState<AnalyticsDateRange>(() =>
     createDefaultAnalyticsDateRange()
   );
   const [regenerateNotes, setRegenerateNotes] = useState<Record<string, string | undefined>>({});
   const [baselineDrafts, setBaselineDrafts] = useState<Record<string, BaselineDraft>>({});
+  const [isResettingDemo, setIsResettingDemo] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [workspaceResetVersion, setWorkspaceResetVersion] = useState(0);
   const selectedAnalytics = useMemo(
     () => getNearestAnalyticsSnapshot(analyticsDateRange, analyticsMap),
     [analyticsDateRange, analyticsMap]
@@ -358,6 +364,35 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
     });
   };
 
+  const handleResetDemo = async () => {
+    if (isResettingDemo) return;
+
+    setIsResettingDemo(true);
+    setResetError(null);
+
+    try {
+      const response = await fetch("/api/reset-demo", {
+        method: "POST",
+      });
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "Failed to reset demo");
+      }
+
+      setSelectedJobId(null);
+      setRegenerateNotes({});
+      setBaselineDrafts({});
+      setAnalyticsDateRange(createDefaultAnalyticsDateRange());
+      setActiveView("review");
+      setWorkspaceResetVersion((value) => value + 1);
+    } catch (error) {
+      setResetError(error instanceof Error ? error.message : "Failed to reset demo");
+    } finally {
+      setIsResettingDemo(false);
+    }
+  };
+
   const selectedBaseline = resolvedSelectedJobId ? baselineDrafts[resolvedSelectedJobId] : undefined;
   const draftHasEdits = selectedJob
     ? selectedBaseline != null &&
@@ -396,46 +431,78 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
             </h1>
           </div>
 
-          <div className="inline-flex w-fit rounded-xl border border-border bg-muted p-1">
-            {[
-              {
-                id: "review" as const,
-                label: "Lead review",
-                sub: `${jobs.filter((j) => j.status === "pending_review").length} pending`,
-              },
-              {
-                id: "analytics" as const,
-                label: "Analytics",
-                sub: analyticsWindowLabel,
-              },
-              {
-                id: "debugger" as const,
-                label: "Live Agent",
-                sub: "Trace",
-              },
-            ].map((tab) => (
-              <button
-                key={tab.id}
+          <div className="flex flex-col gap-2 lg:items-end">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex w-fit rounded-xl border border-border bg-muted p-1">
+                {[
+                  {
+                    id: "review" as const,
+                    label: "Lead review",
+                    sub: `${jobs.filter((j) => j.status === "pending_review").length} pending`,
+                  },
+                  {
+                    id: "analytics" as const,
+                    label: "Analytics",
+                    sub: analyticsWindowLabel,
+                  },
+                  {
+                    id: "dspy" as const,
+                    label: "DSPy",
+                    sub: "Optimization",
+                  },
+                  {
+                    id: "debugger" as const,
+                    label: "Live Agent",
+                    sub: "Trace",
+                  },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveView(tab.id)}
+                    className={cn(
+                      "rounded-lg px-4 py-2.5 text-left transition-colors",
+                      activeView === tab.id
+                        ? "bg-card shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                    aria-pressed={activeView === tab.id}
+                  >
+                    <p className="text-[12px] font-medium text-current">{tab.label}</p>
+                    <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-muted-foreground">
+                      {tab.sub}
+                    </p>
+                  </button>
+                ))}
+              </div>
+              <Button
                 type="button"
-                onClick={() => setActiveView(tab.id)}
-                className={cn(
-                  "rounded-lg px-4 py-2.5 text-left transition-colors",
-                  activeView === tab.id ? "bg-card shadow-sm" : "text-muted-foreground hover:text-foreground"
-                )}
-                aria-pressed={activeView === tab.id}
+                variant="outline"
+                onClick={handleResetDemo}
+                disabled={isResettingDemo}
               >
-                <p className="text-[12px] font-medium text-current">{tab.label}</p>
-                <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-muted-foreground">
-                  {tab.sub}
-                </p>
-              </button>
-            ))}
+                {isResettingDemo ? (
+                  <>
+                    <Loader2 className="animate-spin" />
+                    Resetting…
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw />
+                    Reset Demo
+                  </>
+                )}
+              </Button>
+            </div>
+            {resetError && (
+              <p className="text-[12px] text-destructive">{resetError}</p>
+            )}
           </div>
         </div>
       </div>
 
       {activeView === "review" ? (
-        <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div key={`review-${workspaceResetVersion}`} className="flex min-h-0 flex-1 overflow-hidden">
           <QueueList
             jobs={jobs}
             selectedJobId={resolvedSelectedJobId}
@@ -463,10 +530,11 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
           dateRange={analyticsDateRange}
           setDateRange={setAnalyticsDateRange}
           jobs={jobs}
-          compileRuns={MOCK_DSPY_COMPILE_RUNS}
         />
+      ) : activeView === "dspy" ? (
+        <DspyPage key={`dspy-${workspaceResetVersion}`} compileRuns={MOCK_DSPY_COMPILE_RUNS} />
       ) : (
-        <LiveAgentDemo />
+        <LiveAgentDemo key={`debugger-${workspaceResetVersion}`} />
       )}
     </div>
   );
