@@ -18,9 +18,14 @@ import { determineGovernance } from "@/lib/pipeline/governance";
 import { persistPipelineRun } from "@/lib/pipeline/persistence";
 import { runResearchAgent } from "@/lib/pipeline/research-agent";
 import {
+  clonePipelineRunAudit,
   completePipelineAuditPhase,
   createPipelineRunAudit,
+  failPipelineAuditPhase,
+  getPipelinePhase,
   startPipelineAuditPhase,
+  type PipelineRunAudit,
+  type PipelineTraces,
 } from "@/lib/pipeline/run-job";
 import { runSignalExtractor } from "@/lib/pipeline/signal-extractor";
 import type { AnglePlan, DiscardedSignal, LeadInput, ScoredSignal } from "@/lib/types";
@@ -150,6 +155,9 @@ export function createPipelineAgent(
 ) {
   const abortSignal = options?.abortSignal;
   const trace = options?.trace;
+  const audit = createPipelineRunAudit(leadInput);
+  const traces: PipelineTraces = {};
+  audit.traces = traces;
   const state: PipelineState = {
     research: null,
     signals: null,
@@ -158,8 +166,18 @@ export function createPipelineAgent(
     draft: null,
     persistResult: null,
   };
+  startPipelineAuditPhase(audit, "ingest");
+  completePipelineAuditPhase(audit, "ingest");
 
-  return new ToolLoopAgent({
+  function markPipelineFailed(message: string) {
+    if (audit.status === "failed" || audit.status === "completed") {
+      return;
+    }
+
+    failPipelineAuditPhase(audit, audit.currentPhase, message);
+  }
+
+  const agent = new ToolLoopAgent({
     model: vertexModels.orchestrator,
     instructions: buildSystemPrompt(leadInput),
     stopWhen: stepCountIs(20),
@@ -168,26 +186,41 @@ export function createPipelineAgent(
         description: "Run all research threads for the lead and synthesize findings into a packet.",
         inputSchema: noInputSchema,
         execute: async () => {
-          const result = await runResearchAgent({ leadInput, abortSignal, trace });
-          state.research = result;
-          return {
-            threadsCompleted: result.packet.reports.length,
-            orchestratorSummary: result.packet.orchestratorSummary,
-            uncertainty: result.packet.uncertainty ?? null,
-            threadSummaries: result.packet.threadSummaries,
-            reports: result.packet.reports.map((report) => ({
-              topic: report.topic,
-              summary: report.summary,
-              gaps: report.gaps,
-              findings: report.findings.slice(0, 5).map((finding) => ({
-                text: finding.text,
-                sourceUrl: finding.sourceUrl,
-                confidence: finding.confidence,
-                date: finding.date,
-                rawQuote: finding.rawQuote,
+          startPipelineAuditPhase(audit, "research");
+
+          try {
+            const result = await runResearchAgent({ leadInput, abortSignal, trace });
+            state.research = result;
+            traces.research = {
+              orchestratorSteps: result.steps,
+              threadTraces: result.threadTraces,
+            };
+            completePipelineAuditPhase(audit, "research");
+
+            return {
+              threadsCompleted: result.packet.reports.length,
+              orchestratorSummary: result.packet.orchestratorSummary,
+              uncertainty: result.packet.uncertainty ?? null,
+              threadSummaries: result.packet.threadSummaries,
+              reports: result.packet.reports.map((report) => ({
+                topic: report.topic,
+                summary: report.summary,
+                gaps: report.gaps,
+                findings: report.findings.slice(0, 5).map((finding) => ({
+                  text: finding.text,
+                  sourceUrl: finding.sourceUrl,
+                  confidence: finding.confidence,
+                  date: finding.date,
+                  rawQuote: finding.rawQuote,
+                })),
               })),
-            })),
-          };
+            };
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : "Research phase failed";
+            failPipelineAuditPhase(audit, "research", message);
+            throw error;
+          }
         },
         toModelOutput: ({ output }) => ({
           type: "content",
@@ -207,24 +240,35 @@ export function createPipelineAgent(
           if (!state.research) {
             return { error: "run_research must complete before extract_signals." };
           }
-          const extraction = await runSignalExtractor(state.research.packet);
-          state.signals = extraction.signals;
-          state.discardedSignals = extraction.discardedSignals;
-          return {
-            signalCount: extraction.signals.length,
-            topSignals: extraction.signals.slice(0, 3).map((s) => ({
-              id: s.id,
-              label: s.label,
-              value: s.value,
-              category: s.category,
-              strength: s.strength,
-              source: s.source,
-              evidenceUrl: s.evidenceUrl,
-              signalDate: s.signalDate,
-            })),
-            discardedCount: extraction.discardedSignals.length,
-            discardedSignals: extraction.discardedSignals.slice(0, 5),
-          };
+          startPipelineAuditPhase(audit, "signals");
+
+          try {
+            const extraction = await runSignalExtractor(state.research.packet);
+            state.signals = extraction.signals;
+            state.discardedSignals = extraction.discardedSignals;
+            completePipelineAuditPhase(audit, "signals");
+
+            return {
+              signalCount: extraction.signals.length,
+              topSignals: extraction.signals.slice(0, 3).map((s) => ({
+                id: s.id,
+                label: s.label,
+                value: s.value,
+                category: s.category,
+                strength: s.strength,
+                source: s.source,
+                evidenceUrl: s.evidenceUrl,
+                signalDate: s.signalDate,
+              })),
+              discardedCount: extraction.discardedSignals.length,
+              discardedSignals: extraction.discardedSignals.slice(0, 5),
+            };
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : "Signal extraction failed";
+            failPipelineAuditPhase(audit, "signals", message);
+            throw error;
+          }
         },
         toModelOutput: ({ output }) => {
           if ("error" in output) {
@@ -250,16 +294,26 @@ export function createPipelineAgent(
           if (!state.signals) {
             return { error: "extract_signals must complete before plan_angle." };
           }
-          const anglePlan = await runAnglePlanner({ leadInput, signals: state.signals });
-          state.anglePlan = anglePlan;
-          return {
-            angleType: anglePlan.angleType,
-            angle: anglePlan.angle,
-            whyNow: anglePlan.whyNow,
-            confidenceTier: anglePlan.confidence.tier,
-            confidenceSummary: anglePlan.confidence.summary,
-            reasons: anglePlan.confidence.reasons,
-          };
+          startPipelineAuditPhase(audit, "angle");
+
+          try {
+            const anglePlan = await runAnglePlanner({ leadInput, signals: state.signals });
+            state.anglePlan = anglePlan;
+            completePipelineAuditPhase(audit, "angle");
+            return {
+              angleType: anglePlan.angleType,
+              angle: anglePlan.angle,
+              whyNow: anglePlan.whyNow,
+              confidenceTier: anglePlan.confidence.tier,
+              confidenceSummary: anglePlan.confidence.summary,
+              reasons: anglePlan.confidence.reasons,
+            };
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : "Angle planning failed";
+            failPipelineAuditPhase(audit, "angle", message);
+            throw error;
+          }
         },
         toModelOutput: ({ output }) => {
           if ("error" in output) {
@@ -284,18 +338,32 @@ export function createPipelineAgent(
           if (!state.anglePlan || !state.signals) {
             return { error: "plan_angle must complete before generate_draft." };
           }
-          const signals = state.signals.map((signal) => ({
-            ...signal,
-            usedInAngle: state.anglePlan!.usedSignalIds.includes(signal.id),
-          }));
-          const draft = await runDraftGenerator({ leadInput, anglePlan: state.anglePlan, signals });
-          state.draft = draft;
-          state.signals = signals;
-          return {
-            subject: draft.subject,
-            body: draft.body,
-            highlightedSpan: draft.highlightedSpan,
-          };
+          startPipelineAuditPhase(audit, "draft");
+
+          try {
+            const signals = state.signals.map((signal) => ({
+              ...signal,
+              usedInAngle: state.anglePlan!.usedSignalIds.includes(signal.id),
+            }));
+            const draft = await runDraftGenerator({
+              leadInput,
+              anglePlan: state.anglePlan,
+              signals,
+            });
+            state.draft = draft;
+            state.signals = signals;
+            completePipelineAuditPhase(audit, "draft");
+            return {
+              subject: draft.subject,
+              body: draft.body,
+              highlightedSpan: draft.highlightedSpan,
+            };
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : "Draft generation failed";
+            failPipelineAuditPhase(audit, "draft", message);
+            throw error;
+          }
         },
         toModelOutput: ({ output }) => {
           if ("error" in output) {
@@ -322,60 +390,67 @@ export function createPipelineAgent(
           if (!state.draft || !state.anglePlan || !state.signals || !state.research) {
             return { error: "All prior pipeline steps must complete before persist_job." };
           }
+          startPipelineAuditPhase(audit, "persist");
 
-          const governance = determineGovernance({
-            confidenceTier: state.anglePlan.confidence.tier,
-            leadSource: leadInput.play.leadSource,
-          });
+          try {
+            const governance = determineGovernance({
+              confidenceTier: state.anglePlan.confidence.tier,
+              leadSource: leadInput.play.leadSource,
+            });
 
-          const now = new Date().toISOString();
-          const job = {
-            lead: { name: leadInput.leadName, title: leadInput.leadTitle },
-            company: leadInput.company,
-            play: leadInput.play,
-            whyNow: state.anglePlan.whyNow,
-            researchRun: {
-              orchestratorSummary: state.research.packet.orchestratorSummary,
-              threadSummaries: state.research.packet.threadSummaries,
-              uncertainty: state.research.packet.uncertainty,
-              reports: state.research.packet.reports,
-            },
-            angleType: state.anglePlan.angleType,
-            angle: state.anglePlan.angle,
-            confidence: {
-              tier: state.anglePlan.confidence.tier,
-              summary: state.anglePlan.confidence.summary,
-              reasons: state.anglePlan.confidence.reasons,
-            },
-            signals: state.signals,
-            discardedSignals: state.discardedSignals ?? [],
-            draft: state.draft,
-            status: governance.status,
-            pipelineStage: governance.pipelineStage,
-            pipelineStatus: governance.pipelineStatus,
-            governance: governance.governance,
-            feedback: undefined,
-            outcome: undefined,
-            timestamps: { created: now, updated: now },
-          };
+            const now = new Date().toISOString();
+            const job = {
+              lead: { name: leadInput.leadName, title: leadInput.leadTitle },
+              company: leadInput.company,
+              play: leadInput.play,
+              whyNow: state.anglePlan.whyNow,
+              researchRun: {
+                orchestratorSummary: state.research.packet.orchestratorSummary,
+                threadSummaries: state.research.packet.threadSummaries,
+                uncertainty: state.research.packet.uncertainty,
+                reports: state.research.packet.reports,
+              },
+              angleType: state.anglePlan.angleType,
+              angle: state.anglePlan.angle,
+              confidence: {
+                tier: state.anglePlan.confidence.tier,
+                summary: state.anglePlan.confidence.summary,
+                reasons: state.anglePlan.confidence.reasons,
+              },
+              signals: state.signals,
+              discardedSignals: state.discardedSignals ?? [],
+              draft: state.draft,
+              status: governance.status,
+              pipelineStage: governance.pipelineStage,
+              pipelineStatus: governance.pipelineStatus,
+              governance: governance.governance,
+              feedback: undefined,
+              outcome: undefined,
+              timestamps: { created: now, updated: now },
+            };
 
-          // Build a minimal audit with all phases marked complete
-          const audit = createPipelineRunAudit(leadInput);
-          for (const phaseId of ["ingest", "research", "signals", "angle", "draft"] as const) {
-            startPipelineAuditPhase(audit, phaseId);
-            completePipelineAuditPhase(audit, phaseId);
+            const persisted = await persistPipelineRun({ job, audit });
+            state.persistResult = {
+              jobId: persisted.job.id,
+              pipelineRunId: persisted.pipelineRunId,
+            };
+            completePipelineAuditPhase(audit, "persist");
+            startPipelineAuditPhase(audit, "done");
+            audit.jobId = persisted.job.id;
+            completePipelineAuditPhase(audit, "done");
+            audit.status = "completed";
+            audit.completedAt = getPipelinePhase(audit, "done").completedAt;
+
+            return {
+              jobId: persisted.job.id,
+              pipelineRunId: persisted.pipelineRunId,
+            };
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : "Persist job failed";
+            failPipelineAuditPhase(audit, "persist", message);
+            throw error;
           }
-
-          const persisted = await persistPipelineRun({ job, audit });
-          state.persistResult = {
-            jobId: persisted.job.id,
-            pipelineRunId: persisted.pipelineRunId,
-          };
-
-          return {
-            jobId: persisted.job.id,
-            pipelineRunId: persisted.pipelineRunId,
-          };
         },
         toModelOutput: ({ output }) => {
           if ("error" in output) {
@@ -392,9 +467,18 @@ export function createPipelineAgent(
       }),
     },
   });
+
+  return {
+    agent,
+    getAuditSnapshot: (): PipelineRunAudit => clonePipelineRunAudit(audit),
+    markFailed: (message: string) => {
+      markPipelineFailed(message);
+      return clonePipelineRunAudit(audit);
+    },
+  };
 }
 
-type PipelineAgentTools = ReturnType<typeof createPipelineAgent>["tools"];
+type PipelineAgentTools = ReturnType<typeof createPipelineAgent>["agent"]["tools"];
 
 export type PipelineAgentUIMessage = UIMessage<
   unknown,

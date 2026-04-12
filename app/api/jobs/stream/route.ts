@@ -5,6 +5,7 @@ import {
 } from "ai";
 import { z } from "zod";
 import { createPipelineAgent } from "@/lib/pipeline/pipeline-agent";
+import { persistPipelineRun } from "@/lib/pipeline/persistence";
 import { demoLeadInputSchema } from "@/lib/pipeline/schemas";
 import type { PipelineAgentUIMessage } from "@/lib/pipeline/pipeline-agent";
 import type { PipelineTraceNode, PipelineTraceNodeUpdate } from "@/lib/pipeline/live-trace";
@@ -32,38 +33,72 @@ export async function POST(request: Request) {
   }
 
   const messages = Array.isArray(body?.messages) ? body.messages : [];
+  let persistedFailureAudit = false;
+  let pipeline = createPipelineAgent(parsed.data, {
+    abortSignal: request.signal,
+  });
+
+  const persistFailedAudit = async (error: unknown) => {
+    if (persistedFailureAudit) {
+      return;
+    }
+
+    const currentAudit = pipeline.getAuditSnapshot();
+    if (currentAudit.status === "completed" || currentAudit.currentPhase === "persist") {
+      return;
+    }
+
+    persistedFailureAudit = true;
+    const message = error instanceof Error ? error.message : "Unknown pipeline failure";
+    const failedAudit = pipeline.markFailed(message);
+
+    try {
+      await persistPipelineRun({ audit: failedAudit });
+    } catch (persistError) {
+      console.error("Failed to persist stream audit:", persistError);
+    }
+  };
 
   const stream = createUIMessageStream<PipelineAgentUIMessage>({
+    onError: (error) => {
+      void persistFailedAudit(error);
+      return error instanceof Error ? error.message : "Unknown stream error";
+    },
     execute: async ({ writer }) => {
-      const nodeOrder = new Map<string, number>();
-      let nextOrder = 0;
+      try {
+        const nodeOrder = new Map<string, number>();
+        let nextOrder = 0;
 
-      const trace = (node: PipelineTraceNodeUpdate) => {
-        const order = nodeOrder.get(node.id) ?? nextOrder++;
-        nodeOrder.set(node.id, order);
+        const trace = (node: PipelineTraceNodeUpdate) => {
+          const order = nodeOrder.get(node.id) ?? nextOrder++;
+          nodeOrder.set(node.id, order);
 
-        writer.write({
-          type: "data-trace-node",
-          id: node.id,
-          data: {
-            ...node,
-            order,
-          } as PipelineTraceNode,
+          writer.write({
+            type: "data-trace-node",
+            id: node.id,
+            data: {
+              ...node,
+              order,
+            } as PipelineTraceNode,
+          });
+        };
+
+        pipeline = createPipelineAgent(parsed.data, {
+          abortSignal: request.signal,
+          trace,
         });
-      };
 
-      const agent = createPipelineAgent(parsed.data, {
-        abortSignal: request.signal,
-        trace,
-      });
+        const agentStream = await createAgentUIStream({
+          agent: pipeline.agent,
+          uiMessages: messages,
+          abortSignal: request.signal,
+        });
 
-      const agentStream = await createAgentUIStream({
-        agent,
-        uiMessages: messages,
-        abortSignal: request.signal,
-      });
-
-      writer.merge(agentStream as unknown as Parameters<typeof writer.merge>[0]);
+        writer.merge(agentStream as unknown as Parameters<typeof writer.merge>[0]);
+      } catch (error) {
+        await persistFailedAudit(error);
+        throw error;
+      }
     },
   });
 

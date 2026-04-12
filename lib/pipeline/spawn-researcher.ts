@@ -16,7 +16,7 @@ import {
 } from "@/lib/pipeline/schemas";
 import { lookupMockCrm } from "@/lib/pipeline/tools/crm-lookup";
 import { getMockProductSignals } from "@/lib/pipeline/tools/product-signals";
-import { exaSearch } from "@/lib/pipeline/tools/web-search";
+import { searchWeb } from "@/lib/pipeline/tools/web-search";
 import { yieldStreamFlush } from "@/lib/pipeline/yield-stream-flush";
 
 function buildResearchPrompt(input: {
@@ -59,9 +59,11 @@ Make the summary compact because it will be shown to a parent orchestrator.
 `;
 }
 
-function trimWebSearchForTrace(output: Awaited<ReturnType<typeof exaSearch>>) {
+function trimWebSearchForTrace(output: Awaited<ReturnType<typeof searchWeb>>) {
   return {
     query: output.query,
+    provider: output.provider,
+    warnings: output.warnings,
     results: output.results.slice(0, 3).map((result) => ({
       title: result.title,
       url: result.url,
@@ -124,7 +126,7 @@ End with a concise, high-signal summary that can be handed back to a parent orch
           await yieldStreamFlush();
 
           try {
-            const output = await exaSearch(args);
+            const output = await searchWeb(args);
 
             input.trace?.({
               kind: "tool-call",

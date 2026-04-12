@@ -1,5 +1,7 @@
 import { tool } from "ai";
 import { webSearchInputSchema } from "@/lib/pipeline/schemas";
+import { googleSearch } from "@/lib/pipeline/tools/google-search";
+import type { WebSearchOutput } from "@/lib/pipeline/tools/search-types";
 
 type ExaSearchResult = {
   title?: string;
@@ -18,7 +20,7 @@ export async function exaSearch(input: {
   query: string;
   includeDomains?: string[];
   numResults?: number;
-}) {
+}): Promise<WebSearchOutput> {
   const apiKey = process.env.EXA_API_KEY;
 
   if (!apiKey) {
@@ -51,6 +53,7 @@ export async function exaSearch(input: {
   const data = (await response.json()) as ExaSearchResponse;
   return {
     query: input.query,
+    provider: "exa",
     results: (data.results ?? []).map((result) => ({
       title: result.title ?? "Untitled result",
       url: result.url ?? "",
@@ -62,12 +65,46 @@ export async function exaSearch(input: {
   };
 }
 
+export async function searchWeb(input: {
+  query: string;
+  includeDomains?: string[];
+  numResults?: number;
+}): Promise<WebSearchOutput> {
+  const warnings: string[] = [];
+
+  try {
+    return await exaSearch(input);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown Exa search failure";
+    warnings.push(`Exa search unavailable: ${message}`);
+  }
+
+  try {
+    const google = await googleSearch(input);
+    return {
+      ...google,
+      warnings: [...warnings, ...(google.warnings ?? [])],
+    };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown Gemini Google Search failure";
+    warnings.push(`Gemini Google Search unavailable: ${message}`);
+  }
+
+  return {
+    query: input.query,
+    provider: "none",
+    results: [],
+    warnings,
+  };
+}
+
 export function createWebSearchTool() {
   return tool({
     description: "Search the public web for recent company, person, hiring, social, and product signals.",
     inputSchema: webSearchInputSchema,
     execute: async ({ query, includeDomains, numResults }) => {
-      return exaSearch({ query, includeDomains, numResults });
+      return searchWeb({ query, includeDomains, numResults });
     },
   });
 }
