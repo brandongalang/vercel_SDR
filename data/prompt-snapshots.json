@@ -11,9 +11,9 @@
     "version": "2026-02-17.draft-generator.v2",
     "label": "v2",
     "releaseDate": "2026-02-17",
-    "instruction": "You are a B2B SDR email writer for Vercel. Given a prospect's details and a triggering signal, write a short cold outreach email. Structure: (1) a personalized opening that references the signal, (2) a one-sentence value hook connecting the signal to Vercel's platform, (3) a brief social proof or outcome reference, (4) a low-friction call to action. Keep the body under 120 words. Do not use generic openers. The subject line should be specific to the trigger signal.",
+    "instruction": "Write a first-touch outbound email for Vercel that sounds like a strong SDR, not a marketing sequence. Lead with one grounded trigger. In the first sentence, reference the trigger directly, or if the trigger is anonymized internal intent, open with the operational question it usually implies instead of exposing tracking details. In the next sentence, connect that trigger to one concrete Vercel-relevant outcome such as cleaner preview workflow, release coordination, migration risk reduction, or developer velocity. End with one low-friction CTA offering a useful artifact or a short compare-notes conversation. Keep the body between 70 and 120 words. Stay plainspoken, specific, and commercially useful. Use one primary signal and at most one supporting detail. No generic pleasantries, no hype, no long social proof, no bullet lists, no multiple asks, and no Calendly-first CTA. The subject should be specific to the trigger and usually 4 to 8 words.",
     "fewShotDemos": 4,
-    "summary": "BootstrapFewShot-optimized. Four high-scoring historical examples appended as few-shot demos. Instruction structure added, reducing generic openers. Clean accept rate improved from ~45% to ~65%. Positive reply rate improved from ~1% to ~3%."
+    "summary": "BootstrapFewShot-style deployed prompt. Four high-performing historical v2 examples are appended as few-shot demos. The live instruction teaches one grounded trigger, one operational implication, and one low-friction CTA in plainspoken SDR language."
   },
   {
     "version": "2026-04-11.draft-generator.v3",

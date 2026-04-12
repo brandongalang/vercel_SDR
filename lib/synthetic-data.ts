@@ -1,3 +1,4 @@
+import v2PromptArtifactData from "@/data/ax-optimized-v2.json";
 import promptSnapshotsData from "@/data/prompt-snapshots.json";
 import syntheticJobsAllData from "@/data/synthetic-jobs-all.json";
 import syntheticJobsV1Data from "@/data/synthetic-jobs-v1.json";
@@ -25,6 +26,15 @@ export interface SyntheticPromptSnapshot {
   badgeText?: string;
 }
 
+interface PromptArtifactOverlay {
+  instruction: string;
+  summary: string;
+  demos: Array<{ id: string }>;
+  promptVersionAfter: string;
+}
+
+const V2_PROMPT_ARTIFACT = v2PromptArtifactData as PromptArtifactOverlay;
+
 export const SYNTHETIC_DSPY_JOBS_V1 =
   syntheticJobsV1Data as readonly OutboundJob[];
 export const SYNTHETIC_DSPY_JOBS_V2 =
@@ -32,8 +42,18 @@ export const SYNTHETIC_DSPY_JOBS_V2 =
 export const SYNTHETIC_DSPY_JOBS =
   syntheticJobsAllData as readonly OutboundJob[];
 
-export const SYNTHETIC_DSPY_PROMPT_SNAPSHOTS =
-  promptSnapshotsData as readonly SyntheticPromptSnapshot[];
+export const SYNTHETIC_DSPY_PROMPT_SNAPSHOTS = (
+  promptSnapshotsData as readonly SyntheticPromptSnapshot[]
+).map((snapshot) =>
+  snapshot.version === V2_PROMPT_ARTIFACT.promptVersionAfter
+    ? {
+        ...snapshot,
+        instruction: V2_PROMPT_ARTIFACT.instruction,
+        summary: V2_PROMPT_ARTIFACT.summary,
+        fewShotDemos: V2_PROMPT_ARTIFACT.demos.length,
+      }
+    : snapshot,
+) as readonly SyntheticPromptSnapshot[];
 
 const SYNTHETIC_DSPY_JOBS_BY_VERSION: Record<
   SyntheticDspyHistoryVersion,

@@ -1,0 +1,108 @@
+{
+  "version": "2026-02-17.draft-generator.v2",
+  "instruction": "Write a first-touch outbound email for Vercel that sounds like a strong SDR, not a marketing sequence. Lead with one grounded trigger. In the first sentence, reference the trigger directly, or if the trigger is anonymized internal intent, open with the operational question it usually implies instead of exposing tracking details. In the next sentence, connect that trigger to one concrete Vercel-relevant outcome such as cleaner preview workflow, release coordination, migration risk reduction, or developer velocity. End with one low-friction CTA offering a useful artifact or a short compare-notes conversation. Keep the body between 70 and 120 words. Stay plainspoken, specific, and commercially useful. Use one primary signal and at most one supporting detail. No generic pleasantries, no hype, no long social proof, no bullet lists, no multiple asks, and no Calendly-first CTA. The subject should be specific to the trigger and usually 4 to 8 words.",
+  "summary": "BootstrapFewShot-style deployed prompt. Four high-performing historical v2 examples are appended as few-shot demos. The live instruction teaches one grounded trigger, one operational implication, and one low-friction CTA in plainspoken SDR language.",
+  "demos": [
+    {
+      "id": "v2-003",
+      "leadContext": "Rita Alvarez is Head of Web Platform at OrbitIQ. Play: Migration Watch. Top signal: App-router migration: Core routes moved from CRA to Next.js. Why now: Migration commits accelerated this month and deployment choices are next. Confidence: Concrete migration activity.",
+      "topSignal": {
+        "label": "App-router migration",
+        "value": "Core routes moved from CRA to Next.js.",
+        "category": "tech_stack",
+        "strength": "strong",
+        "source": "external",
+        "rank": 1
+      },
+      "draft": {
+        "subject": "OrbitIQ migration: deployment checklist",
+        "body": "Hi Rita,\n\nSaw OrbitIQ move key repos from CRA to Next.js recently. Teams usually hit the same friction right after this step: cache policy, preview discipline, and environment parity.\n\nHappy to share a short migration checklist if useful.\n\n— Alex"
+      },
+      "priorDraft": "Subject: OrbitIQ migration: deployment checklist\nBody:\nHi Rita,\n\nSaw OrbitIQ move key repos from CRA to Next.js recently. Teams usually hit the same friction right after this step: cache policy, preview discipline, and environment parity.\n\nHappy to share a short migration checklist if useful.\n\n— Alex",
+      "labels": {
+        "cleanAccept": true,
+        "replied": true,
+        "positiveReply": true
+      },
+      "objectiveScore": 1,
+      "angleType": "tech_migration"
+    },
+    {
+      "id": "v2-005",
+      "leadContext": "Aisha Khan is Senior Platform Engineer at PulseMetrics. Play: Web Intent. Top signal: ISR intent cluster: 4 ISR doc visits in 3 days. Why now: Intent clustered in a 72-hour window around technical and commercial pages. Confidence: Useful intent, partial attribution.",
+      "topSignal": {
+        "label": "ISR intent cluster",
+        "value": "4 ISR doc visits in 3 days.",
+        "category": "web_activity",
+        "strength": "moderate",
+        "source": "internal",
+        "rank": 1
+      },
+      "draft": {
+        "subject": "Quick ISR implementation benchmark",
+        "body": "Hi Aisha,\n\nTeams evaluating ISR usually ask the same things: cache invalidation, preview reliability, and release confidence.\n\nIf that's relevant at PulseMetrics, I can share a concise benchmark from similar teams.\n\nWould that help?\n\n— Alex"
+      },
+      "priorDraft": "Subject: Quick ISR implementation benchmark\nBody:\nHi Aisha,\n\nTeams evaluating ISR usually ask the same things: cache invalidation, preview reliability, and release confidence.\n\nIf that's relevant at PulseMetrics, I can share a concise benchmark from similar teams.\n\nWould that help?\n\n— Alex",
+      "labels": {
+        "cleanAccept": true,
+        "replied": true,
+        "positiveReply": true
+      },
+      "objectiveScore": 1,
+      "angleType": "web_intent"
+    },
+    {
+      "id": "v2-008",
+      "leadContext": "Gabe Singh is Engineering Director at AtlasRetail. Play: Hiring Signal. Top signal: Preview ownership role: Staff posting tied to preview governance and edge delivery. Why now: The new role includes explicit ownership of preview and release workflow. Confidence: Strong role signal, moderate certainty.",
+      "topSignal": {
+        "label": "Preview ownership role",
+        "value": "Staff posting tied to preview governance and edge delivery.",
+        "category": "hiring_signal",
+        "strength": "strong",
+        "source": "external",
+        "rank": 1
+      },
+      "draft": {
+        "subject": "Hiring for preview ownership at AtlasRetail",
+        "body": "Hi Gabe,\n\nSaw AtlasRetail open a staff platform role centered on preview governance and edge delivery.\n\nTeams in this phase usually benefit from setting workflow standards before the hiring wave lands.\n\nWould a short walkthrough help?\n\n— Alex"
+      },
+      "priorDraft": "Subject: Hiring for preview ownership at AtlasRetail\nBody:\nHi Gabe,\n\nSaw AtlasRetail open a staff platform role centered on preview governance and edge delivery.\n\nTeams in this phase usually benefit from setting workflow standards before the hiring wave lands.\n\nWould a short walkthrough help?\n\n— Alex",
+      "labels": {
+        "cleanAccept": true,
+        "replied": true,
+        "positiveReply": true
+      },
+      "objectiveScore": 1,
+      "angleType": "hiring_signal"
+    },
+    {
+      "id": "v2-028",
+      "leadContext": "Jill Ortega is Director of Platform at NebulaOne. Play: Executive Roundtable. Top signal: Roundtable modernization cue: Asked about preview standardization ahead of modernization kickoff. Why now: Roundtable participation preceded their Q2 modernization kickoff. Confidence: Useful event context plus initiative timing.",
+      "topSignal": {
+        "label": "Roundtable modernization cue",
+        "value": "Asked about preview standardization ahead of modernization kickoff.",
+        "category": "event",
+        "strength": "moderate",
+        "source": "external",
+        "rank": 1
+      },
+      "draft": {
+        "subject": "NebulaOne modernization kickoff timing",
+        "body": "Hi Jill,\n\nGiven your roundtable question on preview standards and NebulaOne's Q2 modernization kickoff, this seemed like a practical moment to connect.\n\nI can share a concise implementation template if useful.\n\nOpen to a quick conversation?\n\n— Alex"
+      },
+      "priorDraft": "Subject: NebulaOne modernization kickoff timing\nBody:\nHi Jill,\n\nGiven your roundtable question on preview standards and NebulaOne's Q2 modernization kickoff, this seemed like a practical moment to connect.\n\nI can share a concise implementation template if useful.\n\nOpen to a quick conversation?\n\n— Alex",
+      "labels": {
+        "cleanAccept": true,
+        "replied": true,
+        "positiveReply": true
+      },
+      "objectiveScore": 1,
+      "angleType": "event_signal"
+    }
+  ],
+  "compiledAt": "2026-02-17T00:00:00Z",
+  "optimizer": "BootstrapFewShot",
+  "mode": "mock",
+  "promptVersionBefore": "2026-01-20.draft-generator.v1",
+  "promptVersionAfter": "2026-02-17.draft-generator.v2"
+}

@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "Vercel SDR — example outbound messages",
+    "title": "Vercel SDR \u2014 example outbound messages",
     "description": "First-touch email drafts from the demo pipeline mock data. These illustrate angle types (hiring signal, social post, event, tech migration, trial activation) and tone patterns the app reviews before send.",
     "source": "lib/mock-data.ts (LEGACY_MOCK_JOBS)",
     "generated": "2026-04-11"
@@ -10,7 +10,10 @@
       "id": "job-001",
       "angleType": "hiring_signal",
       "play": "PLG Signup",
-      "lead": { "name": "Sarah Kim", "title": "VP Engineering" },
+      "lead": {
+        "name": "Sarah Kim",
+        "title": "VP Engineering"
+      },
       "company": "Acme Corp",
       "tactic": "Pair public hiring language with internal trial/preview activation so the opener feels timely, not generic.",
       "subject": "Scaling preview workflow as Acme ramps up",
@@ -21,9 +24,12 @@
       "id": "job-002",
       "angleType": "social_post",
       "play": "Web Activity",
-      "lead": { "name": "Devin Ross", "title": "Director of Platform" },
+      "lead": {
+        "name": "Devin Ross",
+        "title": "Director of Platform"
+      },
       "company": "LedgerLoop",
-      "tactic": "Lead with the prospect’s own narrative (reducing sprawl) and support with docs-intent signals without sounding surveillance-heavy.",
+      "tactic": "Lead with the prospect\u2019s own narrative (reducing sprawl) and support with docs-intent signals without sounding surveillance-heavy.",
       "subject": "Platform consolidation timing at LedgerLoop",
       "body": "Hi Devin,\n\nYour note about reducing platform sprawl stood out, especially since LedgerLoop has been back in the weeds on routing and middleware questions this week.\n\nWe work with platform teams when that consolidation effort starts turning into release-workflow decisions. If that is on your plate this quarter, open to a quick comparison call?\n\nBest,",
       "highlightedSpan": "We work with platform teams when that consolidation effort starts turning into release-workflow decisions."
@@ -32,7 +38,10 @@
       "id": "job-003",
       "angleType": "event_signal",
       "play": "Event Signal",
-      "lead": { "name": "Alana Brooks", "title": "CTO" },
+      "lead": {
+        "name": "Alana Brooks",
+        "title": "CTO"
+      },
       "company": "Northstar Health",
       "tactic": "Anchor on a public event (webinar) for regulated context; keep internal page visits as supporting evidence only.",
       "subject": "Secure release workflow for regulated teams",
@@ -43,7 +52,10 @@
       "id": "job-004",
       "angleType": "tech_migration",
       "play": "Tech Stack",
-      "lead": { "name": "Jon Park", "title": "Head of Platform" },
+      "lead": {
+        "name": "Jon Park",
+        "title": "Head of Platform"
+      },
       "company": "BrightOps",
       "tactic": "Tie public engineering content (release workflow) to recurring product usage so the pitch stays operational.",
       "subject": "Simplifying release workflow at BrightOps",
@@ -54,9 +66,12 @@
       "id": "job-005",
       "angleType": "trial_activation",
       "play": "PLG Signup",
-      "lead": { "name": "Nora Bell", "title": "Engineering Manager" },
+      "lead": {
+        "name": "Nora Bell",
+        "title": "Engineering Manager"
+      },
       "company": "Caregrid",
-      "tactic": "Low-signal lead: intentionally light, helpful activation follow-up — calibration example for when not to oversell.",
+      "tactic": "Low-signal lead: intentionally light, helpful activation follow-up \u2014 calibration example for when not to oversell.",
       "subject": "Getting value from a new Vercel workspace",
       "body": "Hi Nora,\n\nLooks like your team recently started testing Vercel. Reaching out in case it would help to compare how other engineering teams get value quickly in the first couple of weeks.\n\nHappy to share notes if useful.\n\nBest,",
       "highlightedSpan": null,
@@ -66,7 +81,10 @@
       "id": "job-006",
       "angleType": "trial_activation",
       "play": "PLG Signup",
-      "lead": { "name": "Priya Nair", "title": "Engineering Manager" },
+      "lead": {
+        "name": "Priya Nair",
+        "title": "Engineering Manager"
+      },
       "company": "CloudBase",
       "tactic": "Early-stage activation: offer setup help and end with an open question to learn their evaluation priority.",
       "subject": "Getting value from your new Vercel setup",
@@ -77,38 +95,479 @@
       "id": "job-sent-01",
       "angleType": "hiring_signal",
       "play": "Hiring Signal",
-      "lead": { "name": "Chris Patel", "title": "Director of Engineering" },
+      "lead": {
+        "name": "Chris Patel",
+        "title": "Director of Engineering"
+      },
       "company": "Northwind Labs",
       "tactic": "Historical stub used for analytics calibration (positive reply outcome in mock).",
       "subject": "(sent) Preview workflow scale-up",
-      "body": "Hi Chris,\n\nSaw the platform hiring push as your Vercel usage picked up…\n\nBest,",
+      "body": "Hi Chris,\n\nSaw the platform hiring push as your Vercel usage picked up\u2026\n\nBest,",
       "isStub": true,
-      "outcome": { "replied": true, "positive": true }
+      "outcome": {
+        "replied": true,
+        "positive": true
+      }
     },
     {
       "id": "job-sent-02",
       "angleType": "social_post",
       "play": "Web Activity",
-      "lead": { "name": "Jordan Lee", "title": "Platform Lead" },
+      "lead": {
+        "name": "Jordan Lee",
+        "title": "Platform Lead"
+      },
       "company": "PixelForge",
       "tactic": "Historical stub: SDR softened tone before send (edited: true in mock).",
       "subject": "(sent) Platform simplification timing",
-      "body": "Hi Jordan,\n\nYour post on simplifying the platform stack caught my eye…\n\nBest,",
+      "body": "Hi Jordan,\n\nYour post on simplifying the platform stack caught my eye\u2026\n\nBest,",
       "isStub": true,
-      "feedback": { "edited": true, "editorNote": "Softened the opening and CTA." },
-      "outcome": { "replied": true, "positive": false }
+      "feedback": {
+        "edited": true,
+        "editorNote": "Softened the opening and CTA."
+      },
+      "outcome": {
+        "replied": true,
+        "positive": false
+      }
     },
     {
       "id": "job-sent-03",
       "angleType": "event_signal",
       "play": "Event Signal",
-      "lead": { "name": "Taylor Brooks", "title": "Head of Growth" },
+      "lead": {
+        "name": "Taylor Brooks",
+        "title": "Head of Growth"
+      },
       "company": "SignalNine",
       "tactic": "Historical stub: lightweight post-workshop follow-up.",
       "subject": "(sent) Following up after the workshop",
-      "body": "Hi Taylor,\n\nFollowing up after the workshop while your team is getting started…\n\nBest,",
+      "body": "Hi Taylor,\n\nFollowing up after the workshop while your team is getting started\u2026\n\nBest,",
       "isStub": true,
-      "outcome": { "replied": false, "positive": false }
+      "outcome": {
+        "replied": false,
+        "positive": false
+      }
+    },
+    {
+      "id": "linkedin-export-001",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Dave Steer",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "LinkedIn Message",
+      "body": "Brandon, I\u2019d like to offer you a $50 Amazon gift card for a chat about how Wonder can stand out in the new world of AI marketing.I\u2019m the VP of Growth at Webflow, the AI-native web development platform trusted by teams like OrangeTheory, Lattice, and Docusign. As AI transforms how customers discover and interact with brands, marketers are rethinking everything from content strategy to how their sites show up in AI-powered search results.That\u2019s where Webflow comes in. We help teams build faster, smarter sites by integrating AI tools directly into their workflows to move from manual optimization to intelligent automation.If you\u2019re up for jumping on a call to chat more, we\u2019ll send over a $50 Amazon gift card for your time. What do you think?",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-002",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Delia Pumar",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "quick question",
+      "body": "Hi Brandon,\n\nMost product leaders are stuck in the same loop - half your week driving roadmap, the other half writing PRDs, sitting in syncs, and pulling info across Jira, Slack, Drive, calls, etc.\n\nCoworker connects your stack - proactively drafting sprint reports, sharing stakeholder updates, and updating Jira.\n\nFor Wonder, that means 4-6 h/week cut from admin and ~12% added to your product velocity.\n\nWorth a quick demo?\n\nDelia\nCoworker.ai",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-003",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Juan Echeverri, MBA",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "LinkedIn Message",
+      "body": "Hi Brandon \u2014 hope you're doing well. It's been a while since we last connected back at Amazon. I've been seeing some of the really interesting work you've been doing with AI and wanted to reach out. I'd love to reconnect and learn more about how you're integrating AI into your workflow and the tools you're finding most useful.\n\nCell: 202-210-6045\nEmail: Juanes.echeverrri@gmail.com",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-004",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Pascal Unger",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "LinkedIn Message",
+      "body": "Hey Brandon - we just launched a founder residency program, reaching out to see if you had any referrals!\n\nTLDR; Who are the 1 or 2 most ambitious AI founders in your network that you\u2019d want to see succeed early on? They can be future founders too - we look for technical chops and founder DNA - based anywhere across North America.\n\nThe residency is limited to 10 startups and starts in Jan 2026 in Miami / offers a nice break from the winter in NYC.\n\nWhat makes it special:\n- 3 intense and rewarding months with 9 other exceptional AI startups\n- Mentorship from unicorn founders (Digital Ocean, Mural, Papa, Spotnana and many more; $10B+ combined value)\n- All the benefits of a top accelerator WITHOUT (!) the dilution\n\nIf someone comes to mind, I\u2019d love to take a look and can fast track their application based on your recommendation!\n\nA referral would mean a lot, thanks in advance for thinking about it!\n\nPascal\n\nPS: Here\u2019s our launch post from last week \nhttps://www.linkedin.com/feed/update/urn:li:activity:7394372463247220737/",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-005",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Arun C",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "LinkedIn Message",
+      "body": "Hey Brandon! I hope things are going well. Enjoyed reading recently about your experience deploying multiple agents at the Datadog hackathon. Product development has wildly changed over the last few months.\u00a0\n\nReaching out because I saw a product manager position on the consumer team at Wonder that caught my interest. I was wondering if you'd be free to hop on a call sometime to chat about your experiences at Wonder and shed more light on the product role?",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-006",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Aaliya Naz",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "Following up on the Principal Engineer (GenAI) opportunity",
+      "body": "Hi Brandon,\n\nI wanted to follow up on my earlier message regarding the Principal Engineer (GenAI) opportunity at Turing. This role really caught my attention \u2014 especially the focus on building zero-to-one GenAI systems and shaping strategy at the intersection of technology and business impact.\n\nI\u2019d love to learn more about the team\u2019s current initiatives and how this position contributes to Turing\u2019s broader AI roadmap. Please let me know if there\u2019s a good time for a brief conversation this week \u2014 I\u2019m flexible and can adjust to your schedule.\n\nLooking forward to connecting.\n\nBest,\nAaliya Naz\nGlobal Talent Acquisition Specialist\nP.S. You can read about Turing on Forbes\u2019 2022 Best Startup Employers and Fast Company\u2019s",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-007",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Aaliya Naz",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "Exciting Gen AI Principal Engineer opportunity",
+      "body": "Hi Brandon,\n\nI\u2019m hiring for one of the most strategically exciting GenAI leadership roles we\u2019ve opened at Turing - and based on your background, I believe it could be a compelling fit.\n\nWe\u2019re building a zero-to-one GenAI delivery Pod to lead a Fortune 500 engagement, and we\u2019re looking for a Principal Engineer who can do far more than deliver code - someone who can architect impact at scale.\n\nThis role goes beyond typical engineering leadership:\n\n* Shape what gets built, why it matters, and how it scales - with deep influence on product direction and client outcomes.\n* Operate at the intersection of LLM research, enterprise-grade systems, and high-trust business partnerships.\n* Lead with autonomy: defining roadmaps, evolving team dynamics, and codifying how cutting-edge GenAI should be delivered.\n\nWe\u2019re looking for someone just as fluent in LangChain and LLMs as in business storytelling and product fluency - a technologist who thrives in ambiguity and turns strategy into systems.\n\nWould you be open to a brief exploratory conversation this week? If so, please share your resume and feel free to book a convenient time through my Calendly link. https://calendly.com/aaliya-naz-turing/exciting-remote-opportunity-with-turing.\n\nPlease find the detailed job description linked below for your reference.\nhttps://job-boards.greenhouse.io/turing/jobs/5594226004 [https://job-boards.greenhouse.io/turing/jobs/5594226004]\n\nLocation: New York (Hybrid)\n\nLooking forward to connecting.\n\nBest,\nAaliya Naz\nGlobal Talent Acquisition Specialist\nP.S. You can read about Turing on Forbes\u2019 2022 Best Startup Employers and Fast Company\u2019s",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-008",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Kristen Karpen",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "LinkedIn Message",
+      "body": "Hey! Hope you are well - it\u2019s been fun following everything you\u2019re trailblazing in the AI world. I recently joined a startup and we\u2019re hyperfixated on scaling our eng throughput using AI agents instead of hiring more PMs and engineers. Would love to figure out if there\u2019s an opportunity for you to teach some best practices to the team or possibly some consulting work. Let me know!",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-009",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Clint O'Brien",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "Meet with Fireworks CEO @ GTC",
+      "body": "Will you be attending NVIDIA GTC this year?\n\nI\u2019d love to connect you with our CEO Lin Qiao (former head of PyTorch @Meta) for an executive meeting @ GTC. We\u2019ll also be at Booth #631 showcasing how teams like Doordash, Instacart, Cursor, Notion, Perplexity & more are using open-source AI models to beat the speed, cost, and quality of closed frontier models. \n\nI think it would be a great opportunity for you both to exchange ideas on the AI landscape face to face! \n\nWe\u2019d love to build a relationship for the future. If you\u2019re attending, can we carve out 30 minutes with you & Lin to connect? Do you have time Mon/Tues (3/16 or 17)?",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-010",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Gunjan Madhvani",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "Exciting opportunity in Customer Engineer, Agent Builder",
+      "body": "Hi Brandon,\n\nI hope this message finds you well!\n\nI am reaching out regarding Customer Engineer, Agent Builder opportunity. This is a full-time position with my direct client, and your background closely aligns with what they are looking for.\n\nThis is customer-facing role responsible for end-to-end execution of AI agent projects for enterprise clients, someone who can translate business needs into functional AI agents\n\nResponsible for building and delivering enterprise-grade AI agents end to end from scoping and workflow design to integration, guardrails, and production deployment, partnering closely with customers, product managers, and engineering teams.\n\nThe ideal candidate has strong experience with Python, APIs, and building integrations, has shipped production-grade customer-facing solutions, and is comfortable working with or around LLMs / AI agents in fast-moving environments. \n\nIf you are open to learning more, I would love to connect and share additional details. Just reply to this message, and we can set up a time to connect!\n\nBest regards,\nGunjan\n\nGunjan Madhvani\nSenior Recruiter / Talent Acquisition Specialist\ngunjan@employvision.com\n732-820-8900",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-011",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Trevor Marks",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "LinkedIn Message",
+      "body": "Hi Brandon. This new advertising vertical in the food delivery economy has been so fun to build. I\u2019m ex-DoorDash and ex-FreeWater, to connect dots. Posted Monday. Conversations have started. Wonder/Grubhub should do the same thing. It\u2019s another creative way to support your merchants.\n\nI\u2019m excited to share the GTM playbook I\u2019ve spent 2 years designing with ALL delivery company stakeholders that 1) drink water and 2) love innovation to bring this impactful new advertising medium, that people absolutely love, to life.\n\nIf you like the new vertical, you should bump to different stakeholders internally so Wonder/Grubhub can join this marketing movement too. The one pager is great, but there really is a lot to unpack. My DM\u2019s are open!",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-012",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Trevor Marks",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "LinkedIn Message",
+      "body": "Hi Brandon. Love Wonder and the delivery space. Helped DoorDash build and scale new / strategic verticals (like flower delivery) and different ad products and partnerships on their GTM team. Would love to connect with you on LinkedIn. Have a great start to 2026!",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-013",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Kevin Caesar",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "LinkedIn Message",
+      "body": "I hope you\u2019re doing well. Wanted to follow up in case my last note got buried.\n\nI\u2019ve genuinely enjoyed reading your posts on AI and technology. Your curiosity really comes through, and it\u2019s clear you\u2019re not just implementing AI because it\u2019s trending. You seem to be thinking deeply about how it can actually transform operations and product strategy, especially with the work you are doing around classification, RAG, and agent workflows at Wonder.\n\nThat is exactly why I wanted to reach out. I think after a conversation with us, you would walk away just as energized, not only by what we are building, but by how we operate and think about execution. The way we approach real-world implementation tends to spark great discussions with leaders who care about scalable and thoughtful AI adoption.\n\nWould you be open to a chat next week?\n\nBest,",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-014",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Chad Rogers",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "Product @ Eragon \u2013 a16z Seed \u2013 Applied AI for Enterprise \u2013 SF",
+      "body": "Hi Brandon,\n\nI\u2019m working with Josh Sirota [https://www.linkedin.com/in/josh-sirota/], founder of Eragon [https://www.eragon.ai/], an Applied AI Lab for the Enterprise. \n\nThey raised a large Seed from a16z, SOMA, & Long Journey (Zuck's sister) and are hiring the Founding Engineering team.\n\nProblem Space [https://eragon-ai.notion.site/Exciting-Problems-We-Are-Working-On-2af25c3be529807896c8faa0e99eb341]\n\nEragon is betting the next wave of AI won\u2019t come from bigger foundation models, but from smaller, proprietary models trained directly on a company\u2019s own data to power an internal AI workforce.\n\nThey\u2019re building the full stack to make that possible. Training infra, agent frameworks, orchestration, and developer tooling so enterprises can run secure, reasoning-capable agents inside their most complex ops teams. \n\nWhy this is a standout opportunity\n* Own the stack for enterprise AI workforces \u2014 not wrappers around OpenAI, but custom-trained small models and agent systems that companies rely on daily\n* Real infra problems \u2014 inference, orchestration, observability, retrieval, tool use, latency at scale\n* Model + infra + agents in one place \u2014 training pipelines, agent frameworks, and developer tools under one roof\n* Top of market comp \u2014 $250K\u2013$500K base + 1\u20135% equity for early team ownership\n* Founding team from DeepMind, FAIR, Salesforce, Waterloo + $1M+ in GPU grants\n\nIf interested, I\u2019d love to connect!\n\nChad Rogers \nPartner @ Quantum | Ex-Grammarly, Stripe, and Meta.",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-015",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Dane Zink",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "PM Role | Shape the next chapter of vertical SaaS",
+      "body": "Hi Brandon, \n\nLove the product problems you\u2019re tackling. Would you be open to exploring a Lead Product Manager opportunity helping scale a portfolio of vertical SaaS businesses backed by long-term capital?\n\nBeacon [https://beaconsoftware.com/] is building a permanent home for mission-critical Main Street software companies; partnering with strong existing products and accelerating them through shared engineering, AI capabilities, fintech integrations, and operational support. After a recent growth fundraise, they\u2019re expanding product management horsepower to help modernize and scale multiple portfolio platforms.\n\nThis role would sit at the intersection of product strategy and execution - working closely with founders and portfolio leaders to refine roadmaps, drive AI-enabled innovation, improve monetization and retention, and elevate product rigor across teams. It\u2019s high-impact work with real ownership, but within a well-capitalized and structured environment.\n\nIf you\u2019re energized by scaling real businesses (not just shipping features), shaping long-term product strategy, and operating with both autonomy and support, I\u2019d love to share more and hear about your background to see if there\u2019s a mutual fit.\n\nThanks,\nDane\n\nDane Zink\nCEO, Product Hiring House",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-016",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Lelia de Laitre",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "LinkedIn Message",
+      "body": "Hi Brandon,\n\nReaching out with news on our steaming-hot summer sale, where you can grab 10% off all our certifications and Pro+ membership.\n\nThis August is the perfect time to upgrade your skills, gain strategic knowledge for tomorrow, and build a network that keeps you thriving when everyone else returns\u2026\n\nWill you opt for a deep dive into Product-led growth or Product operations?\n\nOr our cherry-on-top option, Pro+ membership, for access to all 10+ certifications, 70+ templates & frameworks, plus a pass for Product Summit. \n\nMore on Pro+: https://www.productledalliance.com/pro-plus-membership/?utm_source=linkedin&utm_medium=DS&utm_campaign=pla-summer-campaign-2025 \n\n(Remember to use code SUMMER25 at checkout to seize the deal.)",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-017",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Nishka Chotai",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "LinkedIn Message",
+      "body": "Hey Brandon, thanks for connecting!\n\nSaw that you're leading the Agentic AI strategy at Wonder so thought to reach out. Curious to know how you're thinking about connecting your agents to third party enterprise systems?\n\nMy team here at Merge is helping teams at Workday, OpenAI, Perplexity, and Netflix launch 3rd party connectors via our MCP server in days, manage agents at scale with built-in security and observability so that your team can focus on your core product instead.\n\nWould love to connect as you think about scaling your agents!",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-018",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Naseem Arif",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "Optimizing Wonder\u2019s Routing",
+      "body": "Hi Brandon,\n\nI\u2019m Naseem from NextBillion.ai. We help high-growth delivery platforms optimize routing, dispatch, and ETA accuracy through AI-powered location intelligence APIs.\n\nAs Wonder continues expanding its multi-restaurant and kitchen footprint, maintaining fast, reliable delivery at scale becomes increasingly complex. Our platform enables multi-stop optimization, real-time rerouting, and fleet performance visibility \u2014 helping reduce delivery times, lower costs, and protect customer experience as volumes grow.\n\nWe integrate seamlessly with existing dispatch and order management systems.\n\nOpen to a brief conversation to explore how we could support Wonder\u2019s next phase of growth?\n\n\nNaseem Arif\nSr. Product Consultant.ai\nnaseem@nextbillion.ai",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-019",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Richard Evershed",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "LinkedIn Message",
+      "body": "I am just following up from my previous message as I am keen to setup a call with you to discuss this further. What day and time would work best for you to connect or feel free to book in via my Calendly: https://calendly.com/richard-evershed-gdsgroup/30min\n\nSince my last message we have confirmed: \nDirector of Predative Analytics - 7-Eleven \nDirector of AI Platforms - JP Morgan\nChief Information Officer - Veterans Health Administration \nVice President of Technology Strategy - Terex\n\nI look forward to connecting with you!\n\nRegards,\nRE",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-020",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Richard Evershed",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "LinkedIn Message",
+      "body": "Any thoughts on joining us?\n\nI\u2019ve been impressed by your work at Wonder and the impact you\u2019ve had in shaping Artificial Intelligence. Given your leadership, I\u2019d like to personally extend an invitation to join our AI Innovation Summit in April 2026.\n\nThis private, fully hosted, invitation-only event will bring together 100 senior leaders across all industries that are implementing Innovation & strategies in their business. Your insights would make you a strong fit for our Tier 1 delegation.\n\nKey Topics:\n\u2022 Responsible AI: Governance, Risk & Trust (Managing regulatory, ethical, and reputational risk at scale) \n\u2022 Building an AI-Ready Organization (Upskilling the workforce to collaborate effectively with AI systems) \n\u2022 Data, Integration & Legacy Modernization (Integrating AI across hybrid, multi-cloud, and legacy environments)\n\nConfirmed Participants Include:\n\u2022 Chief AI Officer - Target  \n\u2022 Vice President of Data Strategy - Mckesson  \n\u2022 Director of AI Platforms - CVS Health\n\u2022 SVP of Applied Intelligence - U.S Bank \n\u2022 Chief Analytics Officer - Kroger  \n\u2022 Chief AI Officer - Richelieu Foods\n \nThis Summit Includes:\n\u2022 Peer led 1:1 meetings with an executive of your choice (no sponsors)\n\u2022 Peer led roundtables (no sponsors)\n\u2022 Peer led workshops (no sponsors)\n\u2022 Panel Discussions\n\u2022 Gala networking dinner & cocktail reception\n\nAs part of the guest list, all summit costs are fully covered, including accommodations, and travel.\n \nWould you be open to a quick 10-minute call to explore how this aligns with your current priorities?\n\nFeel Free to book into my Calendly: https://calendly.com/richard-evershed-gdsgroup/30min\n\nWarm Regards,\nRE",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-021",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Madina Farid",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "Hey Brandon - Can we connect? ",
+      "body": "Hi Brandon,\n\nI hope this message finds you well. Our hiring manager and Head of Product, Sara Wallace, asked me to reach out as she thinks your background is impressive especially your time spent at Wonder and we'd love the chance to connect with you about our Director of Product opportunity.\n\nWould you be up for a quick call to learn more about us? If yes, please find time for us that works well for you here: calendly.com/mfarid-firsthand [http://calendly.com/mfarid-firsthand]\n\nWarmly,\nMadina\n\n[JD] https://www.firsthand.ai/careers?ashby_jid=eb7f95fc-0d5f-440c-9314-f2e4bee9599e\n[Press] https://www.firsthand.ai/news [https://www.firsthand.ai/news]\n\nMadina Farid\nRecruiting @ FirsthandAI",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-022",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Allison Zorich, CFE",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "LinkedIn Message",
+      "body": "Hi Brandon, I love connecting with fellow Huskies.\n\nI\u2019ve spent the past 13 years in the franchising space, primarily on the finance and development side. These days, I focus on helping people find the franchise opportunity that best fits their goals.\n\nOne of the biggest trends I\u2019m seeing right now is the rise of semi-absentee models\u2014franchise opportunities that let you build a business while keeping your day job and diversifying your income at the same time.\n\nWould you be open to a quick call to explore if one of these might be a good fit for you? \n\nFeel free to grab a time on my calendar https://calendly.com/powerplayfranchiseconsulting",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-023",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Matthew Grabowski",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "LinkedIn Message",
+      "body": "Hey Brandon,\n\nWe\u2019ve been connected here for a bit and I figured I\u2019d say hello.\n\nIf you\u2019re open to a quick virtual coffee sometime, I\u2019d enjoy getting to know you and hearing a bit about what you\u2019re up to. No rush at all.\n\nLet me know if that sounds good.\n\nBest,\nMatt",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-024",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Jess Cockerham",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "LinkedIn Message",
+      "body": "Hey Brandon, just looping back on my last message. I've worked with tech executives who've achieved success but felt disconnected from it. One former C-suite leader was stuck for 2 years before we helped them find alignment. Worth a quick chat?",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-025",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Vijay Reddy",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "Job opportunity for the role of \u201cEnterprise Customer Success Manager (GenAI / Visual Commerce)\u201d for the Location:: New York | New York City Metro (Hybrid - In-office collaboration required)",
+      "body": "Hi,\nHope you are doing well today!\n\nWe have an urgent & exciting opportunity for the role of \u201cEnterprise Customer Success Manager (GenAI / Visual Commerce)\u201d with one of our global clients for the location: New York City Metro (Hybrid - In-office collaboration required)\n\nIn case you find this opportunity interesting and in line with your career goals, I would be highly interested in discussing this with you further.\n\nKindly respond with your Updated RESUME along with a good time and number to reach you. \n\nJob Description of the same are as follows::\nJob Title: \u201cEnterprise Customer Success Manager (GenAI / Visual Commerce)\u201d\nLocation:: New York City Metro (Hybrid - In-office collaboration required)\nStage: Seed Funded (High-Growth / Backed by Top-Tier Enterprise VC)\nType: Full-Time\n \nThe Company & Mission\nWe are recruiting for a high-growth Generative AI startup that is actively dismantling the biggest bottleneck in e-commerce: The Photoshoot.\n\nTraditional content creation is slow, expensive, and logistically painful. Our client has built an AI-native platform that allows the world\u2019s largest fashion and beauty brands to generate on-model imagery instantly\u2014delivering 90% cost savings and significantly faster time-to-market.\n\nYou can reach directly to one of my recruiter (STEVE DAVID) directly on his official email address: steve.d@unidor.ai\nor Contact him on his number: (305) 340 2751 | EXT: 003\n\nI will be waiting for your response, please reply me back at your earliest convenience.\n\nThanks & Regards,\nVijay Reddy (SD)\nUNIDOR Consulting LLC.",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-026",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Jacob von der Linden",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "LinkedIn Message",
+      "body": "Great to connect, Brandon. \n\nNoticed Wonder is using mParticle. The recent pricing change at mParticle has caused many teams to reevaluate their customer data infrastructure. At RudderStack, we take a warehouse-native approach, so your data team owns the entire pipeline and the warehouse stays your single source of truth.\n\nIt\u2019s a simpler, more cost-efficient way to power customer data without the $400K+ price tag tied to a legacy CDP.\n\nWorth a quick chat to see how this might fit your roadmap?",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-027",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "D'angelo Ashley",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "LinkedIn Message",
+      "body": "Hey Brandon, quick nudge in case this got buried.\n\nNot sure if you were at NRF this year, but I found a lot of the perspectives around how large retailers are actually using agentic AI in production pretty interesting. There was a noticeable shift away from \u201cwhat\u2019s possible\u201d toward \u201cwhat\u2019s actually holding up at scale,\u201d which sounds aligned with a lot of what you write about.\n\nI\u2019ve worked with product teams where images quietly become part of the ops surface area faster than expected. Not as a creative problem, but as another input the system has to trust, standardize, and move through reliably. It often ends up sitting just outside the core platform until it suddenly becomes a bottleneck.\n\nNo pitch here, mostly curious how you\u2019re thinking about this at Wonder, or whether it\u2019s already something your team has strong opinions on. Happy to compare notes if it\u2019s useful.\n\n\u2013 D\u2019Angelo",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-028",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "D'angelo Ashley",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "LinkedIn Message",
+      "body": "Hi Brandon,\n\nI came across your profile and your work around agentic AI and production-grade systems really stood out. Given how focused you are on making AI safe, auditable, and actually usable in real workflows, I thought it was worth reaching out.\n\nAt Photoroom, we apply GenAI in a very operational way. Large food and delivery platforms like DoorDash use us as a core production workflow to automate and govern image processing at scale, especially around product and menu imagery that flows across multiple systems.\n\nWhat tends to resonate with teams like yours is how we treat imagery as structured data, not just creative output \u2014 with deterministic rules, quality controls, and automation that can plug cleanly into existing platforms rather than live as a one-off tool.\n\nI\u2019d love to show you how we\u2019re approaching this from an AI and systems perspective and get your take on whether it maps to how Wonder is thinking about agentic workflows today. Happy to keep it lightweight.\n\nBest,\nD\u2019Angelo",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-029",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "Vedang T.",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "LinkedIn Message",
+      "body": "Hi Brandon, I am Sarang's younger brother, who's applying to the Yale MBA in round 2. Thanks for agreeing to speak with me. Would love to connect whenever you have time in the coming days.",
+      "highlightedSpan": null
+    },
+    {
+      "id": "linkedin-export-030",
+      "angleType": "linkedin_export",
+      "play": "Real Inbox Export",
+      "lead": {
+        "name": "David Nadri",
+        "title": "SDR / Recruiter"
+      },
+      "company": "External",
+      "tactic": "Real inbound message from LinkedIn export",
+      "subject": "LinkedIn Message",
+      "body": "Hi Brandon - thanks for connecting! I just applied for the PM role and wanted to reach out directly, after noticing you're on the Product team. \n\nI love what you guys are building. I\u2019ve spent the last 6+ years building 0\u21921 retail and checkout experiences, and think this role's a great mutual fit.\n\nWould you open to a 10 min chat to see where my experience could be a good fit for the team? Happy to connect with whoever the right person is for this role.\n\nThanks!\nDavid",
+      "highlightedSpan": null
     }
   ]
 }
