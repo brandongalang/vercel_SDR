@@ -3,7 +3,7 @@
   "demos": [
     {
       "id": "v2-003",
-      "leadContext": "Rita Alvarez is Head of Web Platform at OrbitIQ. Play: Migration Watch. Top signal: App-router migration: Core routes moved from CRA to Next.js.. Play context: public repos moved from CRA to Next.js. Why now: Migration commits accelerated this month and deployment choices are next.. Confidence: Concrete migration activity..",
+      "leadContext": "Rita Alvarez is Head of Web Platform at OrbitIQ. Play: Migration Watch. Top signal: App-router migration: Core routes moved from CRA to Next.js. Play context: public repos moved from CRA to Next.js. Why now: Migration commits accelerated this month and deployment choices are next. Confidence: Concrete migration activity.",
       "topSignal": {
         "label": "App-router migration",
         "value": "Core routes moved from CRA to Next.js.",
@@ -27,7 +27,7 @@
     },
     {
       "id": "v2-005",
-      "leadContext": "Aisha Khan is Senior Platform Engineer at PulseMetrics. Play: Web Intent. Top signal: ISR intent cluster: 4 ISR doc visits in 3 days.. Play context: repeat visits to ISR and pricing docs. Why now: Intent clustered in a 72-hour window around technical and commercial pages.. Confidence: Useful intent, partial attribution..",
+      "leadContext": "Aisha Khan is Senior Platform Engineer at PulseMetrics. Play: Web Intent. Top signal: ISR intent cluster: 4 ISR doc visits in 3 days. Play context: repeat visits to ISR and pricing docs. Why now: Intent clustered in a 72-hour window around technical and commercial pages. Confidence: Useful intent, partial attribution.",
       "topSignal": {
         "label": "ISR intent cluster",
         "value": "4 ISR doc visits in 3 days.",
@@ -51,7 +51,7 @@
     },
     {
       "id": "v2-008",
-      "leadContext": "Gabe Singh is Engineering Director at AtlasRetail. Play: Hiring Signal. Top signal: Preview ownership role: Staff posting tied to preview governance and edge delivery.. Play context: new staff web platform role. Why now: The new role includes explicit ownership of preview and release workflow.. Confidence: Strong role signal, moderate certainty..",
+      "leadContext": "Gabe Singh is Engineering Director at AtlasRetail. Play: Hiring Signal. Top signal: Preview ownership role: Staff posting tied to preview governance and edge delivery. Play context: new staff web platform role. Why now: The new role includes explicit ownership of preview and release workflow. Confidence: Strong role signal, moderate certainty.",
       "topSignal": {
         "label": "Preview ownership role",
         "value": "Staff posting tied to preview governance and edge delivery.",
@@ -75,7 +75,7 @@
     },
     {
       "id": "v2-011",
-      "leadContext": "Derek Osei is Principal Engineer at HarborDesk. Play: Web Intent. Top signal: Edge reliability research: Repeated edge-runtime and SLA doc sessions.. Play context: edge runtime and SLA docs viewed repeatedly. Why now: Intent spiked right after HarborDesk published stricter uptime targets.. Confidence: Good intent fit, soft attribution..",
+      "leadContext": "Derek Osei is Principal Engineer at HarborDesk. Play: Web Intent. Top signal: Edge reliability research: Repeated edge-runtime and SLA doc sessions. Play context: edge runtime and SLA docs viewed repeatedly. Why now: Intent spiked right after HarborDesk published stricter uptime targets. Confidence: Good intent fit, soft attribution.",
       "topSignal": {
         "label": "Edge reliability research",
         "value": "Repeated edge-runtime and SLA doc sessions.",
@@ -99,7 +99,7 @@
     },
     {
       "id": "v2-017",
-      "leadContext": "Mina Solis is Platform Engineer at SageRoute. Play: Web Intent. Top signal: Middleware research: Repeated middleware doc views in 48 hours.. Play context: middleware docs viewed repeatedly. Why now: Intent activity appeared directly after a latency-sensitive product launch.. Confidence: Targeted intent with partial attribution..",
+      "leadContext": "Mina Solis is Platform Engineer at SageRoute. Play: Web Intent. Top signal: Middleware research: Repeated middleware doc views in 48 hours. Play context: middleware docs viewed repeatedly. Why now: Intent activity appeared directly after a latency-sensitive product launch. Confidence: Targeted intent with partial attribution.",
       "topSignal": {
         "label": "Middleware research",
         "value": "Repeated middleware doc views in 48 hours.",
@@ -123,7 +123,7 @@
     },
     {
       "id": "v2-020",
-      "leadContext": "Fatima Noor is Director of Engineering at Kiteboard. Play: Hiring Signal. Top signal: Reliability pod hiring: Two openings focused on release reliability controls.. Play context: new reliability engineering pod. Why now: Reliability hiring and executive messaging aligned this month.. Confidence: Clear reliability hiring signal..",
+      "leadContext": "Fatima Noor is Director of Engineering at Kiteboard. Play: Hiring Signal. Top signal: Reliability pod hiring: Two openings focused on release reliability controls. Play context: new reliability engineering pod. Why now: Reliability hiring and executive messaging aligned this month. Confidence: Clear reliability hiring signal.",
       "topSignal": {
         "label": "Reliability pod hiring",
         "value": "Two openings focused on release reliability controls.",

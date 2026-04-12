@@ -22,6 +22,10 @@ import { DeltaBadge, fmtPct, shortVersion } from "@/components/dspy/shared";
 import optimizedArtifactData from "@/data/ax-optimized-v3.json";
 import { computeDspyVersionMetrics } from "@/lib/metrics";
 import {
+  DRAFT_GENERATOR_V2_ARTIFACT,
+  type DraftGeneratorPromptDemo,
+} from "@/lib/pipeline/prompt-artifacts";
+import {
   getSyntheticDspyJobs,
   getSyntheticPromptSnapshots,
   SYNTHETIC_DSPY_VERSION_V1,
@@ -59,9 +63,7 @@ export const INITIAL_DSPY_OPTIMIZATION_STATE: DspyOptimizationState = {
 
 interface OptimizationArtifact {
   instruction: string;
-  demos: Array<{
-    id: string;
-  }>;
+  demos: DraftGeneratorPromptDemo[];
   compiledAt: string;
   optimizer: string;
   mode?: string;
@@ -263,9 +265,15 @@ function VersionTable({
 
 function PromptSnapshotCard({
   snapshot,
+  columnLabel,
   role,
 }: {
-  snapshot: SyntheticPromptSnapshot;
+  snapshot: SyntheticPromptSnapshot & {
+    demos: DraftGeneratorPromptDemo[];
+    optimizer?: string;
+    packageLabel: string;
+  };
+  columnLabel: string;
   role: "baseline" | "live" | "optimization-target";
 }) {
   const config = {
@@ -293,8 +301,13 @@ function PromptSnapshotCard({
     <div className={cn("rounded-xl border px-5 py-4", config.border, config.bg)}>
       <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
         <div>
+          <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-zinc-400">
+            {columnLabel}
+          </p>
           <p className="text-[13px] font-semibold text-zinc-900">{snapshot.label}</p>
-          <p className="font-mono text-[11px] text-zinc-500">{snapshot.releaseDate}</p>
+          <p className="font-mono text-[11px] text-zinc-500">
+            {snapshot.releaseDate} · {snapshot.packageLabel}
+          </p>
         </div>
         <div className="flex flex-wrap gap-1.5">
           {config.badge && (
@@ -310,6 +323,11 @@ function PromptSnapshotCard({
           {snapshot.badgeText && (
             <span className="inline-flex items-center rounded-md border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-violet-700">
               {snapshot.badgeText}
+            </span>
+          )}
+          {snapshot.optimizer && (
+            <span className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-mono text-zinc-500">
+              {snapshot.optimizer}
             </span>
           )}
           <span className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-mono text-zinc-500">
@@ -334,6 +352,50 @@ function PromptSnapshotCard({
           Summary
         </p>
         <p className="text-[12px] leading-relaxed text-zinc-600">{snapshot.summary}</p>
+      </div>
+
+      <div className="mt-3">
+        <p className="mb-1.5 text-[10px] font-mono uppercase tracking-widest text-zinc-400">
+          Few-shot examples in runtime prompt
+        </p>
+        {snapshot.demos.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-zinc-200 bg-white px-3 py-3">
+            <p className="text-[12px] leading-relaxed text-zinc-500">
+              No few-shot examples in this version. The model only sees the instruction and the live
+              lead context.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {snapshot.demos.slice(0, 3).map((demo, index) => (
+              <div
+                key={demo.id}
+                className="rounded-lg border border-zinc-200 bg-white px-3 py-3"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-[11px] font-medium text-zinc-900">
+                    Example {index + 1}: {demo.draft.subject}
+                  </p>
+                  <span className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-mono text-zinc-500">
+                    {demo.topSignal.label}
+                  </span>
+                </div>
+                <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
+                  {demo.leadContext}
+                </p>
+                <p className="mt-2 text-[12px] leading-relaxed text-zinc-700">
+                  {demo.draft.body}
+                </p>
+              </div>
+            ))}
+            {snapshot.demos.length > 3 && (
+              <p className="text-[11px] text-zinc-500">
+                + {snapshot.demos.length - 3} more selected demo
+                {snapshot.demos.length - 3 !== 1 ? "s" : ""} are included in the runtime prompt.
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -377,8 +439,34 @@ function PromptSnapshotViewer({
   const v1 = snapshots.find((snapshot) => snapshot.version === SYNTHETIC_DSPY_VERSION_V1);
   const v2 = snapshots.find((snapshot) => snapshot.version === SYNTHETIC_DSPY_VERSION_V2);
 
-  const leftSnapshot = compareMode === "v1-v2" ? v1 : v2;
-  const rightSnapshot = compareMode === "v1-v2" ? v2 : optimizedSnapshot;
+  const v1Package = v1
+    ? {
+        ...v1,
+        demos: [] as DraftGeneratorPromptDemo[],
+        packageLabel: "Instruction only",
+      }
+    : null;
+  const v2Package = v2
+    ? {
+        ...v2,
+        demos: DRAFT_GENERATOR_V2_ARTIFACT.demos,
+        optimizer: DRAFT_GENERATOR_V2_ARTIFACT.optimizer,
+        packageLabel: "Instruction + selected examples",
+      }
+    : null;
+  const v3Package = optimizedSnapshot
+    ? {
+        ...optimizedSnapshot,
+        demos: OPTIMIZATION_ARTIFACT.demos,
+        optimizer: OPTIMIZATION_ARTIFACT.optimizer,
+        packageLabel: "Rewritten instruction + selected examples",
+      }
+    : null;
+
+  const leftSnapshot = compareMode === "v1-v2" ? v1Package : v2Package;
+  const rightSnapshot = compareMode === "v1-v2" ? v2Package : v3Package;
+  const leftColumnLabel = compareMode === "v1-v2" ? "Before" : "Current live";
+  const rightColumnLabel = compareMode === "v1-v2" ? "After" : "Candidate";
 
   return (
     <div>
@@ -387,12 +475,12 @@ function PromptSnapshotViewer({
         <div className="inline-flex rounded-lg border border-zinc-200 bg-zinc-50 p-0.5">
           {(
             [
+              { id: "v1-v2" as CompareMode, label: "v1 → v2", sub: "Baseline → Deployed" },
               {
                 id: "v2-v3" as CompareMode,
                 label: "v2 → v3",
                 sub: hasOptimized ? "Live → Candidate" : "Run optimization to unlock",
               },
-              { id: "v1-v2" as CompareMode, label: "v1 → v2", sub: "Baseline → Deployed" },
             ] as const
           ).map((option) => {
             const disabled = option.id === "v2-v3" && !hasOptimized;
@@ -422,23 +510,38 @@ function PromptSnapshotViewer({
             );
           })}
         </div>
+        <p className="text-[12px] leading-relaxed text-zinc-500">
+          Each card shows the runtime prompt package the model sees: the instruction plus any
+          selected few-shot examples.
+        </p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         {leftSnapshot && (
           <PromptSnapshotCard
             snapshot={leftSnapshot}
+            columnLabel={leftColumnLabel}
             role={compareMode === "v2-v3" ? "live" : "baseline"}
           />
         )}
         {compareMode === "v2-v3" ? (
           rightSnapshot ? (
-            <PromptSnapshotCard snapshot={rightSnapshot} role="optimization-target" />
+            <PromptSnapshotCard
+              snapshot={rightSnapshot}
+              columnLabel={rightColumnLabel}
+              role="optimization-target"
+            />
           ) : (
             <LockedSnapshotCard />
           )
         ) : (
-          rightSnapshot && <PromptSnapshotCard snapshot={rightSnapshot} role="live" />
+          rightSnapshot && (
+            <PromptSnapshotCard
+              snapshot={rightSnapshot}
+              columnLabel={rightColumnLabel}
+              role="live"
+            />
+          )
         )}
       </div>
     </div>
@@ -529,9 +632,9 @@ export default function DspyPage({
               DSPy optimization
             </h2>
             <p className="mt-1 max-w-2xl text-[13px] text-zinc-500">
-              Offline compile history, version attribution, and prompt snapshot comparison. Version
-              metrics are computed from the static v1/v2 synthetic corpus. v3 is revealed only after
-              the optimization run finishes.
+              Offline compile history, version attribution, and runtime prompt package comparison.
+              Version metrics are computed from the static v1/v2 synthetic corpus. v3 is revealed
+              only after the optimization run finishes.
             </p>
           </div>
           <Button
@@ -682,11 +785,12 @@ export default function DspyPage({
         <section className="rounded-2xl border border-zinc-200 bg-white px-6 py-5 shadow-sm">
           <div className="mb-1 flex items-center gap-2">
             <BookOpen className="h-4 w-4 text-zinc-400" />
-            <h2 className="text-[15px] font-semibold text-zinc-950">Prompt snapshots</h2>
+            <h2 className="text-[15px] font-semibold text-zinc-950">Prompt packages</h2>
           </div>
           <p className="mb-5 text-[12px] text-zinc-500">
-            Frozen prompt artifacts for each version. Before the run, the tab shows the historical
-            v1 → v2 progression. After the run, it unlocks the live v2 → candidate v3 comparison.
+            Each version package combines the instruction and any selected few-shot examples. Before
+            the run, the tab shows the historical v1 → v2 progression. After the run, it unlocks
+            the live v2 → candidate v3 comparison.
           </p>
           <PromptSnapshotViewer
             key={hasOptimized ? "optimized" : "historical"}
