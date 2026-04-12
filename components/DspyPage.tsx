@@ -4,11 +4,11 @@ import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import {
   BookOpen,
   CheckCircle2,
-  Cpu,
   Loader2,
   Lock,
   Sparkles,
 } from "lucide-react";
+import { CompileRunCard } from "@/components/dspy/compile-run-card";
 import {
   Table,
   TableBody,
@@ -102,73 +102,6 @@ function compositeScore(
 ): number | null {
   if (cleanAcceptRate == null || workableReplyRate == null) return null;
   return Math.round((0.2 * cleanAcceptRate + 0.8 * workableReplyRate) * 10) / 10;
-}
-
-function CompileRunCard({ run }: { run: DspyCompileRun }) {
-  const date = new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(run.compiledAt));
-
-  const isLatest = run.promptVersionAfter === OPTIMIZATION_TARGET_VERSION;
-
-  return (
-    <div
-      className={cn(
-        "rounded-xl border px-5 py-4 shadow-sm",
-        isLatest ? "border-violet-200 bg-violet-50/40" : "border-zinc-200 bg-white",
-      )}
-    >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Cpu className="h-3.5 w-3.5 text-zinc-400" />
-            <span className="text-[13px] font-semibold text-zinc-900">{run.optimizer}</span>
-            {isLatest && (
-              <span className="inline-flex items-center rounded-md border border-violet-200 bg-violet-100 px-2 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-violet-700">
-                Latest
-              </span>
-            )}
-          </div>
-          <p className="mt-1 text-[11px] text-zinc-500">
-            {date} · {run.trainWindowDays}-day train window · {run.jobsUsed} examples
-          </p>
-          <p className="mt-1 font-mono text-[10px] text-zinc-400">
-            {run.promptVersionBefore} → {run.promptVersionAfter}
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-3">
-          <div className="text-center">
-            <p className="text-[9px] font-mono uppercase tracking-widest text-zinc-400">Clean accept</p>
-            <div className="mt-1 flex justify-center">
-              <DeltaBadge value={run.deltas.cleanAcceptRate} />
-            </div>
-          </div>
-          <div className="text-center">
-            <p className="text-[9px] font-mono uppercase tracking-widest text-zinc-400">Edit rate</p>
-            <div className="mt-1 flex justify-center">
-              <DeltaBadge value={run.deltas.editRate} invert />
-            </div>
-          </div>
-          <div className="text-center">
-            <p className="text-[9px] font-mono uppercase tracking-widest text-zinc-400">Workable reply</p>
-            <div className="mt-1 flex justify-center">
-              <DeltaBadge value={run.deltas.positiveRate} />
-            </div>
-          </div>
-          {run.deltas.replyRate != null && (
-            <div className="text-center">
-              <p className="text-[9px] font-mono uppercase tracking-widest text-zinc-400">Reply rate</p>
-              <div className="mt-1 flex justify-center">
-                <DeltaBadge value={run.deltas.replyRate} />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function VersionTable({
@@ -712,7 +645,24 @@ export default function DspyPage({
           </div>
           <div className="space-y-3">
             {sortedRuns.map((run) => (
-              <CompileRunCard key={run.id} run={run} />
+              <CompileRunCard
+                key={run.id}
+                run={run}
+                badge={
+                  run.promptVersionAfter === OPTIMIZATION_TARGET_VERSION
+                    ? {
+                        label: "Latest",
+                        className: "border-violet-200 bg-violet-100 text-violet-700",
+                      }
+                    : null
+                }
+                containerClassName={
+                  run.promptVersionAfter === OPTIMIZATION_TARGET_VERSION
+                    ? "border-violet-200 bg-violet-50/40"
+                    : undefined
+                }
+                positiveMetricLabel="Workable reply"
+              />
             ))}
           </div>
         </section>

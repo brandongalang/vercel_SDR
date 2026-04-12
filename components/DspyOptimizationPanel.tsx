@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Cpu, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
+import { CompileRunCard } from "@/components/dspy/compile-run-card";
 import {
   Table,
   TableBody,
@@ -10,70 +11,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DeltaBadge, fmtPct, shortVersion } from "@/components/dspy/shared";
+import { fmtPct, shortVersion } from "@/components/dspy/shared";
 import { ANGLE_CONFIG } from "@/lib/angle-config";
 import { computeDspyVersionMetrics } from "@/lib/metrics";
 import type { AngleType, DspyCompileRun, DspyVersionRow, OutboundJob } from "@/lib/types";
 
 // ─── Compile run card ─────────────────────────────────────────────────────────
-
-function CompileRunCard({ run }: { run: DspyCompileRun }) {
-  const date = new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(run.compiledAt));
-
-  return (
-    <div className="rounded-xl border border-zinc-200 bg-white px-5 py-4 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Cpu className="h-3.5 w-3.5 text-zinc-400" />
-            <span className="text-[13px] font-semibold text-zinc-900">{run.optimizer}</span>
-            <span className="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-amber-700">
-              Illustrative
-            </span>
-          </div>
-          <p className="mt-1 text-[11px] text-zinc-500">
-            {date} · {run.trainWindowDays}-day train window · {run.jobsUsed} examples
-          </p>
-          <p className="mt-1 font-mono text-[10px] text-zinc-400">
-            {run.promptVersionBefore} → {run.promptVersionAfter}
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-3">
-          <div className="text-center">
-            <p className="text-[9px] font-mono uppercase tracking-widest text-zinc-400">Clean accept</p>
-            <div className="mt-1 flex justify-center">
-              <DeltaBadge value={run.deltas.cleanAcceptRate} />
-            </div>
-          </div>
-          <div className="text-center">
-            <p className="text-[9px] font-mono uppercase tracking-widest text-zinc-400">Edit rate</p>
-            <div className="mt-1 flex justify-center">
-              <DeltaBadge value={run.deltas.editRate} invert />
-            </div>
-          </div>
-          <div className="text-center">
-            <p className="text-[9px] font-mono uppercase tracking-widest text-zinc-400">Positive reply</p>
-            <div className="mt-1 flex justify-center">
-              <DeltaBadge value={run.deltas.positiveRate} />
-            </div>
-          </div>
-          {run.deltas.replyRate != null && (
-            <div className="text-center">
-              <p className="text-[9px] font-mono uppercase tracking-widest text-zinc-400">Reply rate</p>
-              <div className="mt-1 flex justify-center">
-                <DeltaBadge value={run.deltas.replyRate} />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── Version comparison table ─────────────────────────────────────────────────
 
@@ -163,7 +106,15 @@ export default function DspyOptimizationPanel({
         </div>
         <div className="mt-5 space-y-3">
           {sortedRuns.map((run) => (
-            <CompileRunCard key={run.id} run={run} />
+            <CompileRunCard
+              key={run.id}
+              run={run}
+              badge={{
+                label: "Illustrative",
+                className: "border-amber-200 bg-amber-50 text-amber-700",
+              }}
+              positiveMetricLabel="Positive reply"
+            />
           ))}
         </div>
       </section>

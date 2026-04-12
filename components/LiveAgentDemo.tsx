@@ -36,6 +36,7 @@ import {
   type PhaseName,
   type ToolPartStatus,
 } from "@/components/live-agent/phase-panel";
+import { getRunStatusViewModel } from "@/components/live-agent/run-status";
 
 export default function LiveAgentDemo() {
   const [form, setForm] = useState<LeadInput>(DEFAULT_INPUT);
@@ -93,6 +94,13 @@ export default function LiveAgentDemo() {
   const activePhase = PIPELINE_PHASES.find((p) => phaseStatuses[p.id] === "running");
   const hasError = Object.values(phaseStatuses).some((s) => s === "error") || !!error;
   const isDone = doneCount === PIPELINE_PHASES.length;
+  const runStatusView = getRunStatusViewModel({
+    activePhaseLabel: activePhase?.label,
+    hasError,
+    isDone,
+    isRunning,
+    status,
+  });
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -144,38 +152,24 @@ export default function LiveAgentDemo() {
                 Run status
               </p>
               <p className="mt-1 text-[15px] font-medium text-zinc-950">
-                {isRunning
-                  ? activePhase
-                    ? `${activePhase.label} in progress`
-                    : "Submitting live run"
-                  : hasError
-                    ? "Run failed"
-                    : isDone
-                      ? "Run completed"
-                      : "Ready to stream"}
+                {runStatusView.headline}
               </p>
             </div>
             <Badge
               variant="outline"
               className={cn(
                 "capitalize",
-                hasError
-                  ? "border-red-200 bg-red-50 text-red-700"
-                  : isDone
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : isRunning
-                      ? "border-amber-200 bg-amber-50 text-amber-700"
-                      : "border-zinc-200 bg-zinc-50 text-zinc-600",
+                runStatusView.badgeClassName,
               )}
             >
-              {hasError ? "Failed" : isDone ? "Completed" : isRunning ? status : "Idle"}
+              {runStatusView.badgeLabel}
             </Badge>
           </div>
           <div className="mt-4 h-2 rounded-full bg-zinc-100">
             <div
               className={cn(
                 "h-full rounded-full transition-all",
-                hasError ? "bg-red-500" : isDone ? "bg-emerald-500" : "bg-amber-500",
+                runStatusView.progressClassName,
               )}
               style={{ width: `${Math.max(progressPercent, isRunning ? 8 : 0)}%` }}
             />

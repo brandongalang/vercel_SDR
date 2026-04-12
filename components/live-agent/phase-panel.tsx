@@ -1,6 +1,6 @@
 "use client";
 
-import { type ElementType } from "react";
+import { type ElementType, type ReactElement } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -23,6 +23,12 @@ export type PhaseInfo = {
   toolType: string;
   icon: ElementType;
   description: string;
+};
+
+type PhaseStatusPresentation = {
+  badgeClassName: string;
+  containerClassName: string;
+  label: string;
 };
 
 export const PIPELINE_PHASES: PhaseInfo[] = [
@@ -63,6 +69,48 @@ export const PIPELINE_PHASES: PhaseInfo[] = [
   },
 ];
 
+const PHASE_STATUS_PRESENTATION: Record<ToolPartStatus, PhaseStatusPresentation> = {
+  idle: {
+    badgeClassName: "border-zinc-200 bg-zinc-50 text-zinc-500",
+    containerClassName: "border-zinc-200 bg-zinc-50 text-zinc-400",
+    label: "Waiting",
+  },
+  running: {
+    badgeClassName: "border-amber-200 bg-amber-50 text-amber-700",
+    containerClassName: "border-amber-200 bg-amber-50 text-amber-700",
+    label: "Running",
+  },
+  done: {
+    badgeClassName: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    containerClassName: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    label: "Done",
+  },
+  error: {
+    badgeClassName: "border-red-200 bg-red-50 text-red-700",
+    containerClassName: "border-red-200 bg-red-50 text-red-700",
+    label: "Error",
+  },
+};
+
+function renderPhaseStatusIcon(
+  status: ToolPartStatus,
+  Icon: ElementType,
+): ReactElement {
+  if (status === "running") {
+    return <Loader2 className="h-4 w-4 animate-spin" />;
+  }
+
+  if (status === "done") {
+    return <CheckCircle2 className="h-4 w-4" />;
+  }
+
+  if (status === "error") {
+    return <AlertTriangle className="h-4 w-4" />;
+  }
+
+  return <Icon className="h-4 w-4" />;
+}
+
 export function getPartStatus(
   parts: PipelineAgentUIMessage["parts"],
   toolType: string,
@@ -77,9 +125,7 @@ export function getPartStatus(
 
 export function PhaseRow({ phase, status }: { phase: PhaseInfo; status: ToolPartStatus }) {
   const Icon = phase.icon;
-  const isRunning = status === "running";
-  const isDone = status === "done";
-  const isError = status === "error";
+  const presentation = PHASE_STATUS_PRESENTATION[status];
 
   return (
     <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm">
@@ -87,21 +133,10 @@ export function PhaseRow({ phase, status }: { phase: PhaseInfo; status: ToolPart
         <div
           className={cn(
             "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border",
-            isRunning && "border-amber-200 bg-amber-50 text-amber-700",
-            isDone && "border-emerald-200 bg-emerald-50 text-emerald-700",
-            isError && "border-red-200 bg-red-50 text-red-700",
-            status === "idle" && "border-zinc-200 bg-zinc-50 text-zinc-400",
+            presentation.containerClassName,
           )}
         >
-          {isRunning ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : isDone ? (
-            <CheckCircle2 className="h-4 w-4" />
-          ) : isError ? (
-            <AlertTriangle className="h-4 w-4" />
-          ) : (
-            <Icon className="h-4 w-4" />
-          )}
+          {renderPhaseStatusIcon(status, Icon)}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -109,13 +144,10 @@ export function PhaseRow({ phase, status }: { phase: PhaseInfo; status: ToolPart
             <span
               className={cn(
                 "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide",
-                isRunning && "border-amber-200 bg-amber-50 text-amber-700",
-                isDone && "border-emerald-200 bg-emerald-50 text-emerald-700",
-                isError && "border-red-200 bg-red-50 text-red-700",
-                status === "idle" && "border-zinc-200 bg-zinc-50 text-zinc-500",
+                presentation.badgeClassName,
               )}
             >
-              {isRunning ? "Running" : isDone ? "Done" : isError ? "Error" : "Waiting"}
+              {presentation.label}
             </span>
           </div>
           <p className="mt-1.5 text-[12px] leading-relaxed text-zinc-500">{phase.description}</p>
