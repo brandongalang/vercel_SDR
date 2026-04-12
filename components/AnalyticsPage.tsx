@@ -110,19 +110,17 @@ function QueueStatCard({ label, value, sub }: { label: string; value: string; su
   );
 }
 
-export default function AnalyticsPage({ 
+export default function AnalyticsPage({
   analytics,
   analyticsWindowLabel,
   baselineWindowDays,
   dateRange,
-  setDateRange,
   jobs,
-}: { 
+}: {
   analytics: AnalyticsSnapshot;
   analyticsWindowLabel: string;
   baselineWindowDays: number;
   dateRange: AnalyticsDateRange;
-  setDateRange: (range: AnalyticsDateRange) => void;
   jobs: OutboundJob[];
 }) {
   const { summary, byAngle } = useMemo(
@@ -130,55 +128,21 @@ export default function AnalyticsPage({
     [dateRange, jobs]
   );
   const fmtPct = (n: number | null) => (n == null ? "—" : `${n}%`);
-  const handleStartChange = (start: string) => {
-    setDateRange({
-      start,
-      end: start > dateRange.end ? start : dateRange.end,
-    });
-  };
-  const handleEndChange = (end: string) => {
-    setDateRange({
-      start: end < dateRange.start ? end : dateRange.start,
-      end,
-    });
-  };
 
   return (
     <div className="flex-1 overflow-y-auto min-h-0 bg-zinc-50/80">
       <div className="mx-auto w-full max-w-[1100px] px-6 py-6 pb-20 space-y-8">
         <section className="rounded-2xl border border-zinc-200 bg-white px-6 py-5 shadow-sm">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-[15px] font-semibold text-zinc-950">Operational benchmarks</h2>
-                <span className="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-amber-700">
-                  Demo baseline
-                </span>
-              </div>
-              <p className="mt-0.5 text-[12px] text-zinc-500 tabular-nums">
-                {analyticsWindowLabel} · {analytics.generatedSent} generated sends · {analytics.staticBaselineSent} illustrative static baseline · nearest {baselineWindowDays}-day snapshot
-              </p>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-[15px] font-semibold text-zinc-950">Operational benchmarks</h2>
+              <span className="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-amber-700">
+                Demo baseline
+              </span>
             </div>
-            <div className="flex shrink-0 flex-wrap items-end gap-2">
-              <label className="grid gap-1 text-[11px] font-medium text-zinc-600">
-                From
-                <input
-                  type="date"
-                  value={dateRange.start}
-                  onChange={(event) => handleStartChange(event.target.value)}
-                  className="h-9 rounded-lg border border-zinc-200 bg-white px-3 text-[12px] text-zinc-900 shadow-sm outline-none transition-colors focus:border-zinc-400"
-                />
-              </label>
-              <label className="grid gap-1 text-[11px] font-medium text-zinc-600">
-                To
-                <input
-                  type="date"
-                  value={dateRange.end}
-                  onChange={(event) => handleEndChange(event.target.value)}
-                  className="h-9 rounded-lg border border-zinc-200 bg-white px-3 text-[12px] text-zinc-900 shadow-sm outline-none transition-colors focus:border-zinc-400"
-                />
-              </label>
-            </div>
+            <p className="mt-0.5 text-[12px] text-zinc-500 tabular-nums">
+              {analyticsWindowLabel} · {analytics.generatedSent} generated sends · {analytics.staticBaselineSent} illustrative static baseline · nearest {baselineWindowDays}-day snapshot
+            </p>
           </div>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -216,7 +180,7 @@ export default function AnalyticsPage({
             <div>
               <h2 className="text-[15px] font-semibold text-zinc-950">Review quality</h2>
               <p className="mt-0.5 text-[12px] text-zinc-500">
-                Live rollups for the selected range using approval, archive, send, and response timestamps. Clean accept is the key signal that drafts are trusted without alteration.
+                Live rollups for {analyticsWindowLabel} using approval, archive, send, and response timestamps. Clean accept is the key signal that drafts are trusted without alteration.
               </p>
             </div>
             <span className="shrink-0 inline-flex items-center gap-1.5 rounded-md border border-teal-200 bg-teal-50 px-2 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-wider text-teal-700">

@@ -75,6 +75,8 @@ export default function DetailPanel({
   const [regenNote, setRegenNote] = useState("");
   const [regenBusy, setRegenBusy] = useState(false);
   const [regenError, setRegenError] = useState<string | null>(null);
+  const [regenPreview, setRegenPreview] = useState<OutboundJob["draft"] | null>(null);
+  const [regenPreviewFingerprint, setRegenPreviewFingerprint] = useState<string | null>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   if (!job) {
@@ -126,7 +128,49 @@ export default function DetailPanel({
     });
   };
 
-  const handleRegenerateApply = async () => {
+  const regenRequestFingerprint = `${[...regenPresets].sort().join(",")}|${regenNote.trim()}`;
+  const previewMatchesRequest =
+    regenPreviewFingerprint != null && regenPreviewFingerprint === regenRequestFingerprint;
+
+  const fetchRegeneratedDraft = async (): Promise<OutboundJob["draft"]> => {
+    const note = regenNote.trim();
+    const response = await fetch("/api/jobs/regenerate", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        job: {
+          lead: job.lead,
+          company: job.company,
+          play: job.play,
+          whyNow: job.whyNow,
+          angleType: job.angleType,
+          angle: job.angle,
+          confidence: {
+            tier: job.confidence.tier,
+            summary: job.confidence.summary,
+            reasons: job.confidence.reasons,
+          },
+          signals: job.signals,
+          draft: job.draft,
+        },
+        adjustments: regenPresets,
+        note: note || undefined,
+      }),
+    });
+
+    const payload = (await response.json().catch(() => null)) as
+      | { error?: string; draft?: OutboundJob["draft"] }
+      | null;
+
+    if (!response.ok || !payload?.draft) {
+      throw new Error(payload?.error ?? "Failed to regenerate draft");
+    }
+    return payload.draft;
+  };
+
+  const handleRegeneratePreview = async () => {
     if (regenPresets.length === 0) {
       setRegenError("Pick at least one adjustment.");
       return;
@@ -136,54 +180,39 @@ export default function DetailPanel({
     setRegenError(null);
 
     try {
-      const note = regenNote.trim();
-      const response = await fetch("/api/jobs/regenerate", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          job: {
-            lead: job.lead,
-            company: job.company,
-            play: job.play,
-            whyNow: job.whyNow,
-            angleType: job.angleType,
-            angle: job.angle,
-            confidence: {
-              tier: job.confidence.tier,
-              summary: job.confidence.summary,
-              reasons: job.confidence.reasons,
-            },
-            signals: job.signals,
-            draft: job.draft,
-          },
-          adjustments: regenPresets,
-          note: note || undefined,
-        }),
-      });
-
-      const payload = (await response.json().catch(() => null)) as
-        | { error?: string; draft?: OutboundJob["draft"] }
-        | null;
-
-      if (!response.ok || !payload?.draft) {
-        throw new Error(payload?.error ?? "Failed to regenerate draft");
-      }
-
-      onDraftUpdate(job.id, payload.draft);
-      onRegenerateNote(
-        job.id,
-        summarizeRegenerationRequest(regenPresets, note || undefined) || undefined,
-      );
-      setRegenOpen(false);
-      setRegenPresets([]);
-      setRegenNote("");
+      const draft = await fetchRegeneratedDraft();
+      setRegenPreview(draft);
+      setRegenPreviewFingerprint(regenRequestFingerprint);
     } catch (error) {
       setRegenError(error instanceof Error ? error.message : "Failed to regenerate draft");
+      setRegenPreview(null);
+      setRegenPreviewFingerprint(null);
     } finally {
       setRegenBusy(false);
     }
+  };
+
+  const handleUseRegeneratedDraft = () => {
+    if (!regenPreview || !previewMatchesRequest) {
+      setRegenError(
+        !regenPreview
+          ? "Generate a preview first."
+          : "Adjustments or note changed — generate a new preview.",
+      );
+      return;
+    }
+
+    const note = regenNote.trim();
+    onDraftUpdate(job.id, regenPreview);
+    onRegenerateNote(
+      job.id,
+      summarizeRegenerationRequest(regenPresets, note || undefined) || undefined,
+    );
+    setRegenOpen(false);
+    setRegenPresets([]);
+    setRegenNote("");
+    setRegenPreview(null);
+    setRegenPreviewFingerprint(null);
   };
 
   const gov =
@@ -680,6 +709,8 @@ export default function DetailPanel({
             setRegenError(null);
             setRegenPresets([]);
             setRegenNote("");
+            setRegenPreview(null);
+            setRegenPreviewFingerprint(null);
           }
         }}
       >
@@ -687,8 +718,8 @@ export default function DetailPanel({
           <SheetHeader>
             <SheetTitle>Regenerate draft</SheetTitle>
             <SheetDescription>
-              Keeps the same angle plan and signals, then rewrites only the draft with structured
-              adjustments.
+              Choose adjustments and an optional note, generate a preview here, then apply it to the
+              lead when you are ready. The angle plan and signals stay the same.
             </SheetDescription>
           </SheetHeader>
           <div className="px-4 space-y-4">
@@ -738,20 +769,51 @@ export default function DetailPanel({
                 className="mt-2 w-full min-h-[72px] rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/40"
               />
             </div>
+            {regenPreview && (
+              <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
+                    Preview
+                  </p>
+                  {!previewMatchesRequest && (
+                    <span className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200/80 rounded-md px-2 py-0.5">
+                      Settings changed — generate preview again
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Subject</span>
+                  <p className="mt-1 text-[15px] font-semibold text-foreground">{regenPreview.subject}</p>
+                </div>
+                <div className="rounded-lg border border-border bg-background max-h-[min(360px,45vh)] overflow-y-auto">
+                  <div className="p-4 text-[15px] leading-relaxed text-foreground">
+                    {renderBodyWithHighlight(regenPreview.body, regenPreview.highlightedSpan)}
+                  </div>
+                </div>
+              </div>
+            )}
             {regenError && (
               <p className="text-[12px] text-destructive">{regenError}</p>
             )}
           </div>
-          <SheetFooter className="flex-row justify-end gap-2 sm:justify-end">
+          <SheetFooter className="flex-row flex-wrap justify-end gap-2 sm:justify-end">
             <Button type="button" variant="outline" onClick={() => setRegenOpen(false)}>
               Cancel
             </Button>
             <Button
               type="button"
+              variant="secondary"
               disabled={regenBusy || regenPresets.length === 0}
-              onClick={handleRegenerateApply}
+              onClick={handleRegeneratePreview}
             >
-              {regenBusy ? "Working…" : "Apply regenerate"}
+              {regenBusy ? "Generating…" : regenPreview ? "Regenerate preview" : "Generate preview"}
+            </Button>
+            <Button
+              type="button"
+              disabled={regenBusy || !regenPreview || !previewMatchesRequest}
+              onClick={handleUseRegeneratedDraft}
+            >
+              Use this draft
             </Button>
           </SheetFooter>
         </SheetContent>

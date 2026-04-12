@@ -227,6 +227,19 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
       (selectedJob.draft.subject !== selectedBaseline.subject || selectedJob.draft.body !== selectedBaseline.body)
     : false;
 
+  const handleAnalyticsRangeStart = (start: string) => {
+    setAnalyticsDateRange({
+      start,
+      end: start > analyticsDateRange.end ? start : analyticsDateRange.end,
+    });
+  };
+  const handleAnalyticsRangeEnd = (end: string) => {
+    setAnalyticsDateRange({
+      start: end < analyticsDateRange.start ? end : analyticsDateRange.start,
+      end,
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-full flex-1 items-center justify-center">
@@ -271,7 +284,7 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
                   {
                     id: "analytics" as const,
                     label: "Analytics",
-                    sub: analyticsWindowLabel,
+                    sub: "Benchmarks",
                   },
                   {
                     id: "dspy" as const,
@@ -303,6 +316,28 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
                   </button>
                 ))}
               </div>
+              {activeView === "analytics" && (
+                <div className="flex shrink-0 flex-wrap items-end gap-2 border-l border-border pl-2">
+                  <label className="grid gap-1 text-[11px] font-medium text-muted-foreground">
+                    From
+                    <input
+                      type="date"
+                      value={analyticsDateRange.start}
+                      onChange={(e) => handleAnalyticsRangeStart(e.target.value)}
+                      className="h-9 rounded-lg border border-border bg-background px-3 text-[12px] text-foreground shadow-sm outline-none transition-colors focus:border-ring"
+                    />
+                  </label>
+                  <label className="grid gap-1 text-[11px] font-medium text-muted-foreground">
+                    To
+                    <input
+                      type="date"
+                      value={analyticsDateRange.end}
+                      onChange={(e) => handleAnalyticsRangeEnd(e.target.value)}
+                      className="h-9 rounded-lg border border-border bg-background px-3 text-[12px] text-foreground shadow-sm outline-none transition-colors focus:border-ring"
+                    />
+                  </label>
+                </div>
+              )}
               <Button
                 type="button"
                 variant="outline"
@@ -351,12 +386,11 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
           />
         </div>
       ) : activeView === "analytics" ? (
-        <AnalyticsPage 
+        <AnalyticsPage
           analytics={selectedAnalytics.snapshot}
           analyticsWindowLabel={analyticsWindowLabel}
           baselineWindowDays={selectedAnalytics.snapshotDays}
           dateRange={analyticsDateRange}
-          setDateRange={setAnalyticsDateRange}
           jobs={jobs}
         />
       ) : activeView === "dspy" ? (
