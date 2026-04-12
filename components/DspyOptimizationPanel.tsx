@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowUpRight, ArrowDownRight, Cpu, ChevronDown } from "lucide-react";
+import { Cpu, ChevronDown } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -10,28 +10,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { DeltaBadge, fmtPct, shortVersion } from "@/components/dspy/shared";
 import { ANGLE_CONFIG } from "@/lib/angle-config";
 import { computeDspyVersionMetrics } from "@/lib/metrics";
 import type { AngleType, DspyCompileRun, DspyVersionRow, OutboundJob } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 // ─── Compile run card ─────────────────────────────────────────────────────────
-
-function DeltaBadge({ value, invert = false }: { value?: number; invert?: boolean }) {
-  if (value == null) return null;
-  const positive = invert ? value <= 0 : value >= 0;
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[11px] font-medium tabular-nums",
-        positive ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700",
-      )}
-    >
-      {positive ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
-      {Math.abs(value)}pp
-    </span>
-  );
-}
 
 function CompileRunCard({ run }: { run: DspyCompileRun }) {
   const date = new Intl.DateTimeFormat("en-US", {
@@ -93,21 +77,7 @@ function CompileRunCard({ run }: { run: DspyCompileRun }) {
 
 // ─── Version comparison table ─────────────────────────────────────────────────
 
-function shortVersion(v: string) {
-  // "2026-04-11.draft-generator.v3" → "v3 (Apr 11)"
-  const parts = v.split(".");
-  const tag = parts[parts.length - 1]; // e.g. "v3"
-  const datePart = parts[0]; // e.g. "2026-04-11"
-  const date = new Date(datePart);
-  if (Number.isNaN(date.getTime())) return v;
-  const month = date.toLocaleString("en-US", { month: "short" });
-  const day = date.getDate();
-  return `${tag} (${month} ${day})`;
-}
-
 function VersionTable({ rows }: { rows: DspyVersionRow[] }) {
-  const fmtPct = (n: number | null) => (n == null ? "—" : `${n}%`);
-
   return (
     <Table>
       <TableHeader>

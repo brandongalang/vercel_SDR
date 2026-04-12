@@ -2,8 +2,6 @@
 
 import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import {
-  ArrowDownRight,
-  ArrowUpRight,
   BookOpen,
   CheckCircle2,
   Cpu,
@@ -20,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { DeltaBadge, fmtPct, shortVersion } from "@/components/dspy/shared";
 import optimizedArtifactData from "@/data/ax-optimized-v3.json";
 import { computeDspyVersionMetrics } from "@/lib/metrics";
 import {
@@ -103,35 +102,6 @@ function compositeScore(
 ): number | null {
   if (cleanAcceptRate == null || workableReplyRate == null) return null;
   return Math.round((0.2 * cleanAcceptRate + 0.8 * workableReplyRate) * 10) / 10;
-}
-
-function shortVersion(v: string) {
-  const parts = v.split(".");
-  const tag = parts[parts.length - 1];
-  const date = new Date(parts[0]);
-  if (Number.isNaN(date.getTime())) return v;
-  const month = date.toLocaleString("en-US", { month: "short" });
-  return `${tag} (${month} ${date.getDate()})`;
-}
-
-function fmtPct(n: number | null) {
-  return n == null ? "—" : `${n}%`;
-}
-
-function DeltaBadge({ value, invert = false }: { value?: number; invert?: boolean }) {
-  if (value == null) return null;
-  const positive = invert ? value <= 0 : value >= 0;
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[11px] font-medium tabular-nums",
-        positive ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700",
-      )}
-    >
-      {positive ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
-      {Math.abs(value)}pp
-    </span>
-  );
 }
 
 function CompileRunCard({ run }: { run: DspyCompileRun }) {

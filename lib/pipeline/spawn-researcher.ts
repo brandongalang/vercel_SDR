@@ -4,6 +4,7 @@ import {
   getTraceErrorMessage,
   nowIso,
   type PipelineTraceEmitter,
+  type PipelineTraceToolName,
 } from "@/lib/pipeline/live-trace";
 import type { LeadInput, SubAgentReport } from "@/lib/types";
 import { PROMPT_VERSIONS } from "@/lib/pipeline/prompts";
@@ -74,6 +75,70 @@ function trimWebSearchForTrace(output: Awaited<ReturnType<typeof searchWeb>>) {
   };
 }
 
+async function executeTracedResearchTool<TInput, TOutput>(config: {
+  trace?: PipelineTraceEmitter;
+  parentId: string;
+  traceId: string;
+  title: string;
+  toolName: PipelineTraceToolName;
+  input: TInput;
+  execute: () => Promise<TOutput>;
+  formatOutput?: (output: TOutput) => unknown;
+}): Promise<TOutput> {
+  const startedAt = nowIso();
+
+  config.trace?.({
+    kind: "tool-call",
+    id: config.traceId,
+    parentId: config.parentId,
+    scope: "research",
+    title: config.title,
+    toolName: config.toolName,
+    status: "running",
+    startedAt,
+    input: config.input,
+  });
+  await yieldStreamFlush();
+
+  try {
+    const output = await config.execute();
+
+    config.trace?.({
+      kind: "tool-call",
+      id: config.traceId,
+      parentId: config.parentId,
+      scope: "research",
+      title: config.title,
+      toolName: config.toolName,
+      status: "completed",
+      startedAt,
+      completedAt: nowIso(),
+      input: config.input,
+      output: config.formatOutput ? config.formatOutput(output) : output,
+    });
+    await yieldStreamFlush();
+
+    return output;
+  } catch (error) {
+    config.trace?.({
+      kind: "tool-call",
+      id: config.traceId,
+      parentId: config.parentId,
+      scope: "research",
+      title: config.title,
+      toolName: config.toolName,
+      status: "error",
+      startedAt,
+      completedAt: nowIso(),
+      input: config.input,
+      error: getTraceErrorMessage(error),
+    });
+    await yieldStreamFlush();
+
+    throw error;
+  }
+}
+
 export async function runResearchThread(input: {
   leadInput: LeadInput;
   topic: string;
@@ -92,8 +157,9 @@ export async function runResearchThread(input: {
   });
 
   let toolCallCount = 0;
+  const traceParentId = input.traceParentId ?? "research-thread";
   const nextToolTraceId = (toolName: "web_search" | "crm_lookup" | "product_signals") =>
-    `${input.traceParentId ?? "research-thread"}:${toolName}:${++toolCallCount}`;
+    `${traceParentId}:${toolName}:${++toolCallCount}`;
 
   const researcher = new ToolLoopAgent({
     model: vertexModels.researcher,
@@ -108,179 +174,45 @@ End with a concise, high-signal summary that can be handed back to a parent orch
       web_search: tool({
         description: "Search the public web for recent company, person, hiring, social, and product signals.",
         inputSchema: webSearchInputSchema,
-        execute: async (args) => {
-          const traceId = nextToolTraceId("web_search");
-          const startedAt = nowIso();
-
-          input.trace?.({
-            kind: "tool-call",
-            id: traceId,
-            parentId: input.traceParentId ?? "research-thread",
-            scope: "research",
+        execute: async (args) =>
+          executeTracedResearchTool({
+            trace: input.trace,
+            parentId: traceParentId,
+            traceId: nextToolTraceId("web_search"),
             title: "Web search",
             toolName: "web_search",
-            status: "running",
-            startedAt,
             input: args,
-          });
-          await yieldStreamFlush();
-
-          try {
-            const output = await searchWeb(args);
-
-            input.trace?.({
-              kind: "tool-call",
-              id: traceId,
-              parentId: input.traceParentId ?? "research-thread",
-              scope: "research",
-              title: "Web search",
-              toolName: "web_search",
-              status: "completed",
-              startedAt,
-              completedAt: nowIso(),
-              input: args,
-              output: trimWebSearchForTrace(output),
-            });
-            await yieldStreamFlush();
-
-            return output;
-          } catch (error) {
-            input.trace?.({
-              kind: "tool-call",
-              id: traceId,
-              parentId: input.traceParentId ?? "research-thread",
-              scope: "research",
-              title: "Web search",
-              toolName: "web_search",
-              status: "error",
-              startedAt,
-              completedAt: nowIso(),
-              input: args,
-              error: getTraceErrorMessage(error),
-            });
-            await yieldStreamFlush();
-
-            throw error;
-          }
-        },
+            execute: () => searchWeb(args),
+            formatOutput: trimWebSearchForTrace,
+          }),
       }),
       crm_lookup: tool({
         description: "Look up mocked CRM context for the account and lead.",
         inputSchema: crmLookupInputSchema,
-        execute: async (args) => {
-          const traceId = nextToolTraceId("crm_lookup");
-          const startedAt = nowIso();
-
-          input.trace?.({
-            kind: "tool-call",
-            id: traceId,
-            parentId: input.traceParentId ?? "research-thread",
-            scope: "research",
+        execute: async (args) =>
+          executeTracedResearchTool({
+            trace: input.trace,
+            parentId: traceParentId,
+            traceId: nextToolTraceId("crm_lookup"),
             title: "CRM lookup",
             toolName: "crm_lookup",
-            status: "running",
-            startedAt,
             input: args,
-          });
-          await yieldStreamFlush();
-
-          try {
-            const output = lookupMockCrm(args);
-
-            input.trace?.({
-              kind: "tool-call",
-              id: traceId,
-              parentId: input.traceParentId ?? "research-thread",
-              scope: "research",
-              title: "CRM lookup",
-              toolName: "crm_lookup",
-              status: "completed",
-              startedAt,
-              completedAt: nowIso(),
-              input: args,
-              output,
-            });
-            await yieldStreamFlush();
-
-            return output;
-          } catch (error) {
-            input.trace?.({
-              kind: "tool-call",
-              id: traceId,
-              parentId: input.traceParentId ?? "research-thread",
-              scope: "research",
-              title: "CRM lookup",
-              toolName: "crm_lookup",
-              status: "error",
-              startedAt,
-              completedAt: nowIso(),
-              input: args,
-              error: getTraceErrorMessage(error),
-            });
-            await yieldStreamFlush();
-
-            throw error;
-          }
-        },
+            execute: async () => lookupMockCrm(args),
+          }),
       }),
       product_signals: tool({
         description: "Return mocked first-party product or event signals based on the lead source and play.",
         inputSchema: productSignalsInputSchema,
-        execute: async (args) => {
-          const traceId = nextToolTraceId("product_signals");
-          const startedAt = nowIso();
-
-          input.trace?.({
-            kind: "tool-call",
-            id: traceId,
-            parentId: input.traceParentId ?? "research-thread",
-            scope: "research",
+        execute: async (args) =>
+          executeTracedResearchTool({
+            trace: input.trace,
+            parentId: traceParentId,
+            traceId: nextToolTraceId("product_signals"),
             title: "Product signals",
             toolName: "product_signals",
-            status: "running",
-            startedAt,
             input: args,
-          });
-          await yieldStreamFlush();
-
-          try {
-            const output = getMockProductSignals(args);
-
-            input.trace?.({
-              kind: "tool-call",
-              id: traceId,
-              parentId: input.traceParentId ?? "research-thread",
-              scope: "research",
-              title: "Product signals",
-              toolName: "product_signals",
-              status: "completed",
-              startedAt,
-              completedAt: nowIso(),
-              input: args,
-              output,
-            });
-            await yieldStreamFlush();
-
-            return output;
-          } catch (error) {
-            input.trace?.({
-              kind: "tool-call",
-              id: traceId,
-              parentId: input.traceParentId ?? "research-thread",
-              scope: "research",
-              title: "Product signals",
-              toolName: "product_signals",
-              status: "error",
-              startedAt,
-              completedAt: nowIso(),
-              input: args,
-              error: getTraceErrorMessage(error),
-            });
-            await yieldStreamFlush();
-
-            throw error;
-          }
-        },
+            execute: async () => getMockProductSignals(args),
+          }),
       }),
     },
     output: Output.object({

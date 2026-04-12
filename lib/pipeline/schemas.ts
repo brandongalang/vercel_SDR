@@ -1,61 +1,33 @@
 import { z } from "zod";
+import {
+  ANGLE_TYPE_VALUES,
+  CONFIDENCE_TIER_VALUES,
+  GOVERNANCE_RULE_VALUES,
+  JOB_STATUS_VALUES,
+  LEAD_SOURCE_VALUES,
+  PIPELINE_STATUS_VALUES,
+  PLAY_TYPE_VALUES,
+  SIGNAL_CATEGORY_VALUES,
+  SIGNAL_SOURCE_VALUES,
+  SIGNAL_STRENGTH_VALUES,
+} from "@/lib/pipeline/vocab";
 
-export const confidenceTierSchema = z.enum(["high", "medium", "low"]);
-export const governanceRuleSchema = z.enum(["review_required", "auto_eligible"]);
-export const jobStatusSchema = z.enum(["pending_review", "approved", "reviewed", "sent_stub"]);
-export const pipelineStatusSchema = z.enum(["running", "completed", "failed"]);
+export const confidenceTierSchema = z.enum(CONFIDENCE_TIER_VALUES);
+export const governanceRuleSchema = z.enum(GOVERNANCE_RULE_VALUES);
+export const jobStatusSchema = z.enum(JOB_STATUS_VALUES);
+export const pipelineStatusSchema = z.enum(PIPELINE_STATUS_VALUES);
 
-export const signalCategorySchema = z.enum([
-  "event",
-  "plg",
-  "tech_stack",
-  "social",
-  "web_activity",
-  "hiring_signal",
-  "internal",
-]);
+export const signalCategorySchema = z.enum(SIGNAL_CATEGORY_VALUES);
 
-export const signalSourceSchema = z.enum(["internal", "external", "derived"]);
-export const signalStrengthSchema = z.enum(["strong", "moderate", "weak"]);
-export const signalHintSchema = z.enum([
-  "event",
-  "plg",
-  "tech_stack",
-  "social",
-  "web_activity",
-  "hiring_signal",
-  "internal",
-]);
+export const signalSourceSchema = z.enum(SIGNAL_SOURCE_VALUES);
+export const signalStrengthSchema = z.enum(SIGNAL_STRENGTH_VALUES);
+export const signalHintSchema = signalCategorySchema;
 
-export const angleTypeSchema = z.enum([
-  "tech_migration",
-  "trial_activation",
-  "event_signal",
-  "social_post",
-  "web_intent",
-  "hiring_signal",
-  "generic",
-]);
+export const angleTypeSchema = z.enum(ANGLE_TYPE_VALUES);
 
-export const playTypeSchema = z.enum([
-  "plg_signup",
-  "event",
-  "hiring_signal",
-  "tech_migration",
-  "web_intent",
-  "social_post",
-  "outbound_prospecting",
-]);
+export const playTypeSchema = z.enum(PLAY_TYPE_VALUES);
 
-export const leadSourceSchema = z.enum([
-  "plg_product",
-  "marketing_event_form",
-  "marketing_event_scan",
-  "crm_outbound",
-  "social_listening",
-  "web_deanonymization",
-  "inbound_request",
-]);
+export const leadSourceSchema = z.enum(LEAD_SOURCE_VALUES);
 
 export const playSchema = z.object({
   type: playTypeSchema,

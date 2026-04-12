@@ -4,8 +4,11 @@ import {
   VERTEX_PROJECT,
 } from "@/lib/ai/vertex";
 import { runAnglePlanner } from "@/lib/pipeline/angle-planner";
-import { determineGovernance } from "@/lib/pipeline/governance";
 import { runDraftGenerator } from "@/lib/pipeline/draft-generator";
+import {
+  buildGeneratedJob,
+  markAngleSignals,
+} from "@/lib/pipeline/job-builder";
 import { PROMPT_VERSIONS } from "@/lib/pipeline/prompts";
 import { runResearchAgent } from "@/lib/pipeline/research-agent";
 import { runSignalExtractor } from "@/lib/pipeline/signal-extractor";
@@ -128,12 +131,32 @@ export async function runResearchWithRetry(
 ) {
   try {
     return await runResearchAgent({ leadInput, abortSignal });
-  } catch {
+  } catch (error) {
+    // Don't retry aborted requests or programming errors
+    if (abortSignal?.aborted) throw error;
+    if (error instanceof DOMException && error.name === "AbortError") throw error;
     return runResearchAgent({ leadInput, abortSignal });
   }
 }
 
-function getTimestamp() {
+export async function runPipelinePhase<T>(
+  audit: PipelineRunAudit,
+  phaseId: PipelinePhase,
+  fn: () => Promise<T>,
+): Promise<T> {
+  startPipelineAuditPhase(audit, phaseId);
+  try {
+    const result = await fn();
+    completePipelineAuditPhase(audit, phaseId);
+    return result;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : `${phaseId} phase failed`;
+    failPipelineAuditPhase(audit, phaseId, message);
+    throw error;
+  }
+}
+
+function getTimestamp(): string {
   return new Date().toISOString();
 }
 
@@ -143,6 +166,13 @@ function clonePhaseRecord<P extends PipelinePhase>(phase: PipelinePhaseRecord<P>
 
 export function clonePipelineRunAudit(audit: PipelineRunAudit) {
   return structuredClone(audit);
+}
+
+export function syncPipelineRunAudit(
+  target: PipelineRunAudit,
+  source: PipelineRunAudit,
+): void {
+  Object.assign(target, clonePipelineRunAudit(source));
 }
 
 export function getPipelinePhase<P extends PipelinePhase>(
@@ -383,10 +413,7 @@ export async function runOutboundJobPipeline(input: {
       input.onPhaseUpdate,
     );
 
-    const signals = extraction.signals.map((signal) => ({
-      ...signal,
-      usedInAngle: anglePlan.usedSignalIds.includes(signal.id),
-    }));
+    const signals = markAngleSignals(extraction.signals, anglePlan.usedSignalIds);
 
     const draftStarted = startPipelineAuditPhase(audit, "draft");
     await emitPhaseStarted(audit, draftStarted, input.onPhaseUpdate);
@@ -400,47 +427,15 @@ export async function runOutboundJobPipeline(input: {
     const draftCompleted = completePipelineAuditPhase(audit, "draft");
     await emitPhaseCompleted(audit, draftCompleted, draft, input.onPhaseUpdate);
 
-    const governance = determineGovernance({
-      confidenceTier: anglePlan.confidence.tier,
-      leadSource: input.leadInput.play.leadSource,
-    });
-
-    const createdAt = getTimestamp();
-    const job: Omit<OutboundJob, "id"> = {
-      lead: {
-        name: input.leadInput.leadName,
-        title: input.leadInput.leadTitle,
-      },
-      company: input.leadInput.company,
-      play: input.leadInput.play,
-      whyNow: anglePlan.whyNow,
-      researchRun: {
-        orchestratorSummary: research.packet.orchestratorSummary,
-        threadSummaries: research.packet.threadSummaries,
-        uncertainty: research.packet.uncertainty,
-        reports: research.packet.reports,
-      },
-      angleType: anglePlan.angleType,
-      status: governance.status,
-      pipelineStage: governance.pipelineStage,
-      pipelineStatus: governance.pipelineStatus,
-      governance: governance.governance,
-      confidence: {
-        tier: anglePlan.confidence.tier,
-        summary: anglePlan.confidence.summary,
-        reasons: anglePlan.confidence.reasons,
-      },
-      angle: anglePlan.angle,
+    const job: Omit<OutboundJob, "id"> = buildGeneratedJob({
+      leadInput: input.leadInput,
+      researchPacket: research.packet,
+      anglePlan,
       signals,
       discardedSignals: extraction.discardedSignals,
       draft,
-      feedback: undefined,
-      outcome: undefined,
-      timestamps: {
-        created: createdAt,
-        updated: createdAt,
-      },
-    };
+      createdAt: getTimestamp(),
+    });
 
     return {
       job,

@@ -1,57 +1,38 @@
+import {
+  ANGLE_TYPE_VALUES,
+  CONFIDENCE_TIER_VALUES,
+  GOVERNANCE_RULE_VALUES,
+  JOB_STATUS_VALUES,
+  LEAD_SOURCE_VALUES,
+  PIPELINE_PHASE_STATUS_VALUES,
+  PIPELINE_PHASE_VALUES,
+  PIPELINE_STATUS_VALUES,
+  PLAY_TYPE_VALUES,
+  SIGNAL_CATEGORY_VALUES,
+  SIGNAL_SOURCE_VALUES,
+  SIGNAL_STRENGTH_VALUES,
+} from "@/lib/pipeline/vocab";
+
 // ─── Core enums ──────────────────────────────────────────────────────────────
 
-export type ConfidenceTier = 'high' | 'medium' | 'low';
-export type GovernanceRule = 'review_required' | 'auto_eligible';
-export type JobStatus = 'pending_review' | 'approved' | 'reviewed' | 'sent_stub';
-export type PipelineStatus = 'running' | 'completed' | 'failed';
-export type PipelinePhase = 'ingest' | 'research' | 'signals' | 'angle' | 'draft' | 'persist' | 'done';
-export type PipelinePhaseStatus = 'pending' | 'running' | 'completed' | 'failed';
+export type ConfidenceTier = (typeof CONFIDENCE_TIER_VALUES)[number];
+export type GovernanceRule = (typeof GOVERNANCE_RULE_VALUES)[number];
+export type JobStatus = (typeof JOB_STATUS_VALUES)[number];
+export type PipelineStatus = (typeof PIPELINE_STATUS_VALUES)[number];
+export type PipelinePhase = (typeof PIPELINE_PHASE_VALUES)[number];
+export type PipelinePhaseStatus = (typeof PIPELINE_PHASE_STATUS_VALUES)[number];
 
-export type SignalCategory =
-  | 'event'
-  | 'plg'
-  | 'tech_stack'
-  | 'social'
-  | 'web_activity'
-  | 'hiring_signal'
-  | 'internal';
-export type SignalSource = 'internal' | 'external' | 'derived';
-export type SignalStrength = 'strong' | 'moderate' | 'weak';
-export type SignalHint =
-  | 'event'
-  | 'plg'
-  | 'tech_stack'
-  | 'social'
-  | 'web_activity'
-  | 'hiring_signal'
-  | 'internal';
+export type SignalCategory = (typeof SIGNAL_CATEGORY_VALUES)[number];
+export type SignalSource = (typeof SIGNAL_SOURCE_VALUES)[number];
+export type SignalStrength = (typeof SIGNAL_STRENGTH_VALUES)[number];
+export type SignalHint = SignalCategory;
 
-export type AngleType =
-  | 'tech_migration'
-  | 'trial_activation'
-  | 'event_signal'
-  | 'social_post'
-  | 'web_intent'
-  | 'hiring_signal'
-  | 'generic';
+export type AngleType = (typeof ANGLE_TYPE_VALUES)[number];
 
-export type PlayType =
-  | 'plg_signup'
-  | 'event'
-  | 'hiring_signal'
-  | 'tech_migration'
-  | 'web_intent'
-  | 'social_post'
-  | 'outbound_prospecting';
+export type PlayType = (typeof PLAY_TYPE_VALUES)[number];
 
 export type LeadSource =
-  | 'plg_product'
-  | 'marketing_event_form'   // thin — name + company only
-  | 'marketing_event_scan'   // richer context possible
-  | 'crm_outbound'
-  | 'social_listening'
-  | 'web_deanonymization'
-  | 'inbound_request';
+  | (typeof LEAD_SOURCE_VALUES)[number];
 
 // ─── Pipeline input ───────────────────────────────────────────────────────────
 

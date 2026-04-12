@@ -1,6 +1,6 @@
 import { init_experimental } from "@instantdb/admin";
 import demoSnapshotData from "@/data/demo-snapshot.json";
-import { toInstantJobRecord } from "@/lib/pipeline/persistence";
+import { toInstantJobRecord } from "@/lib/jobs/instant-job-codec";
 import {
   getRequiredServerEnv,
   isAuthorizedDemoResetRequest,

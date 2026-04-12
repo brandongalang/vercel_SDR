@@ -1,4 +1,5 @@
 import { id as generateId, init_experimental } from "@instantdb/admin";
+import { toInstantJobRecord } from "@/lib/jobs/instant-job-codec";
 import {
   clonePipelineRunAudit,
   completePipelineAuditPhase,
@@ -20,11 +21,11 @@ function getAdminDb() {
   });
 }
 
-function toEpochMilliseconds(value?: string) {
+function toEpochMilliseconds(value?: string): number | null {
   return value ? new Date(value).getTime() : null;
 }
 
-function finalizeSuccessfulAudit(audit: PipelineRunAudit, jobId: string) {
+function finalizeSuccessfulAudit(audit: PipelineRunAudit, jobId: string): PipelineRunAudit {
   const finalAudit = clonePipelineRunAudit(audit);
 
   if (getPipelinePhase(finalAudit, "persist").status === "pending") {
@@ -52,7 +53,7 @@ function finalizeSuccessfulAudit(audit: PipelineRunAudit, jobId: string) {
   return finalAudit;
 }
 
-function finalizeFailedAudit(audit: PipelineRunAudit) {
+function finalizeFailedAudit(audit: PipelineRunAudit): PipelineRunAudit {
   const finalAudit = clonePipelineRunAudit(audit);
 
   if (!finalAudit.completedAt) {
@@ -63,41 +64,6 @@ function finalizeFailedAudit(audit: PipelineRunAudit) {
 
   return finalAudit;
 }
-
-export function toInstantJobRecord(job: OutboundJob) {
-  return {
-    leadName: job.lead.name,
-    leadTitle: job.lead.title,
-    company: job.company,
-    play: job.play,
-    whyNow: job.whyNow,
-    pipelineStatus: job.pipelineStatus ?? "completed",
-    angleType: job.angleType,
-    status: job.status,
-    pipelineStage: job.pipelineStage,
-    governance: job.governance,
-    confidenceTier: job.confidence.tier,
-    confidenceSummary: job.confidence.summary,
-    confidenceReasons: job.confidence.reasons ?? [],
-    angle: job.angle,
-    draftSubject: job.draft.subject,
-    draftBody: job.draft.body,
-    highlightedSpan: job.draft.highlightedSpan ?? null,
-    signals: job.signals,
-    discardedSignals: job.discardedSignals ?? [],
-    researchRun: job.researchRun,
-    feedback: job.feedback ?? null,
-    outcome: job.outcome ?? null,
-    promptVersions: job.promptVersions ?? null,
-    createdAt: new Date(job.timestamps.created).getTime(),
-    updatedAt: new Date(job.timestamps.updated).getTime(),
-    approvedAt: toEpochMilliseconds(job.timestamps.approvedAt),
-    archivedAt: toEpochMilliseconds(job.timestamps.archivedAt),
-    sentAt: toEpochMilliseconds(job.timestamps.sentAt),
-    respondedAt: toEpochMilliseconds(job.timestamps.respondedAt),
-  };
-}
-
 function toInstantPipelineRunRecord(audit: PipelineRunAudit, pipelineRunId: string) {
   const createdAt = toEpochMilliseconds(audit.startedAt) ?? Date.now();
   const updatedAt = toEpochMilliseconds(audit.completedAt) ?? createdAt;

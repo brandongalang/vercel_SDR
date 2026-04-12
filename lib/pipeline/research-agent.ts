@@ -5,7 +5,12 @@ import {
   nowIso,
   type PipelineTraceEmitter,
 } from "@/lib/pipeline/live-trace";
-import type { LeadInput, ResearchPacket, SubAgentReport } from "@/lib/types";
+import type {
+  LeadInput,
+  PlayType,
+  ResearchPacket,
+  SubAgentReport,
+} from "@/lib/types";
 import { PROMPT_VERSIONS } from "@/lib/pipeline/prompts";
 import {
   researchPacketModelOutputSchema,
@@ -57,19 +62,29 @@ Guidance:
 - Thin-source leads should still get a usable packet; note uncertainty instead of blocking.
 - Keep the parent summary concise and decision-oriented.
 - The subagent tool returns the full report to the runtime, but you should only reason over the summary you are shown.
-`;
+  `;
 }
+
+const PLAY_SPECIFIC_GOALS: Record<PlayType, string> = {
+  event:
+    "Find context around the event, what the lead likely cared about, and how it connects to the company's current frontend or platform work.",
+  hiring_signal:
+    "Find hiring plans that imply frontend platform, developer productivity, or deployment workflow needs.",
+  outbound_prospecting:
+    "Find the strongest play-specific reason the timing could matter right now.",
+  plg_signup:
+    "Find evidence of active evaluation, preview workflow concerns, and team coordination signals.",
+  social_post:
+    "Find the strongest play-specific reason the timing could matter right now.",
+  tech_migration:
+    "Find the strongest play-specific reason the timing could matter right now.",
+  web_intent:
+    "Find the strongest play-specific reason the timing could matter right now.",
+};
 
 function buildFallbackThreads(leadInput: LeadInput) {
   const companyDomain = leadInput.companyDomain ? [leadInput.companyDomain] : [];
-  const playSpecificGoal =
-    leadInput.play.type === "event"
-      ? "Find context around the event, what the lead likely cared about, and how it connects to the company's current frontend or platform work."
-      : leadInput.play.type === "plg_signup"
-        ? "Find evidence of active evaluation, preview workflow concerns, and team coordination signals."
-        : leadInput.play.type === "hiring_signal"
-          ? "Find hiring plans that imply frontend platform, developer productivity, or deployment workflow needs."
-          : "Find the strongest play-specific reason the timing could matter right now.";
+  const playSpecificGoal = PLAY_SPECIFIC_GOALS[leadInput.play.type];
 
   return [
     {
