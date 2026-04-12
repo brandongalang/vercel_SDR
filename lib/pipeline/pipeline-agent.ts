@@ -12,14 +12,16 @@ import type {
   PipelineTraceEmitter,
 } from "@/lib/pipeline/live-trace";
 import { vertexModels } from "@/lib/ai/vertex";
-import { runAnglePlanner } from "@/lib/pipeline/angle-planner";
-import { runDraftGenerator } from "@/lib/pipeline/draft-generator";
 import {
-  buildGeneratedJob,
-  markAngleSignals,
-} from "@/lib/pipeline/job-builder";
+  buildPipelineJob,
+  createPipelineExecutionState,
+  runAnglePlanningStage,
+  runDraftStage,
+  runResearchStage,
+  runSignalExtractionStage,
+  type PipelineExecutionState,
+} from "@/lib/pipeline/execution-core";
 import { persistPipelineRun } from "@/lib/pipeline/persistence";
-import { runResearchAgent } from "@/lib/pipeline/research-agent";
 import {
   clonePipelineRunAudit,
   completePipelineAuditPhase,
@@ -31,17 +33,9 @@ import {
   type PipelineRunAudit,
   type PipelineTraces,
 } from "@/lib/pipeline/run-job";
-import { runSignalExtractor } from "@/lib/pipeline/signal-extractor";
 import type { AnglePlan, DiscardedSignal, LeadInput, ScoredSignal } from "@/lib/types";
 
-type ResearchResult = Awaited<ReturnType<typeof runResearchAgent>>;
-
-type PipelineState = {
-  research: ResearchResult | null;
-  signals: ScoredSignal[] | null;
-  discardedSignals: DiscardedSignal[] | null;
-  anglePlan: AnglePlan | null;
-  draft: { subject: string; body: string; highlightedSpan?: string } | null;
+type PipelineState = PipelineExecutionState & {
   persistResult: { jobId: string; pipelineRunId: string } | null;
 };
 
@@ -56,7 +50,7 @@ type ResearchReportPreview = {
   findings: Array<{
     text: string;
     sourceUrl: string;
-    confidence: ResearchResult["packet"]["reports"][number]["findings"][number]["confidence"];
+    confidence: NonNullable<PipelineState["research"]>["packet"]["reports"][number]["findings"][number]["confidence"];
     date?: string;
     rawQuote?: string;
   }>;
@@ -163,11 +157,7 @@ export function createPipelineAgent(
   const traces: PipelineTraces = {};
   audit.traces = traces;
   const state: PipelineState = {
-    research: null,
-    signals: null,
-    discardedSignals: null,
-    anglePlan: null,
-    draft: null,
+    ...createPipelineExecutionState(),
     persistResult: null,
   };
   startPipelineAuditPhase(audit, "ingest");
@@ -191,12 +181,13 @@ export function createPipelineAgent(
         inputSchema: noInputSchema,
         execute: async () => {
           return runPipelinePhase(audit, "research", async () => {
-            const result = await runResearchAgent({ leadInput, abortSignal, trace });
-            state.research = result;
-            traces.research = {
-              orchestratorSteps: result.steps,
-              threadTraces: result.threadTraces,
-            };
+            const result = await runResearchStage({
+              leadInput,
+              state,
+              traces,
+              abortSignal,
+              trace,
+            });
             return {
               threadsCompleted: result.packet.reports.length,
               orchestratorSummary: result.packet.orchestratorSummary,
@@ -236,9 +227,7 @@ export function createPipelineAgent(
             return { error: "run_research must complete before extract_signals." };
           }
           return runPipelinePhase(audit, "signals", async () => {
-            const extraction = await runSignalExtractor(state.research!.packet);
-            state.signals = extraction.signals;
-            state.discardedSignals = extraction.discardedSignals;
+            const extraction = await runSignalExtractionStage(state);
             return {
               signalCount: extraction.signals.length,
               topSignals: extraction.signals.slice(0, 3).map((s) => ({
@@ -281,8 +270,10 @@ export function createPipelineAgent(
             return { error: "extract_signals must complete before plan_angle." };
           }
           return runPipelinePhase(audit, "angle", async () => {
-            const anglePlan = await runAnglePlanner({ leadInput, signals: state.signals! });
-            state.anglePlan = anglePlan;
+            const anglePlan = await runAnglePlanningStage({
+              leadInput,
+              state,
+            });
             return {
               angleType: anglePlan.angleType,
               angle: anglePlan.angle,
@@ -317,14 +308,10 @@ export function createPipelineAgent(
             return { error: "plan_angle must complete before generate_draft." };
           }
           return runPipelinePhase(audit, "draft", async () => {
-            const signals = markAngleSignals(state.signals!, state.anglePlan!.usedSignalIds);
-            const draft = await runDraftGenerator({
+            const draft = await runDraftStage({
               leadInput,
-              anglePlan: state.anglePlan!,
-              signals,
+              state,
             });
-            state.draft = draft;
-            state.signals = signals;
             return {
               subject: draft.subject,
               body: draft.body,
@@ -357,28 +344,31 @@ export function createPipelineAgent(
           if (!state.draft || !state.anglePlan || !state.signals || !state.research) {
             return { error: "All prior pipeline steps must complete before persist_job." };
           }
-          return runPipelinePhase(audit, "persist", async () => {
-            const job = buildGeneratedJob({
-              leadInput,
-              researchPacket: state.research!.packet,
-              anglePlan: state.anglePlan!,
-              signals: state.signals!,
-              discardedSignals: state.discardedSignals ?? [],
-              draft: state.draft!,
-            });
+          return runPipelinePhase(
+            audit,
+            "persist",
+            async () => {
+              const job = buildPipelineJob({
+                leadInput,
+                state,
+              });
 
-            const persisted = await persistPipelineRun({ job, audit });
-            state.persistResult = {
-              jobId: persisted.job.id,
-              pipelineRunId: persisted.pipelineRunId,
-            };
-            syncPipelineRunAudit(audit, persisted.audit);
+              const persisted = await persistPipelineRun({ job, audit });
+              state.persistResult = {
+                jobId: persisted.job.id,
+                pipelineRunId: persisted.pipelineRunId,
+              };
+              syncPipelineRunAudit(audit, persisted.audit);
 
-            return {
-              jobId: persisted.job.id,
-              pipelineRunId: persisted.pipelineRunId,
-            };
-          });
+              return {
+                jobId: persisted.job.id,
+                pipelineRunId: persisted.pipelineRunId,
+              };
+            },
+            {
+              completePhaseOnSuccess: false,
+            },
+          );
         },
         toModelOutput: ({ output }) => {
           if ("error" in output) {

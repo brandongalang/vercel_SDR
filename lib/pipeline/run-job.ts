@@ -3,15 +3,15 @@ import {
   VERTEX_MODEL_IDS,
   VERTEX_PROJECT,
 } from "@/lib/ai/vertex";
-import { runAnglePlanner } from "@/lib/pipeline/angle-planner";
-import { runDraftGenerator } from "@/lib/pipeline/draft-generator";
 import {
-  buildGeneratedJob,
-  markAngleSignals,
-} from "@/lib/pipeline/job-builder";
+  buildPipelineJob,
+  createPipelineExecutionState,
+  runAnglePlanningStage,
+  runDraftStage,
+  runResearchStage,
+  runSignalExtractionStage,
+} from "@/lib/pipeline/execution-core";
 import { PROMPT_VERSIONS } from "@/lib/pipeline/prompts";
-import { runResearchAgent } from "@/lib/pipeline/research-agent";
-import { runSignalExtractor } from "@/lib/pipeline/signal-extractor";
 import type {
   DiscardedSignal,
   LeadInput,
@@ -125,29 +125,20 @@ const PIPELINE_PHASE_DEFINITIONS = [
   label: string;
 }>;
 
-export async function runResearchWithRetry(
-  leadInput: LeadInput,
-  abortSignal?: AbortSignal,
-) {
-  try {
-    return await runResearchAgent({ leadInput, abortSignal });
-  } catch (error) {
-    // Don't retry aborted requests or programming errors
-    if (abortSignal?.aborted) throw error;
-    if (error instanceof DOMException && error.name === "AbortError") throw error;
-    return runResearchAgent({ leadInput, abortSignal });
-  }
-}
-
 export async function runPipelinePhase<T>(
   audit: PipelineRunAudit,
   phaseId: PipelinePhase,
   fn: () => Promise<T>,
+  options?: {
+    completePhaseOnSuccess?: boolean;
+  },
 ): Promise<T> {
   startPipelineAuditPhase(audit, phaseId);
   try {
     const result = await fn();
-    completePipelineAuditPhase(audit, phaseId);
+    if (options?.completePhaseOnSuccess ?? true) {
+      completePipelineAuditPhase(audit, phaseId);
+    }
     return result;
   } catch (error) {
     const message = error instanceof Error ? error.message : `${phaseId} phase failed`;
@@ -335,6 +326,7 @@ export async function runOutboundJobPipeline(input: {
   onPhaseUpdate?: (event: PipelinePhaseEvent) => Promise<void> | void;
 }) {
   const audit = createPipelineRunAudit(input.leadInput);
+  const state = createPipelineExecutionState();
   const traces: PipelineTraces = {};
   audit.traces = traces;
 
@@ -355,11 +347,12 @@ export async function runOutboundJobPipeline(input: {
     const researchStarted = startPipelineAuditPhase(audit, "research");
     await emitPhaseStarted(audit, researchStarted, input.onPhaseUpdate);
 
-    const research = await runResearchWithRetry(input.leadInput, input.abortSignal);
-    traces.research = {
-      orchestratorSteps: research.steps,
-      threadTraces: research.threadTraces,
-    };
+    const research = await runResearchStage({
+      leadInput: input.leadInput,
+      state,
+      traces,
+      abortSignal: input.abortSignal,
+    });
 
     const researchCompleted = completePipelineAuditPhase(audit, "research");
     await emitPhaseCompleted(
@@ -376,7 +369,7 @@ export async function runOutboundJobPipeline(input: {
     const signalsStarted = startPipelineAuditPhase(audit, "signals");
     await emitPhaseStarted(audit, signalsStarted, input.onPhaseUpdate);
 
-    const extraction = await runSignalExtractor(research.packet);
+    const extraction = await runSignalExtractionStage(state);
     const signalsCompleted = completePipelineAuditPhase(audit, "signals");
     await emitPhaseCompleted(
       audit,
@@ -391,9 +384,9 @@ export async function runOutboundJobPipeline(input: {
     const angleStarted = startPipelineAuditPhase(audit, "angle");
     await emitPhaseStarted(audit, angleStarted, input.onPhaseUpdate);
 
-    const anglePlan = await runAnglePlanner({
+    const anglePlan = await runAnglePlanningStage({
       leadInput: input.leadInput,
-      signals: extraction.signals,
+      state,
     });
 
     const angleCompleted = completePipelineAuditPhase(audit, "angle");
@@ -413,27 +406,20 @@ export async function runOutboundJobPipeline(input: {
       input.onPhaseUpdate,
     );
 
-    const signals = markAngleSignals(extraction.signals, anglePlan.usedSignalIds);
-
     const draftStarted = startPipelineAuditPhase(audit, "draft");
     await emitPhaseStarted(audit, draftStarted, input.onPhaseUpdate);
 
-    const draft = await runDraftGenerator({
+    const draft = await runDraftStage({
       leadInput: input.leadInput,
-      anglePlan,
-      signals,
+      state,
     });
 
     const draftCompleted = completePipelineAuditPhase(audit, "draft");
     await emitPhaseCompleted(audit, draftCompleted, draft, input.onPhaseUpdate);
 
-    const job: Omit<OutboundJob, "id"> = buildGeneratedJob({
+    const job: Omit<OutboundJob, "id"> = buildPipelineJob({
       leadInput: input.leadInput,
-      researchPacket: research.packet,
-      anglePlan,
-      signals,
-      discardedSignals: extraction.discardedSignals,
-      draft,
+      state,
       createdAt: getTimestamp(),
     });
 
