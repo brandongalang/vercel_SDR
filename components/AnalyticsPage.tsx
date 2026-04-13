@@ -134,10 +134,10 @@ export default function AnalyticsPage({
   const fmtPct = (n: number | null) => (n == null ? "—" : `${n}%`);
 
   return (
-    <div className="flex-1 overflow-y-auto min-h-0 bg-zinc-50/80">
-      <div className="mx-auto w-full max-w-[1100px] px-6 py-6 pb-20 space-y-8">
+    <div className="min-h-0 flex-1 overflow-y-auto bg-zinc-50/80">
+      <div className="mx-auto w-full max-w-[1100px] space-y-8 px-4 py-6 pb-20 sm:px-6">
         {/* Date range selector */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <span className="text-[11px] font-mono uppercase tracking-wide text-zinc-500 shrink-0">Date range</span>
           <label className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
             From
@@ -239,11 +239,11 @@ export default function AnalyticsPage({
             />
           </div>
 
-          <div className="mt-6">
+          <div className="mt-6 -mx-4 max-w-[100vw] overflow-x-auto px-4 sm:mx-0 sm:max-w-none sm:overflow-visible sm:px-0">
             <h3 className="mb-3 text-[10px] font-mono font-semibold uppercase tracking-widest text-zinc-500">
               By angle type
             </h3>
-            <Table>
+            <Table className="min-w-[560px]">
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="text-zinc-600 w-[30%]">Angle</TableHead>

@@ -239,7 +239,7 @@ export default function QueueList({ jobs, selectedJobId, onSelectJob, onApproveJ
   const reviewedOnly = jobs.filter((j) => j.status === "reviewed");
 
   return (
-    <div className="w-[min(100%,380px)] shrink-0 border-r border-border bg-card flex flex-col overflow-hidden min-h-0 shadow-[2px_0_12px_-4px_rgba(0,0,0,0.06)]">
+    <div className="flex min-h-[40vh] flex-1 flex-col overflow-hidden border-b border-border bg-card shadow-[0_4px_12px_-4px_rgba(0,0,0,0.06)] md:min-h-0 md:w-[min(100%,380px)] md:flex-none md:border-b-0 md:border-r md:shadow-[2px_0_12px_-4px_rgba(0,0,0,0.06)]">
       <div className="shrink-0 px-4 py-3.5 border-b border-border bg-card">
         <h2 className="text-[14px] font-semibold text-zinc-900 tracking-tight">
           Review queue

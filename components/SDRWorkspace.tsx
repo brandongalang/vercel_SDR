@@ -318,7 +318,7 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="shrink-0 border-b border-border bg-card px-6 py-3.5">
+      <div className="shrink-0 border-b border-border bg-card px-4 py-3.5 sm:px-6">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -334,7 +334,7 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
 
           <div className="flex flex-col gap-2 lg:items-end">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex w-fit rounded-xl border border-border bg-muted p-1">
+              <div className="-mx-1 flex max-w-full overflow-x-auto rounded-xl border border-border bg-muted p-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:inline-flex sm:w-fit [&::-webkit-scrollbar]:hidden">
                 {[
                   {
                     id: "review" as const,
@@ -362,7 +362,7 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
                     type="button"
                     onClick={() => setActiveView(tab.id)}
                     className={cn(
-                      "rounded-lg px-4 py-2.5 text-left transition-colors",
+                      "shrink-0 rounded-lg px-3 py-2.5 text-left transition-colors sm:px-4",
                       activeView === tab.id
                         ? "bg-card shadow-sm"
                         : "text-muted-foreground hover:text-foreground"
@@ -404,7 +404,10 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
       </div>
 
       {activeView === "review" ? (
-        <div key={`review-${workspaceResetVersion}`} className="flex min-h-0 flex-1 overflow-hidden">
+        <div
+          key={`review-${workspaceResetVersion}`}
+          className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row"
+        >
           <QueueList
             jobs={jobs}
             selectedJobId={resolvedSelectedJobId}

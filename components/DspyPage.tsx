@@ -173,7 +173,8 @@ function VersionTable({
   candidateUnlocked: boolean;
 }) {
   return (
-    <Table>
+    <div className="-mx-1 overflow-x-auto sm:mx-0">
+    <Table className="min-w-[680px]">
       <TableHeader>
         <TableRow className="hover:bg-transparent">
           <TableHead className="w-[22%] text-zinc-600">Version</TableHead>
@@ -268,6 +269,7 @@ function VersionTable({
         </TableRow>
       </TableBody>
     </Table>
+    </div>
   );
 }
 
@@ -593,8 +595,8 @@ export default function DspyPage({
   };
 
   return (
-    <div className="flex-1 overflow-y-auto min-h-0 bg-zinc-50/80">
-      <div className="mx-auto w-full max-w-[1100px] px-6 py-6 pb-20 space-y-8">
+    <div className="min-h-0 flex-1 overflow-y-auto bg-zinc-50/80">
+      <div className="mx-auto w-full max-w-[1100px] space-y-8 px-4 py-6 pb-20 sm:px-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.16em] text-zinc-400">
