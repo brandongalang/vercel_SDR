@@ -48,6 +48,7 @@ const STACK_ROWS = [
   { label: "Agent", value: "ToolLoopAgent · useChat" },
   { label: "Streaming", value: "createUIMessageStreamResponse · createAgentUIStream" },
   { label: "Storage", value: "InstantDB live sync to Lead Review" },
+  { label: "Scale", value: "Vercel Workflows (Production Batch Engine)" },
 ] as const;
 
 export default function LiveAgentDemo({
@@ -248,21 +249,25 @@ export default function LiveAgentDemo({
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                   <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-zinc-500">
-                    Live pipeline · Vercel AI SDK + Vertex
+                    Dual Architecture · Vercel AI SDK + Workflows
                   </p>
                   <h1 className="mt-1 text-[18px] font-semibold tracking-tight text-zinc-950">
-                    A real outbound job, streamed end-to-end.
+                    A real outbound job, streaming the pipeline live.
                   </h1>
                   <p className="mt-2 text-[13px] leading-relaxed text-zinc-600">
-                    <span className="font-medium text-zinc-700">useChat</span> and{" "}
-                    <span className="font-medium text-zinc-700">DefaultChatTransport</span> hit a
-                    Next.js route handler running a <span className="font-medium text-zinc-700">ToolLoopAgent</span>{" "}
-                    on Vertex. Research sub-agents stream live, and the finished job persists to
-                    InstantDB for Lead Review.
+                    This is the <span className="font-medium text-zinc-700">Live Demo</span> UX. 
+                    We are streaming a <span className="font-medium text-zinc-700">ToolLoopAgent</span> over a Next.js route back to the UI token-by-token so you can see the reasoning.
                   </p>
-                  <p className="mt-2 text-[12px] leading-relaxed text-zinc-500">
-                    Default fields are pre-filled for a quick demo. Edit any field below to run your
-                    own lead through the same pipeline.
+                  <div className="mt-3 rounded-lg border border-indigo-100 bg-indigo-50/50 p-3">
+                    <p className="text-[12px] font-medium text-indigo-900">
+                      ⚡ Engineering Note: The Production Batch Engine
+                    </p>
+                    <p className="mt-1.5 text-[12px] leading-relaxed text-indigo-800">
+                      In a real scenario where SDRs queue hundreds of leads, the same exact pipeline functions are handed off to <span className="font-medium">Vercel Workflows</span> (`/api/jobs/workflow`). It transforms the execution from a fragile request into a durable, background orchestration of `'use step'` functions — automatically resuming progress without timing out.
+                    </p>
+                  </div>
+                  <p className="mt-3 text-[12px] leading-relaxed text-zinc-500">
+                    Default fields are pre-filled below for a quick demo. Hit run to see the live tracing.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2 self-start lg:self-center">
