@@ -1,4 +1,9 @@
-export type WebSearchProvider = "exa" | "google_search" | "none";
+export type WebSearchProvider =
+  | "brave_search"
+  | "exa"
+  | "google_search"
+  | "none"
+  | "tavily";
 
 export type WebSearchResult = {
   title: string;

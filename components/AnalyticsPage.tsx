@@ -116,12 +116,16 @@ export default function AnalyticsPage({
   baselineWindowDays,
   dateRange,
   jobs,
+  onDateRangeStart,
+  onDateRangeEnd,
 }: {
   analytics: AnalyticsSnapshot;
   analyticsWindowLabel: string;
   baselineWindowDays: number;
   dateRange: AnalyticsDateRange;
   jobs: OutboundJob[];
+  onDateRangeStart: (value: string) => void;
+  onDateRangeEnd: (value: string) => void;
 }) {
   const { summary, byAngle } = useMemo(
     () => computeQueueMetrics(jobs, dateRange),
@@ -132,6 +136,29 @@ export default function AnalyticsPage({
   return (
     <div className="flex-1 overflow-y-auto min-h-0 bg-zinc-50/80">
       <div className="mx-auto w-full max-w-[1100px] px-6 py-6 pb-20 space-y-8">
+        {/* Date range selector */}
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] font-mono uppercase tracking-wide text-zinc-500 shrink-0">Date range</span>
+          <label className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+            From
+            <input
+              type="date"
+              value={dateRange.start}
+              onChange={(e) => onDateRangeStart(e.target.value)}
+              className="h-8 rounded-lg border border-border bg-background px-3 text-[12px] text-foreground shadow-sm outline-none transition-colors focus:border-ring"
+            />
+          </label>
+          <label className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+            To
+            <input
+              type="date"
+              value={dateRange.end}
+              onChange={(e) => onDateRangeEnd(e.target.value)}
+              className="h-8 rounded-lg border border-border bg-background px-3 text-[12px] text-foreground shadow-sm outline-none transition-colors focus:border-ring"
+            />
+          </label>
+        </div>
+
         <section className="rounded-2xl border border-zinc-200 bg-white px-6 py-5 shadow-sm">
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -180,7 +207,7 @@ export default function AnalyticsPage({
             <div>
               <h2 className="text-[15px] font-semibold text-zinc-950">Review quality</h2>
               <p className="mt-0.5 text-[12px] text-zinc-500">
-                Live rollups for {analyticsWindowLabel} using approval, archive, send, and response timestamps. Clean accept is the key signal that drafts are trusted without alteration.
+                Live rollups for {analyticsWindowLabel} using approval, skip, send, and response timestamps. Clean accept is the key signal that drafts are trusted without alteration.
               </p>
             </div>
             <span className="shrink-0 inline-flex items-center gap-1.5 rounded-md border border-teal-200 bg-teal-50 px-2 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-wider text-teal-700">

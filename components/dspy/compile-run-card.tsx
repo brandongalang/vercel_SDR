@@ -16,6 +16,8 @@ export function CompileRunCard(input: {
   badge?: CompileRunCardBadge | null;
   containerClassName?: string;
   positiveMetricLabel: string;
+  showDeltas?: boolean;
+  note?: string;
 }): ReactElement {
   const date = new Intl.DateTimeFormat("en-US", {
     month: "short",
@@ -55,42 +57,50 @@ export function CompileRunCard(input: {
             {input.run.promptVersionBefore} → {input.run.promptVersionAfter}
           </p>
         </div>
-        <div className="flex shrink-0 flex-wrap gap-3">
-          <div className="text-center">
-            <p className="text-[9px] font-mono uppercase tracking-widest text-zinc-400">
-              Clean accept
+        {input.showDeltas === false ? (
+          input.note ? (
+            <p className="max-w-[260px] text-right text-[11px] leading-relaxed text-zinc-500">
+              {input.note}
             </p>
-            <div className="mt-1 flex justify-center">
-              <DeltaBadge value={input.run.deltas.cleanAcceptRate} />
-            </div>
-          </div>
-          <div className="text-center">
-            <p className="text-[9px] font-mono uppercase tracking-widest text-zinc-400">
-              Edit rate
-            </p>
-            <div className="mt-1 flex justify-center">
-              <DeltaBadge value={input.run.deltas.editRate} invert />
-            </div>
-          </div>
-          <div className="text-center">
-            <p className="text-[9px] font-mono uppercase tracking-widest text-zinc-400">
-              {input.positiveMetricLabel}
-            </p>
-            <div className="mt-1 flex justify-center">
-              <DeltaBadge value={input.run.deltas.positiveRate} />
-            </div>
-          </div>
-          {input.run.deltas.replyRate != null ? (
+          ) : null
+        ) : (
+          <div className="flex shrink-0 flex-wrap gap-3">
             <div className="text-center">
               <p className="text-[9px] font-mono uppercase tracking-widest text-zinc-400">
-                Reply rate
+                Clean accept
               </p>
               <div className="mt-1 flex justify-center">
-                <DeltaBadge value={input.run.deltas.replyRate} />
+                <DeltaBadge value={input.run.deltas.cleanAcceptRate} />
               </div>
             </div>
-          ) : null}
-        </div>
+            <div className="text-center">
+              <p className="text-[9px] font-mono uppercase tracking-widest text-zinc-400">
+                Edit rate
+              </p>
+              <div className="mt-1 flex justify-center">
+                <DeltaBadge value={input.run.deltas.editRate} invert />
+              </div>
+            </div>
+            <div className="text-center">
+              <p className="text-[9px] font-mono uppercase tracking-widest text-zinc-400">
+                {input.positiveMetricLabel}
+              </p>
+              <div className="mt-1 flex justify-center">
+                <DeltaBadge value={input.run.deltas.positiveRate} />
+              </div>
+            </div>
+            {input.run.deltas.replyRate != null ? (
+              <div className="text-center">
+                <p className="text-[9px] font-mono uppercase tracking-widest text-zinc-400">
+                  Reply rate
+                </p>
+                <div className="mt-1 flex justify-center">
+                  <DeltaBadge value={input.run.deltas.replyRate} />
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )}
       </div>
     </div>
   );

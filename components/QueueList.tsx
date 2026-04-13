@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { Archive, CheckCircle, ShieldAlert, ShieldCheck } from "lucide-react";
+import { SkipForward, CheckCircle } from "lucide-react";
 import { formatRelativeUpdated } from "@/lib/format";
 
 interface QueueListProps {
@@ -18,43 +18,24 @@ interface QueueListProps {
   onArchiveJob: (jobId: string) => void;
 }
 
-function governanceMeta(g: OutboundJob["governance"]) {
-  if (g === "review_required") {
-    return {
-      label: "Review",
-      short: "Review required",
-      Icon: ShieldAlert,
-      className: "border-amber-200 bg-amber-50 text-amber-800",
-    };
-  }
-  return {
-    label: "Auto",
-    short: "Auto-eligible",
-    Icon: ShieldCheck,
-    className: "border-slate-200 bg-slate-100 text-slate-700",
-  };
+function confidenceChipClass(tier: OutboundJob["confidence"]["tier"]) {
+  if (tier === "high") return "bg-emerald-500 text-white";
+  if (tier === "medium") return "bg-amber-400 text-white";
+  return "bg-zinc-300 text-zinc-700";
 }
 
-function confidenceAccent(tier: OutboundJob["confidence"]["tier"]) {
-  if (tier === "high") return "text-emerald-700";
-  if (tier === "medium") return "text-amber-700";
-  return "text-zinc-400";
+function tierLetter(tier: OutboundJob["confidence"]["tier"]) {
+  if (tier === "high") return "H";
+  if (tier === "medium") return "M";
+  return "L";
 }
 
-function confidenceBarClass(tier: OutboundJob["confidence"]["tier"]) {
-  if (tier === "high") return "bg-emerald-500";
-  if (tier === "medium") return "bg-amber-500";
-  return "bg-zinc-300";
-}
-
-function tierLabel(tier: OutboundJob["confidence"]["tier"]) {
-  if (tier === "high") return "High";
-  if (tier === "medium") return "Med";
-  return "Low";
-}
-
-function formatLeadSource(source: OutboundJob["play"]["leadSource"]) {
-  return source.replace(/_/g, " ");
+function mostRecentUpdated(sectionJobs: OutboundJob[]): string | null {
+  if (sectionJobs.length === 0) return null;
+  const latest = sectionJobs.reduce((a, b) =>
+    new Date(a.timestamps.updated) > new Date(b.timestamps.updated) ? a : b
+  );
+  return formatRelativeUpdated(latest.timestamps.updated);
 }
 
 function QueueRow({
@@ -73,14 +54,12 @@ function QueueRow({
   const isPending = job.status === "pending_review";
   const atConfig = ANGLE_CONFIG[job.angleType] ?? ANGLE_CONFIG.generic;
   const playConfig = getPlayConfig(job.play);
-  const gov = governanceMeta(job.governance);
-  const GovIcon = gov.Icon;
 
   return (
     <div
       className={cn(
-        "relative flex border-b border-border transition-colors",
-        isSelected ? "bg-zinc-100" : "hover:bg-zinc-50/80",
+        "group relative flex border-b border-border transition-colors",
+        isSelected ? "bg-zinc-100 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]" : "hover:bg-zinc-50/80",
         !isPending && !isSelected && "opacity-[0.72]"
       )}
     >
@@ -88,111 +67,99 @@ function QueueRow({
         type="button"
         onClick={onSelect}
         className={cn(
-          "flex-1 min-w-0 text-left flex gap-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-          isPending ? "pl-2 pr-2 py-3" : "px-4 py-3.5",
+          "flex-1 min-w-0 text-left flex items-center gap-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          isPending ? "pl-2 pr-2 py-2.5" : "pl-3 pr-3 py-2",
           isSelected ? "border-l-[3px] border-l-zinc-900" : "border-l-[3px] border-l-transparent"
         )}
       >
-        {isPending && (
-          <div
-            className="flex shrink-0 w-12 flex-row items-center justify-center gap-1.5 border-r border-border/50 pr-2 mr-1 self-stretch py-3"
-            aria-label={`Plan confidence ${job.confidence.tier}`}
-          >
-            <span
-              className={cn("w-1 h-10 shrink-0 rounded-full", confidenceBarClass(job.confidence.tier))}
-            />
-            <span
-              className={cn(
-                "text-[9px] font-mono font-bold uppercase tracking-wide leading-none",
-                confidenceAccent(job.confidence.tier)
-              )}
+        {isPending ? (
+          <>
+            {/* Zone 1 — Confidence chip */}
+            <div
+              className="flex shrink-0 w-9 items-center justify-center self-stretch"
+              aria-label={`Confidence ${job.confidence.tier}`}
             >
-              {tierLabel(job.confidence.tier)}
-            </span>
-          </div>
-        )}
+              <span
+                className={cn(
+                  "w-7 h-7 rounded-md flex items-center justify-center font-mono font-bold text-[11px]",
+                  confidenceChipClass(job.confidence.tier)
+                )}
+              >
+                {tierLetter(job.confidence.tier)}
+              </span>
+            </div>
 
-        <div className="min-w-0 flex-1 py-3 pr-1 pl-0">
-          <div className="flex items-start justify-between gap-2 min-w-0">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 min-w-0 pr-16">
-                {(job.status === "approved" || job.status === "sent_stub") && (
-                  <CheckCircle size={14} className="text-emerald-600 shrink-0" aria-hidden />
-                )}
-                {job.status === "reviewed" && (
-                  <Archive size={13} className="text-muted-foreground shrink-0 opacity-80" aria-hidden />
-                )}
-                <span className="font-semibold text-[13px] text-zinc-900 tracking-tight truncate">
-                  {job.lead.name}
+            {/* Zone 2 — Identity + context */}
+            <div className="min-w-0 flex-1 px-2">
+              <p className="font-semibold text-[13px] text-zinc-900 tracking-tight truncate leading-tight">
+                {job.lead.name}
+              </p>
+              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                <span className="text-[12px] text-zinc-500 truncate max-w-[90px]">{job.company}</span>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-0.5 rounded border px-1 py-0 text-[10px] font-mono uppercase tracking-wide shrink-0",
+                    atConfig.color
+                  )}
+                >
+                  {atConfig.label}
+                </span>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-0.5 rounded border px-1 py-0 text-[10px] font-mono font-semibold shrink-0",
+                    playConfig.color
+                  )}
+                >
+                  {playConfig.icon}
+                  {playConfig.label}
                 </span>
               </div>
-              <p className="text-[12px] text-zinc-500 truncate mt-0.5">{job.company}</p>
             </div>
-            {!isPending && (
-              <Badge
-                variant="outline"
+
+            {/* Zone 3 — spacer for hover quick-actions overlay */}
+            <div className="shrink-0 w-[68px]" aria-hidden />
+          </>
+        ) : (
+          /* Done row — single scanline */
+          <>
+            <div className="min-w-0 flex-1 flex items-center gap-1.5 min-h-[42px]">
+              {(job.status === "approved" || job.status === "sent_stub") && (
+                <CheckCircle size={13} className="text-emerald-600 shrink-0" aria-hidden />
+              )}
+              {job.status === "reviewed" && (
+                <SkipForward size={12} className="text-muted-foreground shrink-0 opacity-80" aria-hidden />
+              )}
+              <span className="font-semibold text-[13px] text-zinc-900 tracking-tight truncate">
+                {job.lead.name}
+              </span>
+              <span className="text-zinc-400 shrink-0 text-[11px]">·</span>
+              <span className="text-[12px] text-zinc-500 truncate">{job.company}</span>
+              <span
+                className={cn(
+                  "inline-flex items-center gap-0.5 rounded border px-1 py-0 text-[10px] font-mono uppercase tracking-wide shrink-0",
+                  atConfig.color
+                )}
+              >
+                {atConfig.label}
+              </span>
+            </div>
+            <Badge
+              variant="outline"
               className={cn(
-                "text-[10px] uppercase font-mono rounded-sm px-1.5 py-0 h-5 shrink-0 border",
+                "text-[10px] uppercase font-mono rounded-sm px-1.5 py-0 h-5 shrink-0 border ml-2",
                 job.status === "approved" || job.status === "sent_stub"
                   ? "text-emerald-800 bg-emerald-50 border-emerald-200"
                   : "text-zinc-600 bg-zinc-100 border-zinc-200"
               )}
-              >
-                {job.status === "approved" ? "Approved" : job.status === "sent_stub" ? "Sent" : "Reviewed"}
-              </Badge>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 mt-2.5 flex-wrap">
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-wide",
-                atConfig.color
-              )}
             >
-              {atConfig.label}
-            </span>
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-mono font-semibold",
-                playConfig.color
-              )}
-            >
-              {playConfig.icon}
-              {playConfig.label}
-            </span>
-            {isPending && (
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-mono",
-                  gov.className
-                )}
-                title={gov.short}
-              >
-                <GovIcon size={11} className="opacity-90 shrink-0" aria-hidden />
-                {gov.label}
-              </span>
-            )}
-          </div>
-
-          <p
-            className="text-[11px] text-zinc-600 leading-snug mt-2 line-clamp-2 text-left"
-            title={job.whyNow}
-          >
-            {job.whyNow}
-          </p>
-
-          <div className="flex items-center justify-between gap-2 mt-2 text-[10px] font-mono text-muted-foreground/70">
-            <span className="truncate">
-              {formatLeadSource(job.play.leadSource)}
-            </span>
-            <span className="shrink-0 tabular-nums">{formatRelativeUpdated(job.timestamps.updated)}</span>
-          </div>
-        </div>
+              {job.status === "approved" ? "Approved" : job.status === "sent_stub" ? "Sent" : "Skipped"}
+            </Badge>
+          </>
+        )}
       </button>
 
       {isPending && (
-        <div className="absolute top-2 right-2 z-10 flex items-center gap-0.5">
+        <div className="absolute top-1.5 right-1.5 z-10 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity duration-150">
           <Tooltip>
             <TooltipTrigger
               render={
@@ -227,17 +194,39 @@ function QueueRow({
                     e.stopPropagation();
                     onArchive();
                   }}
-                  aria-label="Archive — move to reviewed"
+                  aria-label="Skip — mark not approved for send"
                 >
-                  <Archive size={14} />
+                  <SkipForward size={14} />
                 </Button>
               }
             />
-            <TooltipContent side="left" className="max-w-[220px] text-left">
-              Archive — mark reviewed without approving send. Moves to the Reviewed section and selects the next pending lead.
+            <TooltipContent side="right" className="max-w-[220px] text-left">
+              Skip — mark not approved for send. Moves to the Skipped section and selects the next pending lead.
             </TooltipContent>
           </Tooltip>
         </div>
+      )}
+    </div>
+  );
+}
+
+function SectionHeader({
+  title,
+  sectionJobs,
+  className,
+}: {
+  title: string;
+  sectionJobs: OutboundJob[];
+  className: string;
+}) {
+  const updated = mostRecentUpdated(sectionJobs);
+  return (
+    <div className={cn("sticky top-0 z-10 px-4 py-2 border-b", className)}>
+      <span className="text-[12px] font-semibold">{title}</span>
+      {updated && (
+        <p className="text-[10px] font-mono text-zinc-500 mt-0.5">
+          {sectionJobs.length} lead{sectionJobs.length !== 1 ? "s" : ""} · updated {updated}
+        </p>
       )}
     </div>
   );
@@ -252,12 +241,12 @@ export default function QueueList({ jobs, selectedJobId, onSelectJob, onApproveJ
   return (
     <div className="w-[min(100%,380px)] shrink-0 border-r border-border bg-card flex flex-col overflow-hidden min-h-0 shadow-[2px_0_12px_-4px_rgba(0,0,0,0.06)]">
       <div className="shrink-0 px-4 py-3.5 border-b border-border bg-card">
-        <h2 className="text-[11px] font-mono tracking-[0.12em] uppercase font-semibold text-zinc-500">
+        <h2 className="text-[14px] font-semibold text-zinc-900 tracking-tight">
           Review queue
         </h2>
-        <p className="text-[13px] text-zinc-800 font-medium mt-1 tabular-nums">
+        <p className="text-[12px] text-zinc-500 mt-0.5 tabular-nums">
           {jobs.filter((j) => j.status === "pending_review").length} pending
-          <span className="text-zinc-400 font-normal"> · </span>
+          <span className="text-zinc-300 font-normal mx-1">·</span>
           {jobs.length} total
         </p>
       </div>
@@ -265,9 +254,11 @@ export default function QueueList({ jobs, selectedJobId, onSelectJob, onApproveJ
       <div className="flex-1 overflow-y-auto min-h-0">
         {needsReview.length > 0 && (
           <section className="mb-1">
-            <div className="sticky top-0 z-10 px-4 py-2 text-[10px] font-mono font-semibold uppercase tracking-widest text-amber-900 bg-amber-50 border-b border-amber-200/80">
-              Needs review first ({needsReview.length})
-            </div>
+            <SectionHeader
+              title={`Needs review first (${needsReview.length})`}
+              sectionJobs={needsReview}
+              className="text-amber-900 bg-amber-50 border-amber-200/80"
+            />
             {needsReview.map((job) => (
               <QueueRow
                 key={job.id}
@@ -283,9 +274,11 @@ export default function QueueList({ jobs, selectedJobId, onSelectJob, onApproveJ
 
         {autoEligible.length > 0 && (
           <section className="mb-1">
-            <div className="sticky top-0 z-10 px-4 py-2 text-[10px] font-mono font-semibold uppercase tracking-widest text-slate-700 bg-slate-100 border-b border-slate-200">
-              Auto-eligible ({autoEligible.length})
-            </div>
+            <SectionHeader
+              title={`Auto-eligible (${autoEligible.length})`}
+              sectionJobs={autoEligible}
+              className="text-slate-700 bg-slate-100 border-slate-200"
+            />
             {autoEligible.map((job) => (
               <QueueRow
                 key={job.id}
@@ -301,9 +294,11 @@ export default function QueueList({ jobs, selectedJobId, onSelectJob, onApproveJ
 
         {approved.length > 0 && (
           <section className="mb-1">
-            <div className="sticky top-0 z-10 px-4 py-2 text-[10px] font-mono font-semibold uppercase tracking-widest text-emerald-900 bg-emerald-50 border-b border-emerald-200/90">
-              Approved ({approved.length})
-            </div>
+            <SectionHeader
+              title={`Approved (${approved.length})`}
+              sectionJobs={approved}
+              className="text-emerald-900 bg-emerald-50 border-emerald-200/90"
+            />
             {approved.map((job) => (
               <QueueRow
                 key={job.id}
@@ -319,9 +314,11 @@ export default function QueueList({ jobs, selectedJobId, onSelectJob, onApproveJ
 
         {reviewedOnly.length > 0 && (
           <section>
-            <div className="sticky top-0 z-10 px-4 py-2 text-[10px] font-mono font-semibold uppercase tracking-widest text-zinc-600 bg-zinc-100 border-b border-zinc-200">
-              Reviewed ({reviewedOnly.length})
-            </div>
+            <SectionHeader
+              title={`Skipped (${reviewedOnly.length})`}
+              sectionJobs={reviewedOnly}
+              className="text-zinc-600 bg-zinc-100 border-zinc-200"
+            />
             {reviewedOnly.map((job) => (
               <QueueRow
                 key={job.id}

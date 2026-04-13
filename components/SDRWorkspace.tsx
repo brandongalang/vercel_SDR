@@ -146,22 +146,34 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
 
   const handleDraftUpdate = (jobId: string, draft: OutboundJob["draft"]) => {
     const current = jobs.find((job) => job.id === jobId);
-    if (current && !baselineDrafts[jobId]) {
-      setBaselineDrafts((prev) => ({
-        ...prev,
-        [jobId]: {
-          subject: current.draft.subject,
-          body: current.draft.body,
-          highlightedSpan: current.draft.highlightedSpan,
-        },
-      }));
+
+    // Snapshot baseline on first edit so we can restore highlights later.
+    let baseline = baselineDrafts[jobId];
+    if (current && !baseline) {
+      baseline = {
+        subject: current.draft.subject,
+        body: current.draft.body,
+        highlightedSpan: current.draft.highlightedSpan,
+      };
+      setBaselineDrafts((prev) => ({ ...prev, [jobId]: baseline! }));
     }
+
+    // Highlight resolution rules:
+    // • Manual body edits pass `highlightedSpan: undefined` to explicitly clear it.
+    // • If that manual body edit returns to the baseline body, restore the baseline highlight.
+    // • Regenerated-preview acceptance passes the full API draft, so preserve its highlight
+    //   even if the regenerated body happens to match the baseline text.
+    // • Subject-only edits carry the current highlight through unchanged.
+    const resolvedHighlight =
+      baseline && draft.body === baseline.body && draft.highlightedSpan === undefined
+        ? baseline.highlightedSpan
+        : draft.highlightedSpan;
 
     db.transact(
       db.tx.jobs[jobId].update({
         draftSubject: draft.subject,
         draftBody: draft.body,
-        highlightedSpan: draft.highlightedSpan ?? null,
+        highlightedSpan: resolvedHighlight ?? null,
         updatedAt: getTimestamp(),
       })
     );
@@ -221,6 +233,30 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
     }
   };
 
+  const pendingCount = jobs.filter((j) => j.status === "pending_review").length;
+  const viewHeader = {
+    review: {
+      overline: "Lead review",
+      title: `${pendingCount} lead${pendingCount !== 1 ? "s" : ""} pending review`,
+      subtitle: "Approve or skip each AI-generated first-touch draft.",
+    },
+    analytics: {
+      overline: "Analytics",
+      title: "Performance benchmarks",
+      subtitle: "Compare AI-personalized sends against the static sequence baseline.",
+    },
+    dspy: {
+      overline: "DSPy compiler",
+      title: "Prompt optimization history",
+      subtitle: "Review compile runs and trace-backed improvements to the drafting program.",
+    },
+    debugger: {
+      overline: "Live agent",
+      title: "Live pipeline demo",
+      subtitle: "Step through a full research-and-draft run in real time.",
+    },
+  }[activeView];
+
   const selectedBaseline = resolvedSelectedJobId ? baselineDrafts[resolvedSelectedJobId] : undefined;
   const draftHasEdits = selectedJob
     ? selectedBaseline != null &&
@@ -238,6 +274,10 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
       start: end < analyticsDateRange.start ? end : analyticsDateRange.start,
       end,
     });
+  };
+  const handleOpenReviewJob = (jobId: string) => {
+    setSelectedJobId(jobId);
+    setActiveView("review");
   };
 
   if (isLoading) {
@@ -265,11 +305,14 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              Outbound personalization
+              {viewHeader.overline}
             </p>
             <h1 className="mt-1 text-xl font-semibold tracking-tight text-foreground">
-              Better first-touch emails than the static sequence baseline
+              {viewHeader.title}
             </h1>
+            <p className="mt-0.5 text-[13px] text-muted-foreground leading-snug">
+              {viewHeader.subtitle}
+            </p>
           </div>
 
           <div className="flex flex-col gap-2 lg:items-end">
@@ -289,12 +332,12 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
                   {
                     id: "dspy" as const,
                     label: "DSPy",
-                    sub: "Optimization",
+                    sub: "Compile history",
                   },
                   {
                     id: "debugger" as const,
                     label: "Live Agent",
-                    sub: "Trace",
+                    sub: "Live pipeline",
                   },
                 ].map((tab) => (
                   <button
@@ -310,34 +353,13 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
                     aria-pressed={activeView === tab.id}
                   >
                     <p className="text-[12px] font-medium text-current">{tab.label}</p>
-                    <p className="text-[10px] font-mono uppercase tracking-[0.12em] text-muted-foreground">
+                    <p className="text-[11px] text-muted-foreground leading-none">
                       {tab.sub}
                     </p>
                   </button>
                 ))}
               </div>
-              {activeView === "analytics" && (
-                <div className="flex shrink-0 flex-wrap items-end gap-2 border-l border-border pl-2">
-                  <label className="grid gap-1 text-[11px] font-medium text-muted-foreground">
-                    From
-                    <input
-                      type="date"
-                      value={analyticsDateRange.start}
-                      onChange={(e) => handleAnalyticsRangeStart(e.target.value)}
-                      className="h-9 rounded-lg border border-border bg-background px-3 text-[12px] text-foreground shadow-sm outline-none transition-colors focus:border-ring"
-                    />
-                  </label>
-                  <label className="grid gap-1 text-[11px] font-medium text-muted-foreground">
-                    To
-                    <input
-                      type="date"
-                      value={analyticsDateRange.end}
-                      onChange={(e) => handleAnalyticsRangeEnd(e.target.value)}
-                      className="h-9 rounded-lg border border-border bg-background px-3 text-[12px] text-foreground shadow-sm outline-none transition-colors focus:border-ring"
-                    />
-                  </label>
-                </div>
-              )}
+
               <Button
                 type="button"
                 variant="outline"
@@ -392,6 +414,8 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
           baselineWindowDays={selectedAnalytics.snapshotDays}
           dateRange={analyticsDateRange}
           jobs={jobs}
+          onDateRangeStart={handleAnalyticsRangeStart}
+          onDateRangeEnd={handleAnalyticsRangeEnd}
         />
       ) : activeView === "dspy" ? (
         <DspyPage
@@ -401,7 +425,10 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
           setOptimizationState={setDspyOptimizationState}
         />
       ) : (
-        <LiveAgentDemo key={`debugger-${workspaceResetVersion}`} />
+        <LiveAgentDemo
+          key={`debugger-${workspaceResetVersion}`}
+          onOpenReviewJob={handleOpenReviewJob}
+        />
       )}
     </div>
   );

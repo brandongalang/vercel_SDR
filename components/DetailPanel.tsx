@@ -8,12 +8,6 @@ import {
   summarizeRegenerationRequest,
   type RegenerationPreset,
 } from "@/lib/regeneration-presets";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -24,7 +18,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ExternalLink, PencilLine, RotateCcw, CheckCircle, ShieldAlert, ShieldCheck, Info, Archive, Send } from "lucide-react";
+import { ExternalLink, PencilLine, RotateCcw, CheckCircle, ShieldAlert, ShieldCheck, Info, Send, ChevronRight, SkipForward } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function renderBodyWithHighlight(body: string, span?: string) {
@@ -77,6 +71,7 @@ export default function DetailPanel({
   const [regenError, setRegenError] = useState<string | null>(null);
   const [regenPreview, setRegenPreview] = useState<OutboundJob["draft"] | null>(null);
   const [regenPreviewFingerprint, setRegenPreviewFingerprint] = useState<string | null>(null);
+  const [showResearch, setShowResearch] = useState(false);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   if (!job) {
@@ -236,7 +231,7 @@ export default function DetailPanel({
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                {isDone ? "Reviewed lead" : "Draft under review"}
+                {job.status === "reviewed" ? "Skipped lead" : job.status === "pending_review" ? "Draft under review" : "Reviewed lead"}
               </p>
               <h1 className="text-lg font-semibold text-zinc-900 tracking-tight truncate">{job.lead.name}</h1>
               <p className="text-[13px] text-zinc-500 mt-1">
@@ -299,7 +294,7 @@ export default function DetailPanel({
                     )}
                   >
                     {job.status === "approved" && <><CheckCircle size={12} aria-hidden /> Approved</>}
-                    {job.status === "reviewed" && <><Archive size={12} aria-hidden /> Reviewed</>}
+                    {job.status === "reviewed" && <><SkipForward size={12} aria-hidden /> Skipped</>}
                     {job.status === "sent_stub" && <><Send size={12} aria-hidden /> Sent</>}
                   </span>
                   {job.status === "approved" && hasStructuredFeedback && (
@@ -314,13 +309,13 @@ export default function DetailPanel({
                     <TooltipTrigger
                       render={
                         <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => onArchive(job.id)}>
-                          <Archive size={13} />
-                          Archive
+                          <SkipForward size={13} />
+                          Skip
                         </Button>
                       }
                     />
-                    <TooltipContent side="bottom" className="max-w-xs text-left">
-                      Mark reviewed without approving send. Moves this lead to the Reviewed queue (no first touch in this pass).
+                    <TooltipContent side="right" className="max-w-xs text-left">
+                      Skip — mark not approved for send. Moves this lead to the Skipped queue (no first touch in this pass).
                     </TooltipContent>
                   </Tooltip>
                   <Button type="button" size="sm" onClick={handleApprove} className="gap-1.5">
@@ -359,10 +354,10 @@ export default function DetailPanel({
             )}
             {job.status === "reviewed" && (
               <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 flex items-start gap-3">
-                <Archive size={16} className="mt-0.5 shrink-0 text-zinc-500" aria-hidden />
+                <SkipForward size={16} className="mt-0.5 shrink-0 text-zinc-500" aria-hidden />
                 <div>
-                  <p className="font-medium text-zinc-900">Reviewed — not approved for send</p>
-                  <p className="text-xs mt-0.5 text-zinc-600">Archived from active triage. Angle and evidence stay visible for audit.</p>
+                  <p className="font-medium text-zinc-900">Skipped — not approved for send</p>
+                  <p className="text-xs mt-0.5 text-zinc-600">Skipped in active triage. Angle and evidence stay visible for audit.</p>
                 </div>
               </div>
             )}
@@ -385,11 +380,48 @@ export default function DetailPanel({
               </div>
             )}
 
+            {/* Decision context — angle, signals, and timing surfaced before the draft */}
+            <section>
+              <h2 className="text-[14px] font-semibold text-zinc-900 tracking-tight mb-3">Why this lead</h2>
+              <div className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
+                <div className="px-4 pt-4 pb-3 space-y-2">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-mono font-semibold",
+                      atConfig.color
+                    )}
+                  >
+                    <span className={cn("h-2 w-2 rounded-full shrink-0", atConfig.dot)} aria-hidden />
+                    {atConfig.label}
+                  </span>
+                  <p className="text-[14px] font-medium text-zinc-900 leading-snug">{job.angle}</p>
+                  {primarySignals.length > 0 && (
+                    <p className="text-[12px] text-zinc-400">
+                      Based on:{" "}
+                      <span className="text-zinc-500">
+                        {primarySignals.map((s) => s.label).join(" · ")}
+                      </span>
+                    </p>
+                  )}
+                </div>
+                <div className="border-t border-zinc-100 bg-zinc-50/70 px-4 py-3 grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-400 mb-1">Why now</p>
+                    <p className="text-[12px] leading-relaxed text-zinc-700">{job.whyNow}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-400 mb-1">Research summary</p>
+                    <p className="text-[12px] leading-relaxed text-zinc-600 line-clamp-3">{run.orchestratorSummary}</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
             <section className="space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-zinc-500">
+                <h2 className="text-[14px] font-semibold text-zinc-900 tracking-tight">
                   Generated draft
-                </p>
+                </h2>
                 {!isDone && (
                   <div className="flex flex-wrap items-center gap-2 shrink-0">
                     <Button type="button" variant="outline" size="sm" onClick={() => setRegenOpen(true)}>
@@ -448,7 +480,7 @@ export default function DetailPanel({
                         className="w-full flex-1 min-h-[320px] text-[15px] leading-relaxed bg-transparent resize-none focus:outline-none p-5 text-foreground"
                         value={job.draft.body}
                         onChange={(e) =>
-                          onDraftUpdate(job.id, { ...job.draft, body: e.target.value })
+                          onDraftUpdate(job.id, { ...job.draft, body: e.target.value, highlightedSpan: undefined })
                         }
                         aria-label="Email body"
                       />
@@ -472,229 +504,158 @@ export default function DetailPanel({
                     </p>
                   )}
                 </div>
-
-                <div className="border-t border-zinc-200 bg-zinc-50/80 px-4 py-4">
-                  <div className="flex flex-col gap-3">
-                    <div>
-                      <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-zinc-500 mb-1.5">
-                        Hook angle
-                      </p>
-                      <p className="text-[13px] font-medium text-zinc-900 leading-relaxed">
-                        {job.angle}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-mono font-semibold",
-                          atConfig.color
-                        )}
-                      >
-                        <span className={cn("h-2 w-2 rounded-full shrink-0", atConfig.dot)} aria-hidden />
-                        {atConfig.label}
-                      </span>
-                      {primarySignals.map((sig) => (
-                        <div key={sig.id} className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2 py-1 text-[11px] text-zinc-700 shadow-sm">
-                          <span
-                            className={cn(
-                              "h-1.5 w-1.5 rounded-full shrink-0",
-                              sig.source === "internal" ? "bg-emerald-600" : sig.source === "external" ? "bg-teal-600" : "bg-zinc-400"
-                            )}
-                          />
-                          <span className="truncate max-w-[280px] font-medium">{sig.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
               </div>
             </section>
 
-            <section className="space-y-3">
-              <h2 className="text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <section className="space-y-4">
+              <h2 className="text-[14px] font-semibold text-zinc-900 tracking-tight">
                 Supporting evidence
               </h2>
 
-              <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-                <Accordion className="w-full">
-                  <AccordionItem value="signals" className="border-b border-border/60 px-4">
-                    <AccordionTrigger className="py-3 text-[13px] font-medium text-zinc-900 hover:no-underline">
-                      <span>
-                        Signals used
-                        <span className="ml-2 text-[11px] font-normal text-zinc-500">
-                          The one external and one internal perspective anchors behind this message
-                        </span>
-                      </span>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-0 pb-4">
-                      <ul className="space-y-2">
-                        {usedSignals.map((sig) => (
-                          <li key={sig.id} className="rounded-lg border border-zinc-200 bg-zinc-50/70 px-3 py-3">
-                            <div className="flex items-start gap-3">
-                              <span
-                                className={cn(
-                                  "mt-1.5 h-1.5 w-1.5 rounded-full shrink-0",
-                                  sig.source === "internal" ? "bg-emerald-600" : sig.source === "external" ? "bg-teal-600" : "bg-zinc-400"
-                                )}
-                              />
-                              <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className="text-[13px] font-medium text-zinc-900">{sig.label}</span>
-                                  <span className="text-[10px] font-mono uppercase text-zinc-500">{sig.source}</span>
-                                  <span
-                                    className={cn(
-                                      "text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded border",
-                                      sig.strength === "strong"
-                                        ? "text-emerald-900 border-emerald-200 bg-emerald-50"
-                                        : "text-zinc-600 bg-white border-zinc-200"
-                                    )}
-                                  >
-                                    {sig.strength}
-                                  </span>
-                                </div>
-                                <p className="mt-1.5 text-[12px] leading-relaxed text-zinc-600">{sig.value}</p>
-                              </div>
-                              {sig.evidenceUrl && (
-                                <a
-                                  href={sig.evidenceUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-teal-700 hover:text-teal-900 shrink-0 mt-0.5"
-                                  aria-label={`Open evidence for ${sig.label}`}
-                                >
-                                  <ExternalLink size={14} />
-                                </a>
+              {/* Signals grid — always visible */}
+              <div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {usedSignals.map((sig) => (
+                    <div
+                      key={sig.id}
+                      className={cn(
+                        "rounded-lg border border-zinc-200 bg-white px-3 py-3 border-l-[3px]",
+                        sig.source === "internal" ? "border-l-emerald-500" : sig.source === "external" ? "border-l-teal-500" : "border-l-zinc-300"
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-[13px] font-medium text-zinc-900">{sig.label}</span>
+                            <span className="text-[10px] font-mono uppercase text-zinc-500">{sig.source}</span>
+                            <span
+                              className={cn(
+                                "text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded border",
+                                sig.strength === "strong"
+                                  ? "text-emerald-900 border-emerald-200 bg-emerald-50"
+                                  : "text-zinc-600 bg-white border-zinc-200"
                               )}
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  <AccordionItem value="angle" className="border-b border-border/60 px-4">
-                    <AccordionTrigger className="py-3 text-[13px] font-medium text-zinc-900 hover:no-underline">
-                      <span>
-                        Why this perspective
-                        <span className="ml-2 text-[11px] font-normal text-zinc-500">
-                          Why the agent chose this one angle instead of listing everything it found
-                        </span>
-                      </span>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-0 pb-4">
-                      <div className="space-y-3">
-                        <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 px-3 py-3">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className={cn("inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-mono font-semibold", atConfig.color)}>
-                              <span className={cn("h-2 w-2 rounded-full shrink-0", atConfig.dot)} aria-hidden />
-                              {atConfig.label}
+                            >
+                              {sig.strength}
                             </span>
-                            <span className="text-[10px] font-mono uppercase text-zinc-500">{job.angleType}</span>
                           </div>
-                          <p className="mt-2 text-[12px] leading-relaxed text-zinc-700">{atConfig.description}</p>
-                          <p className="mt-2 text-[13px] leading-relaxed text-zinc-900">{job.angle}</p>
+                          <p className="mt-1.5 text-[12px] leading-relaxed text-zinc-600">{sig.value}</p>
                         </div>
-
-                        <div className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
-                          <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">Why now</p>
-                          <p className="mt-2 text-[12px] leading-relaxed text-zinc-900">{job.whyNow}</p>
-                        </div>
-
-                        <div className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
-                          <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">Research synthesis</p>
-                          <p className="mt-2 text-[12px] leading-relaxed text-zinc-700">{run.orchestratorSummary}</p>
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-
-                  <AccordionItem value="research" className="px-4">
-                    <AccordionTrigger className="py-3 text-[13px] font-medium text-zinc-900 hover:no-underline">
-                      <span>
-                        Research details
-                        <span className="ml-2 text-[11px] font-normal text-zinc-500">
-                          Source context, enrichment scope, and uncertainty notes behind this message
-                        </span>
-                      </span>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-0 pb-4">
-                      <div className="space-y-3">
-                        <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 px-3 py-3">
-                          <p className="text-[12px] font-medium text-zinc-900">Research packet</p>
-                          <p className="mt-1 text-[12px] leading-relaxed text-zinc-600">
-                            The orchestrator delegated topic-specific research threads, summarized the coverage, then handed a narrowed packet into signal extraction and drafting.
-                          </p>
-                        </div>
-
-                        {run.threadSummaries.length > 0 && (
-                          <div className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
-                            <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">Thread summaries</p>
-                            <ul className="mt-2 space-y-2">
-                              {run.threadSummaries.map((summary, index) => (
-                                <li key={`${summary}-${index}`} className="text-[12px] leading-relaxed text-zinc-700">
-                                  {summary}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
+                        {sig.evidenceUrl && (
+                          <a
+                            href={sig.evidenceUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-teal-700 hover:text-teal-900 shrink-0 mt-0.5"
+                            aria-label={`Open evidence for ${sig.label}`}
+                          >
+                            <ExternalLink size={14} />
+                          </a>
                         )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          {run.reports.map((report) => (
-                            <div key={report.topic} className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
-                              <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">{report.topic}</p>
-                              <p className="mt-2 text-[12px] font-medium text-zinc-900">{report.summary}</p>
-                              {report.findings.length > 0 && (
-                                <ul className="mt-2 space-y-2">
-                                  {report.findings.slice(0, 2).map((finding, index) => (
-                                    <li key={`${report.topic}-${index}`} className="text-[11px] leading-relaxed text-zinc-600">
-                                      <span className="font-medium text-zinc-800">{finding.text}</span>
-                                      {finding.date ? ` · ${finding.date}` : ""}
-                                    </li>
-                                  ))}
-                                </ul>
-                              )}
-                              {report.gaps.length > 0 && (
-                                <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
-                                  Gaps: {report.gaps.join("; ")}
-                                </p>
-                              )}
-                            </div>
+              {/* Why this angle strategy — describes the angle type rationale */}
+              <div className="rounded-lg border border-zinc-200 bg-zinc-50/60 px-4 py-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className={cn("inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-mono font-semibold", atConfig.color)}>
+                    <span className={cn("h-2 w-2 rounded-full shrink-0", atConfig.dot)} aria-hidden />
+                    {atConfig.label}
+                  </span>
+                  <p className="text-[10px] font-mono uppercase text-zinc-500">Angle strategy</p>
+                </div>
+                <p className="text-[12px] leading-relaxed text-zinc-700">{atConfig.description}</p>
+              </div>
+
+              {/* Research details — collapsible toggle */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowResearch((v) => !v)}
+                  className="flex items-center gap-1.5 text-[11px] font-mono text-zinc-500 hover:text-zinc-800 transition-colors"
+                >
+                  <ChevronRight size={12} className={cn("transition-transform duration-150", showResearch && "rotate-90")} />
+                  Research details
+                </button>
+                {showResearch && (
+                  <div className="mt-3 space-y-3">
+                    <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 px-3 py-3">
+                      <p className="text-[12px] font-medium text-zinc-900">Research packet</p>
+                      <p className="mt-1 text-[12px] leading-relaxed text-zinc-600">
+                        The orchestrator delegated topic-specific research threads, summarized the coverage, then handed a narrowed packet into signal extraction and drafting.
+                      </p>
+                    </div>
+
+                    {run.threadSummaries.length > 0 && (
+                      <div className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
+                        <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">Thread summaries</p>
+                        <ul className="mt-2 space-y-2">
+                          {run.threadSummaries.map((summary, index) => (
+                            <li key={`${summary}-${index}`} className="text-[12px] leading-relaxed text-zinc-700">
+                              {summary}
+                            </li>
                           ))}
-                        </div>
+                        </ul>
+                      </div>
+                    )}
 
-                        <div className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
-                          <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">Lead source</p>
-                          <p className="mt-2 text-[12px] font-medium text-zinc-900">{formatLeadSource(job.play.leadSource)}</p>
-                          <p className="mt-1 text-[12px] leading-relaxed text-zinc-600">
-                            This lead already existed upstream. The agent enriched it, narrowed to one angle, and generated a first-touch draft.
-                          </p>
-                        </div>
-
-                        {job.discardedSignals && job.discardedSignals.length > 0 && (
-                          <div className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
-                            <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">Not leading with</p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {run.reports.map((report) => (
+                        <div key={report.topic} className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
+                          <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">{report.topic}</p>
+                          <p className="mt-2 text-[12px] font-medium text-zinc-900">{report.summary}</p>
+                          {report.findings.length > 0 && (
                             <ul className="mt-2 space-y-2">
-                              {job.discardedSignals.map((ds, i) => (
-                                <li key={i} className="text-[12px] text-zinc-700">
-                                  <span className="font-medium text-zinc-900">{ds.label}</span>
-                                  <p className="mt-1 leading-relaxed text-zinc-600">{ds.reason}</p>
+                              {report.findings.slice(0, 2).map((finding, index) => (
+                                <li key={`${report.topic}-${index}`} className="text-[11px] leading-relaxed text-zinc-600">
+                                  <span className="font-medium text-zinc-800">{finding.text}</span>
+                                  {finding.date ? ` · ${finding.date}` : ""}
                                 </li>
                               ))}
                             </ul>
-                          </div>
-                        )}
+                          )}
+                          {report.gaps.length > 0 && (
+                            <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
+                              Gaps: {report.gaps.join("; ")}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
 
-                        {run.uncertainty && (
-                          <div className="rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-3">
-                            <p className="text-[10px] font-mono uppercase tracking-wide text-amber-800">Uncertainty note</p>
-                            <p className="mt-2 text-[12px] leading-relaxed text-amber-950/85">{run.uncertainty}</p>
-                          </div>
-                        )}
+                    <div className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
+                      <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">Lead source</p>
+                      <p className="mt-2 text-[12px] font-medium text-zinc-900">{formatLeadSource(job.play.leadSource)}</p>
+                      <p className="mt-1 text-[12px] leading-relaxed text-zinc-600">
+                        This lead already existed upstream. The agent enriched it, narrowed to one angle, and generated a first-touch draft.
+                      </p>
+                    </div>
+
+                    {job.discardedSignals && job.discardedSignals.length > 0 && (
+                      <div className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
+                        <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">Not leading with</p>
+                        <ul className="mt-2 space-y-2">
+                          {job.discardedSignals.map((ds, i) => (
+                            <li key={i} className="text-[12px] text-zinc-700">
+                              <span className="font-medium text-zinc-900">{ds.label}</span>
+                              <p className="mt-1 leading-relaxed text-zinc-600">{ds.reason}</p>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
+                    )}
+
+                    {run.uncertainty && (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-3">
+                        <p className="text-[10px] font-mono uppercase tracking-wide text-amber-800">Uncertainty note</p>
+                        <p className="mt-2 text-[12px] leading-relaxed text-amber-950/85">{run.uncertainty}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </section>
           </div>

@@ -18,7 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { DeltaBadge, fmtPct, shortVersion } from "@/components/dspy/shared";
+import { fmtPct, shortVersion } from "@/components/dspy/shared";
 import optimizedArtifactData from "@/data/ax-optimized-v3.json";
 import { computeDspyVersionMetrics } from "@/lib/metrics";
 import {
@@ -150,19 +150,28 @@ function compositeScore(
   return Math.round((0.2 * cleanAcceptRate + 0.8 * workableReplyRate) * 10) / 10;
 }
 
-function VersionTable({
-  compileRuns,
-  revealedRow,
+function CompileFact({
+  label,
+  value,
 }: {
-  compileRuns: DspyCompileRun[];
-  revealedRow: DspyVersionRow | null;
+  label: string;
+  value: string;
 }) {
-  const syntheticJobs = useMemo(() => getSyntheticDspyJobs(), []);
-  const rows = useMemo(() => computeDspyVersionMetrics(syntheticJobs, null), [syntheticJobs]);
-  const v3CompileRun = compileRuns.find(
-    (run) => run.promptVersionAfter === OPTIMIZATION_TARGET_VERSION,
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3">
+      <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-zinc-400">{label}</p>
+      <p className="mt-1.5 text-[13px] font-medium leading-relaxed text-zinc-900">{value}</p>
+    </div>
   );
+}
 
+function VersionTable({
+  rows,
+  candidateUnlocked,
+}: {
+  rows: DspyVersionRow[];
+  candidateUnlocked: boolean;
+}) {
   return (
     <Table>
       <TableHeader>
@@ -225,83 +234,38 @@ function VersionTable({
             </TableRow>
           );
         })}
-
-        {revealedRow ? (
-          <TableRow className="bg-violet-50/60">
-            <TableCell className="font-mono text-[11px] text-zinc-700">
-              <span className="flex items-center gap-2">
-                {shortVersion(revealedRow.draftPromptVersion)}
-                <span className="inline-flex items-center gap-1 rounded-md border border-violet-200 bg-violet-50 px-1.5 py-0.5 text-[9px] font-mono font-semibold uppercase tracking-wider text-violet-700">
-                  <Sparkles size={9} />
-                  Candidate
-                </span>
+        <TableRow className={candidateUnlocked ? "bg-violet-50/60" : "bg-zinc-50/80 opacity-60"}>
+          <TableCell className={cn("font-mono text-[11px]", candidateUnlocked ? "text-zinc-700" : "text-zinc-500")}>
+            <span className="flex items-center gap-2">
+              v3 (Apr 11)
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[9px] font-mono font-semibold uppercase tracking-wider",
+                  candidateUnlocked
+                    ? "border-violet-200 bg-violet-50 text-violet-700"
+                    : "border-zinc-200 bg-zinc-100 text-zinc-500",
+                )}
+              >
+                {candidateUnlocked ? <Sparkles size={9} /> : <Lock size={9} />}
+                {candidateUnlocked ? "Artifact revealed" : "Pending"}
               </span>
-            </TableCell>
-            <TableCell className="text-right tabular-nums text-zinc-700">{revealedRow.jobCount}</TableCell>
-            <TableCell className="text-right tabular-nums text-zinc-700">
-              {revealedRow.withFeedback > 0
-                ? `${fmtPct(revealedRow.cleanAcceptRate)} (${revealedRow.cleanAccept}/${revealedRow.withFeedback})`
-                : "—"}
-            </TableCell>
-            <TableCell className="text-right tabular-nums text-zinc-700">
-              {revealedRow.sentWithOutcome > 0
-                ? `${fmtPct(revealedRow.positiveRate)} (${revealedRow.positive}/${revealedRow.sentWithOutcome})`
-                : "—"}
-            </TableCell>
-            <TableCell className="text-right tabular-nums font-medium text-zinc-700">
-              {compositeScore(revealedRow.cleanAcceptRate, revealedRow.positiveRate) != null
-                ? `${compositeScore(revealedRow.cleanAcceptRate, revealedRow.positiveRate)}%`
-                : "—"}
-            </TableCell>
-            <TableCell className="text-right">
-              <span className="text-[11px] font-medium text-violet-700">Ready to evaluate</span>
-            </TableCell>
-          </TableRow>
-        ) : (
-          <TableRow className="bg-zinc-50/80 opacity-60">
-            <TableCell className="font-mono text-[11px] text-zinc-500">
-              <span className="flex items-center gap-2">
-                v3 (Apr 11)
-                <span className="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-zinc-100 px-1.5 py-0.5 text-[9px] font-mono font-semibold uppercase tracking-wider text-zinc-500">
-                  <Lock size={9} />
-                  Pending
-                </span>
-              </span>
-            </TableCell>
-            <TableCell className="text-right tabular-nums text-zinc-400">
-              <span className="flex items-center justify-end gap-1">
-                <Lock size={11} className="text-zinc-300" />—
-              </span>
-            </TableCell>
-            <TableCell className="text-right text-zinc-400">
-              {v3CompileRun?.deltas.cleanAcceptRate != null ? (
-                <span className="text-[11px] italic">
-                  projected +{v3CompileRun.deltas.cleanAcceptRate}pp vs v2
-                </span>
-              ) : (
-                "—"
+            </span>
+          </TableCell>
+          <TableCell className="text-right tabular-nums text-zinc-400">—</TableCell>
+          <TableCell className="text-right text-zinc-400">—</TableCell>
+          <TableCell className="text-right text-zinc-400">—</TableCell>
+          <TableCell className="text-right text-zinc-400">—</TableCell>
+          <TableCell className="text-right">
+            <span
+              className={cn(
+                "text-[11px]",
+                candidateUnlocked ? "font-medium text-violet-700" : "text-zinc-400",
               )}
-            </TableCell>
-            <TableCell className="text-right text-zinc-400">
-              {v3CompileRun?.deltas.positiveRate != null ? (
-                <span className="text-[11px] italic">
-                  projected +{v3CompileRun.deltas.positiveRate}pp vs v2
-                </span>
-              ) : (
-                "—"
-              )}
-            </TableCell>
-            <TableCell className="text-right text-[11px] italic text-zinc-400">
-              Run optimization to unlock
-            </TableCell>
-            <TableCell className="text-right">
-              <span className="inline-flex items-center gap-1 text-[11px] text-zinc-400">
-                <Lock size={11} />
-                Not revealed
-              </span>
-            </TableCell>
-          </TableRow>
-        )}
+            >
+              {candidateUnlocked ? "Compile artifact only" : "Run optimization to inspect"}
+            </span>
+          </TableCell>
+        </TableRow>
       </TableBody>
     </Table>
   );
@@ -336,7 +300,7 @@ function PromptSnapshotCard({
     "optimization-target": {
       border: "border-violet-200",
       bg: "bg-violet-50/30",
-      badge: "Candidate",
+      badge: "Compile artifact",
       badgeClass: "border-violet-200 bg-violet-50 text-violet-700",
     },
   }[role];
@@ -461,7 +425,7 @@ function PromptSnapshotViewer({
   const leftSnapshot = compareMode === "v1-v2" ? v1Package : v2Package;
   const rightSnapshot = compareMode === "v1-v2" ? v2Package : v3Package;
   const leftColumnLabel = compareMode === "v1-v2" ? "Before" : "Current live";
-  const rightColumnLabel = compareMode === "v1-v2" ? "After" : "Candidate";
+  const rightColumnLabel = compareMode === "v1-v2" ? "After" : "Compile artifact";
 
   return (
     <div>
@@ -474,7 +438,7 @@ function PromptSnapshotViewer({
               {
                 id: "v2-v3" as CompareMode,
                 label: "v2 → v3",
-                sub: hasOptimized ? "Live → Candidate" : "Run optimization to unlock",
+                sub: hasOptimized ? "Live → Compile artifact" : "Run optimization to unlock",
               },
             ] as const
           ).map((option) => {
@@ -559,24 +523,37 @@ export default function DspyPage({
       ),
     [compileRuns],
   );
+  const syntheticJobs = useMemo(() => getSyntheticDspyJobs(), []);
+  const versionRows = useMemo(
+    () => computeDspyVersionMetrics(syntheticJobs, null),
+    [syntheticJobs],
+  );
   const { optimizationStatus, activeStepIndex, completedStepCount, runError } =
     optimizationState;
   const hasOptimized = optimizationStatus === "complete";
-  const revealedRow = hasOptimized ? OPTIMIZATION_ARTIFACT.evaluation.projectedVersionRow : null;
+  const candidateRun = useMemo(
+    () =>
+      sortedRuns.find((run) => run.promptVersionAfter === OPTIMIZATION_TARGET_VERSION) ?? null,
+    [sortedRuns],
+  );
+  const candidateSnapshotBase = useMemo(
+    () =>
+      getSyntheticPromptSnapshots().find(
+        (snapshot) => snapshot.version === OPTIMIZATION_TARGET_VERSION,
+      ) ?? null,
+    [],
+  );
   const optimizedSnapshot = useMemo(() => {
-    const v3 = getSyntheticPromptSnapshots().find(
-      (snapshot) => snapshot.version === OPTIMIZATION_TARGET_VERSION,
-    );
-    if (!v3 || !hasOptimized) {
+    if (!candidateSnapshotBase || !hasOptimized) {
       return null;
     }
 
     return {
-      ...v3,
+      ...candidateSnapshotBase,
       instruction: OPTIMIZATION_ARTIFACT.instruction,
       fewShotDemos: OPTIMIZATION_ARTIFACT.demos.length,
     } satisfies SyntheticPromptSnapshot;
-  }, [hasOptimized]);
+  }, [candidateSnapshotBase, hasOptimized]);
 
   const handleRunOptimization = async () => {
     if (optimizationStatus !== "idle") return;
@@ -621,15 +598,15 @@ export default function DspyPage({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.16em] text-zinc-400">
-              Prompt optimization
+              Prompt optimization · DSPy
             </p>
             <h2 className="mt-1 text-[20px] font-semibold tracking-tight text-zinc-950">
-              DSPy optimization
+              Three compile generations. Measurable improvement at each step.
             </h2>
             <p className="mt-1 max-w-2xl text-[13px] text-zinc-500">
-              Offline compile history, version attribution, and runtime prompt package comparison.
-              Version metrics are computed from the static v1/v2 synthetic corpus. v3 is revealed
-              only after the optimization run finishes.
+              v1 and v2 are corpus actuals from the synthetic eval set. v3 is a MIPROv2 compile
+              candidate — reveal the frozen artifact below to inspect what changed without implying
+              forward-looking live outcomes.
             </p>
           </div>
           <Button
@@ -646,7 +623,7 @@ export default function DspyPage({
             ) : optimizationStatus === "complete" ? (
               <>
                 <CheckCircle2 />
-                Optimization revealed
+                Candidate revealed
               </>
             ) : (
               <>
@@ -658,15 +635,79 @@ export default function DspyPage({
         </div>
 
         <section className="rounded-2xl border border-zinc-200 bg-white px-6 py-5 shadow-sm">
+          <div className="mb-5">
+            <h2 className="text-[15px] font-semibold text-zinc-950">Version performance</h2>
+            <p className="mt-0.5 text-[12px] text-zinc-500">
+              v1 and v2 are measured corpus actuals computed from the static evaluation set.
+              Candidate v3 stays artifact-only here until it is deployed and measured.
+            </p>
+          </div>
+          <VersionTable rows={versionRows} candidateUnlocked={hasOptimized} />
+          <p className="mt-4 text-[12px] leading-relaxed text-zinc-500">
+            The locked v3 row intentionally omits outcome metrics. Revealing the candidate below
+            loads the compiled prompt package and optimizer facts only.
+          </p>
+        </section>
+
+        <section className="rounded-2xl border border-zinc-200 bg-white px-6 py-5 shadow-sm">
+          <div className="mb-5">
+            <h2 className="text-[15px] font-semibold text-zinc-950">Compile history</h2>
+            <p className="mt-0.5 text-[12px] text-zinc-500">
+              Each compile event produces a frozen prompt artifact. Deployed runs can show corpus
+              deltas; candidate compiles stay artifact-only until they collect live outcomes.
+            </p>
+          </div>
+          <div className="space-y-3">
+            {sortedRuns.map((run) => {
+              const isCandidateRun = run.promptVersionAfter === OPTIMIZATION_TARGET_VERSION;
+              const isLiveRun = run.promptVersionAfter === SYNTHETIC_DSPY_VERSION_V2;
+
+              return (
+                <CompileRunCard
+                  key={run.id}
+                  run={run}
+                  badge={
+                    isCandidateRun
+                      ? {
+                          label: "Candidate",
+                          className: "border-violet-200 bg-violet-100 text-violet-700",
+                        }
+                      : isLiveRun
+                        ? {
+                            label: "Current live",
+                            className: "border-teal-200 bg-teal-100 text-teal-700",
+                          }
+                        : null
+                  }
+                  containerClassName={
+                    isCandidateRun
+                      ? "border-violet-200 bg-violet-50/40"
+                      : isLiveRun
+                        ? "border-teal-200 bg-teal-50/30"
+                        : undefined
+                  }
+                  positiveMetricLabel="Workable reply"
+                  showDeltas={!isCandidateRun}
+                  note={
+                    isCandidateRun
+                      ? "Compiled candidate only. Inspect the rewritten instruction and larger demo package below; deploy it to measure live outcomes."
+                      : undefined
+                  }
+                />
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-zinc-200 bg-white px-6 py-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="text-[15px] font-semibold text-zinc-950">Candidate run</h2>
+              <h2 className="text-[15px] font-semibold text-zinc-950">Run optimization</h2>
               <p className="mt-0.5 text-[12px] text-zinc-500">
-                Replays the committed v3 artifact scored against the{" "}
-                <code className="font-mono text-[11px]">
-                  0.2 clean accept + 0.8 workable reply
-                </code>{" "}
-                objective.
+                Replays the committed MIPROv2 compile — loads the v2 training corpus, scores
+                against the{" "}
+                <code className="font-mono text-[11px]">0.2 clean accept + 0.8 workable reply</code>{" "}
+                objective, and reveals the frozen v3 artifact.
               </p>
             </div>
             {hasOptimized && (
@@ -712,16 +753,35 @@ export default function DspyPage({
           {hasOptimized && (
             <div className="mt-5 rounded-xl border border-violet-200 bg-violet-50/50 px-4 py-4">
               <p className="text-[11px] font-mono uppercase tracking-[0.14em] text-violet-600">
-                Optimization result
+                Compile facts
               </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <DeltaBadge value={OPTIMIZATION_ARTIFACT.evaluation.deltas.cleanAcceptRate} />
-                <DeltaBadge value={OPTIMIZATION_ARTIFACT.evaluation.deltas.positiveRate} />
-                <DeltaBadge value={OPTIMIZATION_ARTIFACT.evaluation.deltas.replyRate} />
+              <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                <CompileFact label="Optimizer" value={OPTIMIZATION_ARTIFACT.optimizer} />
+                <CompileFact
+                  label="Compiled"
+                  value={new Intl.DateTimeFormat("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  }).format(new Date(OPTIMIZATION_ARTIFACT.compiledAt))}
+                />
+                <CompileFact
+                  label="Training corpus"
+                  value={
+                    candidateRun
+                      ? `${candidateRun.jobsUsed} examples · ${candidateRun.trainWindowDays}-day window`
+                      : "Committed compile artifact"
+                  }
+                />
+                <CompileFact label="Objective" value={OPTIMIZATION_ARTIFACT.objective.label} />
+                <CompileFact
+                  label="Prompt package"
+                  value={`${DRAFT_GENERATOR_V2_ARTIFACT.demos.length} demos → ${OPTIMIZATION_ARTIFACT.demos.length} demos`}
+                />
               </div>
               <p className="mt-3 text-[12px] leading-relaxed text-zinc-600">
-                The candidate v3 artifact is now unlocked below with its projected version row and
-                the rewritten prompt instruction.
+                {candidateSnapshotBase?.summary ??
+                  "v3 is a compiled candidate artifact. Deploy it to collect real outcome data."}
               </p>
             </div>
           )}
@@ -734,50 +794,6 @@ export default function DspyPage({
         </section>
 
         <section className="rounded-2xl border border-zinc-200 bg-white px-6 py-5 shadow-sm">
-          <div className="mb-5">
-            <h2 className="text-[15px] font-semibold text-zinc-950">Compile history</h2>
-            <p className="mt-0.5 text-[12px] text-zinc-500">
-              Each compile run produces a new frozen prompt artifact. Metric deltas are relative to
-              the prior version baseline.
-            </p>
-          </div>
-          <div className="space-y-3">
-            {sortedRuns.map((run) => (
-              <CompileRunCard
-                key={run.id}
-                run={run}
-                badge={
-                  run.promptVersionAfter === OPTIMIZATION_TARGET_VERSION
-                    ? {
-                        label: "Latest",
-                        className: "border-violet-200 bg-violet-100 text-violet-700",
-                      }
-                    : null
-                }
-                containerClassName={
-                  run.promptVersionAfter === OPTIMIZATION_TARGET_VERSION
-                    ? "border-violet-200 bg-violet-50/40"
-                    : undefined
-                }
-                positiveMetricLabel="Workable reply"
-              />
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-2xl border border-zinc-200 bg-white px-6 py-5 shadow-sm">
-          <div className="mb-5">
-            <h2 className="text-[15px] font-semibold text-zinc-950">Version performance</h2>
-            <p className="mt-0.5 text-[12px] text-zinc-500">
-              Computed from the static v1/v2 synthetic corpus. Composite score:{" "}
-              <code className="font-mono text-[11px]">0.2 × clean accept + 0.8 × workable reply</code>
-              . Run the optimization to unlock the candidate v3 row.
-            </p>
-          </div>
-          <VersionTable compileRuns={compileRuns} revealedRow={revealedRow} />
-        </section>
-
-        <section className="rounded-2xl border border-zinc-200 bg-white px-6 py-5 shadow-sm">
           <div className="mb-1 flex items-center gap-2">
             <BookOpen className="h-4 w-4 text-zinc-400" />
             <h2 className="text-[15px] font-semibold text-zinc-950">Prompt packages</h2>
@@ -785,7 +801,7 @@ export default function DspyPage({
           <p className="mb-5 text-[12px] text-zinc-500">
             Each version is shown as plain markdown text: the same document the model sees (instruction
             plus few-shots). Before the run, compare historical v1 → v2. After the run, unlock live
-            v2 → candidate v3.
+            v2 → compiled v3 artifact.
           </p>
           <PromptSnapshotViewer
             key={hasOptimized ? "optimized" : "historical"}
