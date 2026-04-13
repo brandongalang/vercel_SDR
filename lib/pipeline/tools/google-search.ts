@@ -1,135 +1,113 @@
-import { GoogleGenAI } from "@google/genai";
-import type { WebSearchOutput, WebSearchResult } from "@/lib/pipeline/tools/search-types";
+import { generateText } from "ai";
+import { vertex } from "@/lib/ai/vertex";
+import type { WebSearchOutput } from "@/lib/pipeline/tools/search-types";
 
-const DEFAULT_GOOGLE_SEARCH_MODEL =
-  process.env.GOOGLE_SEARCH_MODEL?.trim() || "gemini-2.5-flash";
+// Import the vertex provider instance to access its built-in tools.
+// At runtime this is `createVertex(...)` — the same object exported from vertex.ts.
+import { createVertex } from "@ai-sdk/google-vertex";
+import type { GoogleAuthOptions } from "google-auth-library";
+
+const DEFAULT_SEARCH_MODEL =
+  process.env.GOOGLE_SEARCH_MODEL?.trim() || "gemini-2.0-flash-001";
 
 function buildConstrainedQuery(query: string, includeDomains: string[]) {
   const domains = includeDomains
-    .map((domain) => domain.trim())
-    .filter((domain) => domain.length > 0)
+    .map((d) => d.trim())
+    .filter((d) => d.length > 0)
     .slice(0, 3);
 
-  if (domains.length === 0) {
-    return query;
-  }
-
-  return `${query} ${domains.map((domain) => `site:${domain}`).join(" ")}`;
+  return domains.length > 0
+    ? `${query} — focus on results from: ${domains.join(", ")}`
+    : query;
 }
 
-function createGoogleSearchClient() {
-  const explicitApiKey = process.env.GOOGLE_SEARCH_API_KEY?.trim();
-  const vertexApiKey = process.env.GOOGLE_VERTEX_API_KEY?.trim();
-  const apiKey = explicitApiKey || vertexApiKey;
+/**
+ * Builds a vertex provider that carries the same auth credentials used
+ * for all other LLM calls (GOOGLE_VERTEX_API_KEY or GOOGLE_APPLICATION_CREDENTIALS_JSON).
+ *
+ * Returns `vertex.tools.googleSearch()` for use in generateText.
+ */
+function createVertexWithTools() {
+  const project =
+    process.env.GOOGLE_VERTEX_PROJECT?.trim() || "hermes-vision-prod";
+  const location =
+    process.env.GOOGLE_VERTEX_LOCATION?.trim() || "us-central1";
+  const vertexApiKey = process.env.GOOGLE_VERTEX_API_KEY?.trim() || undefined;
 
-  if (apiKey) {
-    return new GoogleGenAI({ apiKey });
+  let googleAuthOptions: GoogleAuthOptions | undefined;
+  if (!vertexApiKey) {
+    const raw = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON?.trim();
+    if (raw) {
+      try {
+        const credentials = JSON.parse(raw) as Record<string, unknown>;
+        googleAuthOptions = { credentials };
+      } catch {
+        // Ignore parse errors — will fall through to ADC
+      }
+    }
   }
 
-  const project = process.env.GOOGLE_VERTEX_PROJECT?.trim();
-  const location = process.env.GOOGLE_VERTEX_LOCATION?.trim() || "us-central1";
-
-  if (!project) {
-    throw new Error(
-      "Missing GOOGLE_SEARCH_API_KEY/GOOGLE_VERTEX_API_KEY or GOOGLE_VERTEX_PROJECT for Gemini Google Search fallback",
-    );
-  }
-
-  return new GoogleGenAI({
-    vertexai: true,
+  return createVertex({
     project,
     location,
+    ...(vertexApiKey
+      ? { apiKey: vertexApiKey }
+      : {
+          baseURL: `https://aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google`,
+          ...(googleAuthOptions ? { googleAuthOptions } : {}),
+        }),
   });
 }
 
-function truncate(value: string, maxChars: number) {
-  if (value.length <= maxChars) {
-    return value;
-  }
-
-  return `${value.slice(0, maxChars - 1)}…`;
-}
-
-function walkGoogleSearchResults(input: unknown, out: WebSearchResult[]) {
-  if (Array.isArray(input)) {
-    input.forEach((item) => walkGoogleSearchResults(item, out));
-    return;
-  }
-
-  if (!input || typeof input !== "object") {
-    return;
-  }
-
-  const record = input as Record<string, unknown>;
-
-  // Interactions API exposes google_search_result blocks with a `result` array.
-  if (record.type === "google_search_result" && Array.isArray(record.result)) {
-    for (const entry of record.result) {
-      if (!entry || typeof entry !== "object") {
-        continue;
-      }
-
-      const result = entry as Record<string, unknown>;
-      const title = typeof result.title === "string" ? result.title : "Google result";
-      const url = typeof result.url === "string" ? result.url : "";
-      const renderedContent =
-        typeof result.rendered_content === "string" ? result.rendered_content : "";
-
-      out.push({
-        title,
-        url,
-        summary: truncate(renderedContent, 400),
-        highlights: renderedContent ? [truncate(renderedContent, 220)] : [],
-      });
-    }
-  }
-
-  Object.values(record).forEach((value) => walkGoogleSearchResults(value, out));
-}
-
-function dedupeResults(results: WebSearchResult[], limit: number) {
-  const seen = new Set<string>();
-  const deduped: WebSearchResult[] = [];
-
-  for (const result of results) {
-    const key = `${result.url}|${result.title}`;
-    if (seen.has(key)) {
-      continue;
-    }
-
-    seen.add(key);
-    deduped.push(result);
-
-    if (deduped.length >= limit) {
-      break;
-    }
-  }
-
-  return deduped;
-}
-
+/**
+ * Google Search via Vertex AI's native googleSearch provider tool.
+ *
+ * Uses the same service account / API key credentials as all LLM calls,
+ * so no separate GOOGLE_SEARCH_API_KEY is needed. Uses GCP credits.
+ */
 export async function googleSearch(input: {
   query: string;
   includeDomains?: string[];
   numResults?: number;
 }): Promise<WebSearchOutput> {
-  const ai = createGoogleSearchClient();
   const query = buildConstrainedQuery(input.query, input.includeDomains ?? []);
+  const limit = input.numResults ?? 5;
+  const vertexWithTools = createVertexWithTools();
 
-  const interaction = await ai.interactions.create({
-    model: DEFAULT_GOOGLE_SEARCH_MODEL,
-    input: query,
-    tools: [{ type: "google_search" }],
+  const result = await generateText({
+    model: vertexWithTools(DEFAULT_SEARCH_MODEL),
+    tools: {
+      googleSearch: vertexWithTools.tools.googleSearch({}),
+    },
+    prompt: `Research the following topic and provide a factual, concise summary based on current web sources:\n\n"${query}"`,
   });
 
-  const results: WebSearchResult[] = [];
-  walkGoogleSearchResults(interaction, results);
+  // result.sources contains grounding citations: { type: 'source', sourceType: 'url', url?, title? }
+  const sources = result.sources ?? [];
+  const results = sources.slice(0, limit).map((source) => ({
+    title: source.title ?? query,
+    url: "url" in source ? String(source.url ?? "") : "",
+    summary: result.text.slice(0, 500),
+    highlights: result.text.length > 0 ? [result.text.slice(0, 220)] : [],
+  }));
+
+  // Surface grounded text even if no structured source citations came back
+  if (results.length === 0 && result.text.trim().length > 0) {
+    results.push({
+      title: `Grounded summary: ${query}`,
+      url: "",
+      summary: result.text.slice(0, 500),
+      highlights: [result.text.slice(0, 220)],
+    });
+  }
 
   return {
     query: input.query,
     provider: "google_search",
-    results: dedupeResults(results, input.numResults ?? 5),
+    results,
     warnings:
-      results.length > 0 ? undefined : ["Gemini Google Search returned no structured results."],
+      results.length === 0
+        ? ["Vertex AI grounded search returned no sources."]
+        : undefined,
   };
 }

@@ -389,7 +389,7 @@ export function ResearchTimeline({ nodes }: { nodes: TraceNode[] }) {
 
   return (
     <div className="space-y-3">
-      <ChainOfThought defaultOpen={orchestrator?.status !== "completed"}>
+      <ChainOfThought defaultOpen={true}>
         <ChainOfThoughtContent>
           {orchestrator ? (
             <ChainOfThoughtStep

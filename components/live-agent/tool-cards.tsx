@@ -73,6 +73,8 @@ export function RunResearchCard({
       state={state}
       icon={<Globe className="h-4 w-4" />}
       contentClassName="space-y-4"
+      defaultOpen={true}
+      forceOpen={isRunningToolState(state)}
       trailing={
         output ? (
           <span className="inline-flex rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-zinc-500">
