@@ -227,7 +227,7 @@ export default function DetailPanel({
     <>
       <div className="flex-1 flex flex-col min-w-0 bg-background min-h-0 overflow-hidden">
         {/* Header — recommendation context + primary decision */}
-        <div className="shrink-0 px-6 py-4 border-b border-border bg-card z-20">
+        <div className="shrink-0 border-b border-border bg-card px-4 py-4 z-20 sm:px-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.16em] text-zinc-500">
@@ -329,7 +329,7 @@ export default function DetailPanel({
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0 bg-zinc-50/80">
-          <div className="w-full max-w-[1380px] mx-auto px-6 py-6 space-y-8 pb-24">
+          <div className="mx-auto w-full max-w-[1380px] space-y-8 px-4 py-6 pb-24 sm:px-6">
             {job.status === "approved" && (
               <div
                 className={cn(
