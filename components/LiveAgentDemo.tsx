@@ -2,8 +2,19 @@
 
 import { DefaultChatTransport } from "ai";
 import { useChat } from "@ai-sdk/react";
-import { useMemo, useState, type FormEvent } from "react";
-import { AlertTriangle, Loader2, Play as PlayIcon, Sparkles } from "lucide-react";
+import {
+  useMemo,
+  useState,
+  type FormEvent,
+} from "react";
+import {
+  AlertTriangle,
+  Check,
+  Loader2,
+  Play as PlayIcon,
+  Sparkles,
+  X,
+} from "lucide-react";
 import {
   Message,
   MessageContent,
@@ -16,7 +27,11 @@ import { Textarea } from "@/components/ui/textarea";
 import type { PipelineAgentUIMessage } from "@/lib/pipeline/pipeline-agent";
 import type { LeadInput, LeadSource, PlayType } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { DEFAULT_INPUT, LEAD_SOURCE_OPTIONS, PLAY_OPTIONS } from "@/components/live-agent/constants";
+import {
+  DEFAULT_INPUT,
+  LEAD_SOURCE_OPTIONS,
+  PLAY_OPTIONS,
+} from "@/components/live-agent/constants";
 import type {
   ExtractSignalsPart,
   GenerateDraftPart,
@@ -36,20 +51,94 @@ import {
 } from "@/components/live-agent/tool-cards";
 import {
   getPartStatus,
-  PhaseRow,
   PIPELINE_PHASES,
   type PhaseName,
   type ToolPartStatus,
 } from "@/components/live-agent/phase-panel";
 import { getRunStatusViewModel } from "@/components/live-agent/run-status";
+import { ArchitectureSection } from "@/components/live-agent/architecture-section";
 
-const STACK_ROWS = [
-  { label: "Model", value: "Gemini 3.1 Flash-Lite · Vertex AI" },
-  { label: "Agent", value: "ToolLoopAgent · useChat" },
-  { label: "Streaming", value: "createUIMessageStreamResponse · createAgentUIStream" },
-  { label: "Storage", value: "InstantDB live sync to Lead Review" },
-  { label: "Scale", value: "Vercel Workflows (Production Batch Engine)" },
-] as const;
+// ─── Horizontal phase progress bar ───────────────────────────────────────────
+
+function PipelineProgressBar({
+  statuses,
+  isRunning,
+}: {
+  statuses: Record<PhaseName, ToolPartStatus>;
+  isRunning: boolean;
+}) {
+  return (
+    <div className="flex items-start">
+      {PIPELINE_PHASES.map((phase, i) => {
+        const status = statuses[phase.id];
+        const isLast = i === PIPELINE_PHASES.length - 1;
+
+        return (
+          <div key={phase.id} className="flex flex-1 flex-col items-center">
+            <div className="flex w-full items-center">
+              {/* Left connector */}
+              <div
+                className={cn(
+                  "h-px flex-1",
+                  i === 0 ? "invisible" : "",
+                  status === "done" ? "bg-emerald-400" : "bg-zinc-200",
+                )}
+              />
+              {/* Circle */}
+              <div
+                className={cn(
+                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-all",
+                  status === "done"
+                    ? "border-emerald-500 bg-emerald-500"
+                    : status === "running"
+                      ? "border-blue-500 bg-white"
+                      : status === "error"
+                        ? "border-red-500 bg-red-50"
+                        : "border-zinc-300 bg-white",
+                )}
+              >
+                {status === "done" && (
+                  <Check className="h-3 w-3 text-white" />
+                )}
+                {status === "running" && (
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-blue-500" />
+                )}
+                {status === "error" && (
+                  <X className="h-3 w-3 text-red-500" />
+                )}
+              </div>
+              {/* Right connector */}
+              <div
+                className={cn(
+                  "h-px flex-1",
+                  isLast ? "invisible" : "",
+                  status === "done" ? "bg-emerald-400" : "bg-zinc-200",
+                )}
+              />
+            </div>
+            {/* Label */}
+            <p
+              className={cn(
+                "mt-1.5 text-center text-[10px] font-medium transition-colors",
+                status === "done"
+                  ? "text-emerald-600"
+                  : status === "running"
+                    ? "text-blue-600"
+                    : status === "error"
+                      ? "text-red-600"
+                      : "text-zinc-400",
+              )}
+            >
+              {phase.label}
+            </p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function LiveAgentDemo({
   onOpenReviewJob,
@@ -89,14 +178,12 @@ export default function LiveAgentDemo({
 
   const researchTraceNodes = useMemo(() => {
     const latestNodes = new Map<string, TraceNode>();
-
     allParts
       .filter((part): part is TracePart => part.type === "data-trace-node")
       .forEach((part) => {
         latestNodes.set(part.data.id, part.data);
       });
-
-    return [...latestNodes.values()].sort((left, right) => left.order - right.order);
+    return [...latestNodes.values()].sort((l, r) => l.order - r.order);
   }, [allParts]);
 
   const phaseStatuses = useMemo(
@@ -107,29 +194,32 @@ export default function LiveAgentDemo({
     [allParts],
   );
 
-  const doneCount = Object.values(phaseStatuses).filter((s) => s === "done").length;
-  const progressPercent = Math.round((doneCount / PIPELINE_PHASES.length) * 100);
-  const activePhase = PIPELINE_PHASES.find((p) => phaseStatuses[p.id] === "running");
-  const hasError = Object.values(phaseStatuses).some((s) => s === "error") || !!error;
+  const doneCount = Object.values(phaseStatuses).filter(
+    (s) => s === "done",
+  ).length;
+  const hasError =
+    Object.values(phaseStatuses).some((s) => s === "error") || !!error;
   const isDone = doneCount === PIPELINE_PHASES.length;
+  const activePhase = PIPELINE_PHASES.find(
+    (p) => phaseStatuses[p.id] === "running",
+  );
+
   const persistedJobOutput = useMemo(() => {
     const completedPersistParts = allParts.filter(
       (part): part is Extract<PersistJobPart, { state: "output-available" }> =>
         part.type === "tool-persist_job" && part.state === "output-available",
     );
-    const latestPart = completedPersistParts[completedPersistParts.length - 1];
-    if (!latestPart || "error" in latestPart.output) {
-      return null;
-    }
+    const latestPart =
+      completedPersistParts[completedPersistParts.length - 1];
+    if (!latestPart || "error" in latestPart.output) return null;
     return latestPart.output;
   }, [allParts]);
+
   const notesPreview = useMemo(() => {
     const trimmed = freeformContext.trim();
-    if (trimmed.length <= 220) {
-      return trimmed;
-    }
-    return `${trimmed.slice(0, 220)}…`;
+    return trimmed.length <= 220 ? trimmed : `${trimmed.slice(0, 220)}…`;
   }, [freeformContext]);
+
   const runStatusView = getRunStatusViewModel({
     activePhaseLabel: activePhase?.label,
     hasError,
@@ -140,7 +230,6 @@ export default function LiveAgentDemo({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     const leadInput: LeadInput = {
       ...form,
       freeformContext: freeformContext.trim(),
@@ -150,12 +239,9 @@ export default function LiveAgentDemo({
       },
       companyDomain: form.companyDomain?.trim() || undefined,
     };
-
     if (!leadInput.freeformContext) return;
-
     clearError();
     setMessages([]);
-
     try {
       await sendMessage(
         {
@@ -169,109 +255,41 @@ export default function LiveAgentDemo({
   }
 
   return (
-    <div className="flex min-h-0 w-full flex-1 overflow-hidden border-t border-zinc-200 bg-zinc-50 text-zinc-900">
-      {/* Left panel — pipeline phases */}
-      <div className="w-[320px] shrink-0 overflow-y-auto border-r border-zinc-200 bg-zinc-100/60 p-6">
-        <div className="flex items-center gap-2">
-          <PlayIcon className="h-4 w-4 text-zinc-900" />
-          <h2 className="text-[12px] font-semibold">Live pipeline</h2>
-        </div>
-        <p className="mt-2 text-[12px] leading-relaxed text-zinc-600">
-          Each phase updates as the agent calls its tools, while the trace panel exposes spawned
-          research sub-agents, streamed outputs, and final queue persistence.
-        </p>
+    <div className="flex-1 overflow-y-auto bg-zinc-50 text-zinc-900">
+      <div className="mx-auto flex w-full max-w-[1080px] flex-col gap-6 px-6 py-6">
 
-        <div className="mt-5 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-zinc-500">
-                Run status
-              </p>
-              <p className="mt-1 text-[15px] font-medium text-zinc-950">
-                {runStatusView.headline}
-              </p>
-            </div>
-            <Badge
-              variant="outline"
-              className={cn(
-                "capitalize",
-                runStatusView.badgeClassName,
-              )}
-            >
-              {runStatusView.badgeLabel}
-            </Badge>
-          </div>
-          <div className="mt-4 h-2 rounded-full bg-zinc-100">
-            <div
-              className={cn(
-                "h-full rounded-full transition-all",
-                runStatusView.progressClassName,
-              )}
-              style={{ width: `${Math.max(progressPercent, isRunning ? 8 : 0)}%` }}
-            />
-          </div>
-        </div>
+        {/* ── Section 1: Architecture ───────────────────────────────── */}
+        <ArchitectureSection form={form} />
 
-        <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-zinc-500">
-            Tech stack
-          </p>
-          <div className="mt-3 space-y-2.5">
-            {STACK_ROWS.map((row) => (
-              <div
-                key={row.label}
-                className="grid grid-cols-[72px_minmax(0,1fr)] items-start gap-3"
-              >
-                <p className="text-[11px] font-mono uppercase tracking-[0.12em] text-zinc-400">
-                  {row.label}
-                </p>
-                <p className="min-w-0 break-words text-[12px] leading-relaxed text-zinc-700">
-                  {row.value}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* ── Section 2: Live Pipeline ──────────────────────────────── */}
+        <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
 
-        <div className="mt-6 space-y-4">
-          {PIPELINE_PHASES.map((phase) => (
-            <PhaseRow key={phase.id} phase={phase} status={phaseStatuses[phase.id]} />
-          ))}
-        </div>
-      </div>
-
-      {/* Right panel — form + live agent trace */}
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-[980px] flex-col gap-6 px-6 py-6">
           {/* Form */}
-          <section className="rounded-2xl border border-zinc-200 bg-white px-6 py-5 shadow-sm">
+          <div className="border-b border-zinc-100 px-6 py-5">
             <form className="space-y-5" onSubmit={handleSubmit}>
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                   <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-zinc-500">
-                    Dual Architecture · Vercel AI SDK + Workflows
+                    Demo Path · Live Execution
                   </p>
-                  <h1 className="mt-1 text-[18px] font-semibold tracking-tight text-zinc-950">
-                    A real outbound job, streaming the pipeline live.
-                  </h1>
-                  <p className="mt-2 text-[13px] leading-relaxed text-zinc-600">
-                    This is the <span className="font-medium text-zinc-700">Live Demo</span> UX. 
-                    We are streaming a <span className="font-medium text-zinc-700">ToolLoopAgent</span> over a Next.js route back to the UI token-by-token so you can see the reasoning.
-                  </p>
-                  <div className="mt-3 rounded-lg border border-indigo-100 bg-indigo-50/50 p-3">
-                    <p className="text-[12px] font-medium text-indigo-900">
-                      ⚡ Engineering Note: The Production Batch Engine
-                    </p>
-                    <p className="mt-1.5 text-[12px] leading-relaxed text-indigo-800">
-                      In a real scenario where SDRs queue hundreds of leads, the same exact pipeline functions are handed off to <span className="font-medium">Vercel Workflows</span> (`/api/jobs/workflow`). It transforms the execution from a fragile request into a durable, background orchestration of `'use step'` functions — automatically resuming progress without timing out.
-                    </p>
-                  </div>
-                  <p className="mt-3 text-[12px] leading-relaxed text-zinc-500">
-                    Default fields are pre-filled below for a quick demo. Hit run to see the live tracing.
+                  <h2 className="mt-1 text-[18px] font-semibold tracking-tight text-zinc-950">
+                    Run the pipeline now
+                  </h2>
+                  <p className="mt-1.5 text-[13px] leading-relaxed text-zinc-600">
+                    Fill in the lead below and hit Run. The{" "}
+                    <span className="font-medium text-zinc-700">
+                      ToolLoopAgent
+                    </span>{" "}
+                    will stream each stage live — research threads, signal
+                    extraction, angle planning, and the final draft.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2 self-start lg:self-center">
-                  <Button type="submit" disabled={isSubmitDisabled} className="gap-2">
+                  <Button
+                    type="submit"
+                    disabled={isSubmitDisabled}
+                    className="gap-2"
+                  >
                     {isRunning ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
@@ -283,22 +301,25 @@ export default function LiveAgentDemo({
                     type="button"
                     variant="outline"
                     disabled={isRunning}
-                    onClick={() => setShowAdvancedInputs((current) => !current)}
+                    onClick={() =>
+                      setShowAdvancedInputs((c) => !c)
+                    }
                   >
                     {showAdvancedInputs ? "Hide inputs" : "Customize input"}
                   </Button>
                 </div>
               </div>
 
+              {/* Sample lead preview */}
               <div className="rounded-2xl border border-teal-200 bg-teal-50/40 px-4 py-4">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-teal-700">
                       Sample lead loaded
                     </p>
-                    <h2 className="mt-1 text-[15px] font-semibold text-zinc-950">
+                    <h3 className="mt-1 text-[15px] font-semibold text-zinc-950">
                       {form.leadName} · {form.company}
-                    </h2>
+                    </h3>
                     <p className="mt-1 text-[12px] text-zinc-600">
                       {form.leadTitle}
                       {form.companyDomain ? ` · ${form.companyDomain}` : ""}
@@ -316,17 +337,22 @@ export default function LiveAgentDemo({
                     </Badge>
                   </div>
                 </div>
-                <p className="mt-3 text-[12px] leading-relaxed text-zinc-700">{notesPreview}</p>
+                <p className="mt-3 text-[12px] leading-relaxed text-zinc-700">
+                  {notesPreview}
+                </p>
               </div>
 
-              {showAdvancedInputs ? (
+              {/* Advanced inputs */}
+              {showAdvancedInputs && (
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <FieldLabel>Lead name</FieldLabel>
                     <Input
                       disabled={isRunning}
                       value={form.leadName}
-                      onChange={(e) => setForm((prev) => ({ ...prev, leadName: e.target.value }))}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, leadName: e.target.value }))
+                      }
                     />
                   </div>
                   <div className="space-y-2">
@@ -334,7 +360,9 @@ export default function LiveAgentDemo({
                     <Input
                       disabled={isRunning}
                       value={form.leadTitle}
-                      onChange={(e) => setForm((prev) => ({ ...prev, leadTitle: e.target.value }))}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, leadTitle: e.target.value }))
+                      }
                     />
                   </div>
                   <div className="space-y-2">
@@ -342,7 +370,9 @@ export default function LiveAgentDemo({
                     <Input
                       disabled={isRunning}
                       value={form.company}
-                      onChange={(e) => setForm((prev) => ({ ...prev, company: e.target.value }))}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, company: e.target.value }))
+                      }
                     />
                   </div>
                   <div className="space-y-2">
@@ -351,8 +381,8 @@ export default function LiveAgentDemo({
                       disabled={isRunning}
                       value={form.companyDomain ?? ""}
                       onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
+                        setForm((p) => ({
+                          ...p,
                           companyDomain: e.target.value || undefined,
                         }))
                       }
@@ -364,9 +394,9 @@ export default function LiveAgentDemo({
                       disabled={isRunning}
                       value={form.play.type}
                       onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          play: { ...prev.play, type: e.target.value as PlayType },
+                        setForm((p) => ({
+                          ...p,
+                          play: { ...p.play, type: e.target.value as PlayType },
                         }))
                       }
                       className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
@@ -384,9 +414,12 @@ export default function LiveAgentDemo({
                       disabled={isRunning}
                       value={form.play.leadSource}
                       onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          play: { ...prev.play, leadSource: e.target.value as LeadSource },
+                        setForm((p) => ({
+                          ...p,
+                          play: {
+                            ...p.play,
+                            leadSource: e.target.value as LeadSource,
+                          },
                         }))
                       }
                       className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
@@ -404,9 +437,9 @@ export default function LiveAgentDemo({
                       disabled={isRunning}
                       value={form.play.label}
                       onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          play: { ...prev.play, label: e.target.value },
+                        setForm((p) => ({
+                          ...p,
+                          play: { ...p.play, label: e.target.value },
                         }))
                       }
                     />
@@ -417,9 +450,12 @@ export default function LiveAgentDemo({
                       disabled={isRunning}
                       value={form.play.context ?? ""}
                       onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          play: { ...prev.play, context: e.target.value || undefined },
+                        setForm((p) => ({
+                          ...p,
+                          play: {
+                            ...p.play,
+                            context: e.target.value || undefined,
+                          },
                         }))
                       }
                     />
@@ -434,7 +470,7 @@ export default function LiveAgentDemo({
                       disabled={isRunning}
                       value={freeformContext}
                       onChange={(e) =>
-                        setForm((prev) => ({ ...prev, freeformContext: e.target.value }))
+                        setForm((p) => ({ ...p, freeformContext: e.target.value }))
                       }
                       className="min-h-40"
                       placeholder="Paste rich lead notes, call prep, event context, and any timing signal you want the pipeline to use."
@@ -444,15 +480,36 @@ export default function LiveAgentDemo({
                     </p>
                   </div>
                 </div>
-              ) : null}
+              )}
             </form>
-          </section>
+          </div>
 
-          {/* Live agent trace */}
-          <section className="rounded-2xl border border-zinc-200 bg-white px-6 py-5 shadow-sm">
-            <div className="flex items-center justify-between gap-4 pb-4">
+          {/* Phase progress bar */}
+          {(isRunning || isDone || hasError) && (
+            <div className="border-b border-zinc-100 px-6 py-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5 text-zinc-400" />
+                  <p className="text-[11px] font-semibold text-zinc-600">
+                    {runStatusView.headline}
+                  </p>
+                </div>
+                <Badge
+                  variant="outline"
+                  className={cn("capitalize text-[10px]", runStatusView.badgeClassName)}
+                >
+                  {runStatusView.badgeLabel}
+                </Badge>
+              </div>
+              <PipelineProgressBar statuses={phaseStatuses} isRunning={isRunning} />
+            </div>
+          )}
+
+          {/* Agent trace */}
+          <div className="px-6 py-5">
+            <div className="mb-4 flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-zinc-500" />
+                <Sparkles className="h-4 w-4 text-zinc-400" />
                 <div>
                   <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-zinc-500">
                     Agent trace
@@ -462,19 +519,23 @@ export default function LiveAgentDemo({
                   </p>
                 </div>
               </div>
-              {messages.length === 0 ? (
+              {messages.length === 0 && (
                 <p className="text-[11px] text-zinc-400">
                   Run the sample to stream the pipeline live
                 </p>
-              ) : null}
+              )}
             </div>
+
             <div className="space-y-4">
               {messages.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/70 px-4 py-6">
-                  <p className="text-[13px] font-medium text-zinc-700">Timeline will stream here</p>
+                  <p className="text-[13px] font-medium text-zinc-700">
+                    Timeline will stream here
+                  </p>
                   <p className="mt-1 text-[12px] leading-relaxed text-zinc-500">
-                    Research sub-agents, tool calls, structured outputs, and the final queue write
-                    appear here in real time as the ToolLoopAgent works through each phase.
+                    Research sub-agents, tool calls, structured outputs, and the
+                    final queue write appear here in real time as the
+                    ToolLoopAgent works through each phase.
                   </p>
                 </div>
               ) : (
@@ -492,7 +553,9 @@ export default function LiveAgentDemo({
                               key={`${message.id}-text-${partIndex}`}
                               className={cn(
                                 "text-[13px] leading-relaxed",
-                                message.role === "assistant" ? "text-zinc-700" : "text-zinc-900",
+                                message.role === "assistant"
+                                  ? "text-zinc-700"
+                                  : "text-zinc-900",
                               )}
                             >
                               {part.text}
@@ -540,9 +603,6 @@ export default function LiveAgentDemo({
                             />
                           );
                         }
-                        if (part.type === "data-trace-node" || part.type === "step-start") {
-                          return null;
-                        }
                         return null;
                       })}
                     </MessageContent>
@@ -550,45 +610,52 @@ export default function LiveAgentDemo({
                 ))
               )}
 
-              {persistedJobOutput ? (
+              {/* Persist success */}
+              {persistedJobOutput && (
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4">
                   <p className="text-[12px] font-medium text-emerald-900">
                     Job saved to InstantDB and ready in Lead Review.
                   </p>
                   <div className="mt-2 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <p className="font-mono text-[11px] text-emerald-800">
-                      {persistedJobOutput.jobId} · run {persistedJobOutput.pipelineRunId}
+                      {persistedJobOutput.jobId} · run{" "}
+                      {persistedJobOutput.pipelineRunId}
                     </p>
-                    {onOpenReviewJob ? (
+                    {onOpenReviewJob && (
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => onOpenReviewJob(persistedJobOutput.jobId)}
+                        onClick={() =>
+                          onOpenReviewJob(persistedJobOutput.jobId)
+                        }
                       >
                         Open in Lead Review
                       </Button>
-                    ) : null}
+                    )}
                   </div>
                 </div>
-              ) : null}
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Error banner */}
+        {error && (
+          <section className="rounded-2xl border border-red-200 bg-red-50 px-6 py-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 text-red-700" />
+              <div>
+                <p className="text-[12px] font-mono uppercase tracking-[0.12em] text-red-700">
+                  Run failed
+                </p>
+                <p className="mt-2 text-[13px] leading-relaxed text-red-900">
+                  {error.message}
+                </p>
+              </div>
             </div>
           </section>
-
-          {error ? (
-            <section className="rounded-2xl border border-red-200 bg-red-50 px-6 py-4 shadow-sm">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="mt-0.5 h-4 w-4 text-red-700" />
-                <div>
-                  <p className="text-[12px] font-mono uppercase tracking-[0.12em] text-red-700">
-                    Run failed
-                  </p>
-                  <p className="mt-2 text-[13px] leading-relaxed text-red-900">{error.message}</p>
-                </div>
-              </div>
-            </section>
-          ) : null}
-        </div>
+        )}
       </div>
     </div>
   );
