@@ -25,6 +25,7 @@ import LiveAgentDemo from "./LiveAgentDemo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Loader2, RotateCcw } from "lucide-react";
+import { useMediaQuery } from "@/lib/use-media-query";
 
 interface SDRWorkspaceProps {
   analyticsMap: Record<string, AnalyticsSnapshot>;
@@ -74,6 +75,9 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
   const [dspyOptimizationState, setDspyOptimizationState] = useState<DspyOptimizationState>(
     INITIAL_DSPY_OPTIMIZATION_STATE,
   );
+  /** Below `md`, review uses full-screen queue ↔ full-screen detail so the draft and actions are usable. */
+  const isDesktopReviewLayout = useMediaQuery("(min-width: 768px)");
+  const [mobileReviewPane, setMobileReviewPane] = useState<"queue" | "detail">("detail");
   const selectedAnalytics = useMemo(
     () => getNearestAnalyticsSnapshot(analyticsDateRange, analyticsMap),
     [analyticsDateRange, analyticsMap]
@@ -124,7 +128,10 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
     });
 
     const nextId = selectNextPendingId(jobs, jobId);
-    if (nextId) setSelectedJobId(nextId);
+    if (nextId) {
+      setSelectedJobId(nextId);
+      if (!isDesktopReviewLayout) setMobileReviewPane("detail");
+    }
   };
 
   const handleArchive = (jobId: string) => {
@@ -141,7 +148,10 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
   const handleArchiveFromQueue = (jobId: string) => {
     const nextId = selectNextPendingId(jobs, jobId);
     handleArchive(jobId);
-    if (nextId) setSelectedJobId(nextId);
+    if (nextId) {
+      setSelectedJobId(nextId);
+      if (!isDesktopReviewLayout) setMobileReviewPane("detail");
+    }
   };
 
   const handleDraftUpdate = (jobId: string, draft: OutboundJob["draft"]) => {
@@ -295,6 +305,12 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
   const handleOpenReviewJob = (jobId: string) => {
     setSelectedJobId(jobId);
     setActiveView("review");
+    setMobileReviewPane("detail");
+  };
+
+  const handleSelectReviewJob = (jobId: string) => {
+    setSelectedJobId(jobId);
+    if (!isDesktopReviewLayout) setMobileReviewPane("detail");
   };
 
   if (isLoading) {
@@ -408,24 +424,45 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
           key={`review-${workspaceResetVersion}`}
           className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row"
         >
-          <QueueList
-            jobs={jobs}
-            selectedJobId={resolvedSelectedJobId}
-            onSelectJob={setSelectedJobId}
-            onArchiveJob={handleArchiveFromQueue}
-            onApproveJob={handleApproveFromQueue}
-          />
-          <DetailPanel
-            key={selectedJob?.id ?? "empty"}
-            job={selectedJob}
-            onApprove={handleApprove}
-            onArchive={handleArchive}
-            onDraftUpdate={handleDraftUpdate}
-            onResetDraft={handleResetDraft}
-            onRegenerateNote={handleRegenerateNote}
-            draftHasEdits={Boolean(draftHasEdits)}
-            regenerateNote={selectedJob ? regenerateNotes[selectedJob.id] : undefined}
-          />
+          <div
+            className={cn(
+              "min-h-0 flex-col overflow-hidden md:w-[min(100%,380px)] md:shrink-0 md:border-r md:border-border",
+              isDesktopReviewLayout || mobileReviewPane === "queue"
+                ? "flex flex-1 md:flex md:flex-none"
+                : "hidden md:flex md:flex-none",
+            )}
+          >
+            <QueueList
+              jobs={jobs}
+              selectedJobId={resolvedSelectedJobId}
+              onSelectJob={handleSelectReviewJob}
+              onArchiveJob={handleArchiveFromQueue}
+              onApproveJob={handleApproveFromQueue}
+            />
+          </div>
+          <div
+            className={cn(
+              "min-h-0 flex-col overflow-hidden",
+              isDesktopReviewLayout || mobileReviewPane === "detail"
+                ? "flex min-h-0 flex-1"
+                : "hidden md:flex md:min-h-0 md:flex-1",
+            )}
+          >
+            <DetailPanel
+              key={selectedJob?.id ?? "empty"}
+              job={selectedJob}
+              onApprove={handleApprove}
+              onArchive={handleArchive}
+              onDraftUpdate={handleDraftUpdate}
+              onResetDraft={handleResetDraft}
+              onRegenerateNote={handleRegenerateNote}
+              draftHasEdits={Boolean(draftHasEdits)}
+              regenerateNote={selectedJob ? regenerateNotes[selectedJob.id] : undefined}
+              onBackToQueue={
+                isDesktopReviewLayout ? undefined : () => setMobileReviewPane("queue")
+              }
+            />
+          </div>
         </div>
       ) : activeView === "analytics" ? (
         <AnalyticsPage

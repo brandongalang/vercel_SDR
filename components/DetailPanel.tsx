@@ -18,7 +18,19 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ExternalLink, PencilLine, RotateCcw, CheckCircle, ShieldAlert, ShieldCheck, Info, Send, ChevronRight, SkipForward } from "lucide-react";
+import {
+  ExternalLink,
+  PencilLine,
+  RotateCcw,
+  CheckCircle,
+  ShieldAlert,
+  ShieldCheck,
+  Info,
+  Send,
+  ChevronRight,
+  ChevronLeft,
+  SkipForward,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function renderBodyWithHighlight(body: string, span?: string) {
@@ -53,6 +65,7 @@ export default function DetailPanel({
   onRegenerateNote,
   draftHasEdits,
   regenerateNote,
+  onBackToQueue,
 }: {
   job: OutboundJob | null;
   onApprove: (jobId: string, payload: { subject: string; body: string; edited: boolean; editorNote?: string }) => void;
@@ -62,6 +75,8 @@ export default function DetailPanel({
   onRegenerateNote: (jobId: string, note: string | undefined) => void;
   draftHasEdits: boolean;
   regenerateNote?: string;
+  /** When set (mobile master–detail), shows a back control to return to the queue list. */
+  onBackToQueue?: () => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [regenOpen, setRegenOpen] = useState(false);
@@ -76,11 +91,17 @@ export default function DetailPanel({
 
   if (!job) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-muted/15 min-h-0">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 bg-muted/15 px-4">
         <div className="text-muted-foreground text-sm max-w-[240px] text-center leading-relaxed">
-          <div className="w-10 h-10 rounded-full border border-dashed border-muted-foreground/25 mx-auto mb-3" />
+          <div className="mx-auto mb-3 h-10 w-10 rounded-full border border-dashed border-muted-foreground/25" />
           Select a lead in the queue to review the draft and evidence.
         </div>
+        {onBackToQueue && (
+          <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={onBackToQueue}>
+            <ChevronLeft size={16} aria-hidden />
+            Back to queue
+          </Button>
+        )}
       </div>
     );
   }
@@ -227,7 +248,21 @@ export default function DetailPanel({
     <>
       <div className="flex-1 flex flex-col min-w-0 bg-background min-h-0 overflow-hidden">
         {/* Header — recommendation context + primary decision */}
-        <div className="shrink-0 border-b border-border bg-card px-4 py-4 z-20 sm:px-6">
+        <div className="z-20 shrink-0 border-b border-border bg-card px-4 py-4 sm:px-6">
+          {onBackToQueue && (
+            <div className="mb-3 flex md:hidden">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="-ml-2 gap-1 text-muted-foreground hover:text-foreground"
+                onClick={onBackToQueue}
+              >
+                <ChevronLeft size={18} aria-hidden />
+                Queue
+              </Button>
+            </div>
+          )}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.16em] text-zinc-500">
@@ -470,14 +505,14 @@ export default function DetailPanel({
 
                   <div
                     className={cn(
-                      "rounded-xl border transition-shadow min-h-[340px] max-h-[min(640px,64vh)] overflow-hidden flex flex-col",
+                      "flex max-h-[min(640px,70vh)] min-h-[200px] flex-col overflow-hidden rounded-xl border transition-shadow md:max-h-[min(640px,64vh)] md:min-h-[340px]",
                       isEditing ? "border-teal-300 ring-1 ring-teal-200/70 bg-card" : "border-border bg-card"
                     )}
                   >
                     {isEditing ? (
                       <textarea
                         ref={bodyRef}
-                        className="w-full flex-1 min-h-[320px] text-[15px] leading-relaxed bg-transparent resize-none focus:outline-none p-5 text-foreground"
+                        className="min-h-[200px] w-full flex-1 resize-none bg-transparent p-5 text-[15px] leading-relaxed text-foreground focus:outline-none md:min-h-[320px]"
                         value={job.draft.body}
                         onChange={(e) =>
                           onDraftUpdate(job.id, { ...job.draft, body: e.target.value, highlightedSpan: undefined })
