@@ -19,16 +19,19 @@ import {
 } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
+  AlertTriangle,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
   ExternalLink,
+  Inbox,
+  Info,
+  Loader2,
   PencilLine,
   RotateCcw,
-  CheckCircle,
+  Send,
   ShieldAlert,
   ShieldCheck,
-  Info,
-  Send,
-  ChevronRight,
-  ChevronLeft,
   SkipForward,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -56,6 +59,91 @@ function formatLeadSource(source: OutboundJob["play"]["leadSource"]) {
   return source.replace(/_/g, " ");
 }
 
+function DetailPanelEmptyState({
+  state,
+  errorMessage,
+  isLoadingSlow,
+  onBackToQueue,
+}: {
+  state: "loading" | "error" | "empty" | "complete" | "idle" | "ready";
+  errorMessage?: string;
+  isLoadingSlow?: boolean;
+  onBackToQueue?: () => void;
+}) {
+  const config =
+    state === "loading"
+      ? {
+          Icon: Loader2,
+          iconClassName: "animate-spin text-muted-foreground",
+          title: "Loading lead review queue",
+          description: "Connecting to InstantDB and pulling the latest drafted leads into review.",
+          detail: isLoadingSlow
+            ? "This is taking longer than usual. You can still switch to Analytics, DSPy, or Live Agent while the queue connects."
+            : undefined,
+        }
+      : state === "error"
+        ? {
+            Icon: AlertTriangle,
+            iconClassName: "text-destructive",
+            title: "Couldn't load the review queue",
+            description: errorMessage ?? "The review queue is unavailable right now.",
+            detail: "You can still use the other demo surfaces while this connection issue is unresolved.",
+          }
+        : state === "empty"
+          ? {
+              Icon: Inbox,
+              iconClassName: "text-muted-foreground",
+              title: "No leads in review yet",
+              description: "Run the live pipeline to create a lead, or reseed demo data if this environment supports it.",
+              detail: undefined,
+            }
+          : state === "complete"
+            ? {
+                Icon: CheckCircle,
+                iconClassName: "text-emerald-600",
+                title: "All caught up",
+                description: "There are no AI-generated drafts waiting for review.",
+                detail: "Select any approved or skipped lead from the list to audit the final decision and evidence.",
+              }
+            : {
+                Icon: Inbox,
+                iconClassName: "text-muted-foreground",
+                title: "Select a lead",
+                description: "Choose a lead in the queue to review the draft and supporting evidence.",
+                detail: undefined,
+              };
+  const Icon = config.Icon;
+
+  return (
+    <div className="flex flex-1 items-center justify-center bg-muted/15 px-6 min-h-0">
+      <div className="max-w-[360px] space-y-3 text-center">
+        <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full border border-border bg-background">
+          <Icon className={cn("h-5 w-5", config.iconClassName)} aria-hidden />
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-[14px] font-medium text-foreground">{config.title}</p>
+          <p className="text-[13px] leading-relaxed text-muted-foreground">
+            {config.description}
+          </p>
+          {config.detail && (
+            <p className="text-[12px] leading-relaxed text-muted-foreground">
+              {config.detail}
+            </p>
+          )}
+          {onBackToQueue && (
+            <div className="pt-2">
+              <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={onBackToQueue}>
+                <ChevronLeft size={16} aria-hidden />
+                Back to queue
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DetailPanel({
   job,
   onApprove,
@@ -66,6 +154,9 @@ export default function DetailPanel({
   draftHasEdits,
   regenerateNote,
   onBackToQueue,
+  state,
+  errorMessage,
+  isLoadingSlow,
 }: {
   job: OutboundJob | null;
   onApprove: (jobId: string, payload: { subject: string; body: string; edited: boolean; editorNote?: string }) => void;
@@ -77,6 +168,9 @@ export default function DetailPanel({
   regenerateNote?: string;
   /** When set (mobile master–detail), shows a back control to return to the queue list. */
   onBackToQueue?: () => void;
+  state: "loading" | "error" | "empty" | "complete" | "idle" | "ready";
+  errorMessage?: string;
+  isLoadingSlow?: boolean;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [regenOpen, setRegenOpen] = useState(false);
@@ -91,18 +185,12 @@ export default function DetailPanel({
 
   if (!job) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 bg-muted/15 px-4">
-        <div className="text-muted-foreground text-sm max-w-[240px] text-center leading-relaxed">
-          <div className="mx-auto mb-3 h-10 w-10 rounded-full border border-dashed border-muted-foreground/25" />
-          Select a lead in the queue to review the draft and evidence.
-        </div>
-        {onBackToQueue && (
-          <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={onBackToQueue}>
-            <ChevronLeft size={16} aria-hidden />
-            Back to queue
-          </Button>
-        )}
-      </div>
+      <DetailPanelEmptyState
+        state={state}
+        errorMessage={errorMessage}
+        isLoadingSlow={isLoadingSlow}
+        onBackToQueue={onBackToQueue}
+      />
     );
   }
 

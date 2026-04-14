@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AnalyticsDateRange,
   AnalyticsSnapshot,
@@ -32,6 +32,7 @@ interface SDRWorkspaceProps {
 }
 
 type BaselineDraft = { subject: string; body: string; highlightedSpan?: string };
+type ReviewWorkspaceState = "loading" | "error" | "empty" | "complete" | "idle" | "ready";
 
 function getTimestamp() {
   return Date.now();
@@ -78,6 +79,21 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
   /** Below `md`, review uses full-screen queue ↔ full-screen detail so the draft and actions are usable. */
   const isDesktopReviewLayout = useMediaQuery("(min-width: 768px)");
   const [mobileReviewPane, setMobileReviewPane] = useState<"queue" | "detail">("detail");
+  const [isLoadingSlow, setIsLoadingSlow] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setIsLoadingSlow(false);
+      return;
+    }
+
+    setIsLoadingSlow(false);
+    const timer = window.setTimeout(() => {
+      setIsLoadingSlow(true);
+    }, 4000);
+
+    return () => window.clearTimeout(timer);
+  }, [isLoading]);
   const selectedAnalytics = useMemo(
     () => getNearestAnalyticsSnapshot(analyticsDateRange, analyticsMap),
     [analyticsDateRange, analyticsMap]
@@ -89,9 +105,27 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
   const resolvedSelectedJobId =
     (selectedJobId && jobs.some((job) => job.id === selectedJobId) ? selectedJobId : null) ??
     jobs.find((job) => job.status === "pending_review")?.id ??
-    jobs[0]?.id ??
     null;
   const selectedJob = resolvedSelectedJobId ? jobs.find((j) => j.id === resolvedSelectedJobId) || null : null;
+  const pendingCount = jobs.filter((j) => j.status === "pending_review").length;
+  const queueListState = error
+    ? "error"
+    : isLoading
+      ? "loading"
+      : jobs.length === 0
+        ? "empty"
+        : "ready";
+  const reviewWorkspaceState: ReviewWorkspaceState = error
+    ? "error"
+    : isLoading
+      ? "loading"
+      : jobs.length === 0
+        ? "empty"
+        : pendingCount === 0 && !selectedJob
+          ? "complete"
+          : selectedJob
+            ? "ready"
+            : "idle";
 
   const handleApprove = (jobId: string, payload: { subject: string; body: string; edited: boolean; editorNote?: string }) => {
     const now = getTimestamp();
@@ -128,10 +162,8 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
     });
 
     const nextId = selectNextPendingId(jobs, jobId);
-    if (nextId) {
-      setSelectedJobId(nextId);
-      if (!isDesktopReviewLayout) setMobileReviewPane("detail");
-    }
+    setSelectedJobId(nextId);
+    if (!isDesktopReviewLayout) setMobileReviewPane("detail");
   };
 
   const handleArchive = (jobId: string) => {
@@ -148,10 +180,21 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
   const handleArchiveFromQueue = (jobId: string) => {
     const nextId = selectNextPendingId(jobs, jobId);
     handleArchive(jobId);
-    if (nextId) {
-      setSelectedJobId(nextId);
-      if (!isDesktopReviewLayout) setMobileReviewPane("detail");
-    }
+    setSelectedJobId(nextId);
+    if (!isDesktopReviewLayout) setMobileReviewPane("detail");
+  };
+
+  const handleApproveFromDetail = (
+    jobId: string,
+    payload: { subject: string; body: string; edited: boolean; editorNote?: string },
+  ) => {
+    handleApprove(jobId, payload);
+    setSelectedJobId(selectNextPendingId(jobs, jobId));
+  };
+
+  const handleArchiveFromDetail = (jobId: string) => {
+    handleArchive(jobId);
+    setSelectedJobId(selectNextPendingId(jobs, jobId));
   };
 
   const handleDraftUpdate = (jobId: string, draft: OutboundJob["draft"]) => {
@@ -260,12 +303,39 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
     }
   };
 
-  const pendingCount = jobs.filter((j) => j.status === "pending_review").length;
+  const reviewHeader =
+    isLoading
+      ? {
+          overline: "Lead review",
+          title: "Loading lead review queue",
+          subtitle: "Connecting to InstantDB so you can review the latest drafted leads.",
+        }
+      : error
+        ? {
+            overline: "Lead review",
+            title: "Lead review unavailable",
+            subtitle: "The queue could not load right now. You can still use the other demo surfaces.",
+          }
+        : jobs.length === 0
+          ? {
+              overline: "Lead review",
+              title: "Queue is empty",
+              subtitle: "No AI-generated drafts are waiting in review yet.",
+            }
+          : pendingCount === 0
+            ? {
+                overline: "Lead review",
+                title: "All caught up",
+                subtitle: "No drafts are currently waiting for SDR review.",
+              }
+            : {
+                overline: "Lead review",
+                title: `${pendingCount} lead${pendingCount !== 1 ? "s" : ""} pending review`,
+                subtitle: "Approve or skip each AI-generated first-touch draft.",
+              };
   const viewHeader = {
     review: {
-      overline: "Lead review",
-      title: `${pendingCount} lead${pendingCount !== 1 ? "s" : ""} pending review`,
-      subtitle: "Approve or skip each AI-generated first-touch draft.",
+      ...reviewHeader,
     },
     analytics: {
       overline: "Analytics",
@@ -313,25 +383,6 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
     if (!isDesktopReviewLayout) setMobileReviewPane("detail");
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex h-full flex-1 items-center justify-center">
-        <div className="text-center space-y-2">
-          <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-border border-t-foreground" />
-          <p className="text-[13px] text-muted-foreground">Loading workspace…</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex h-full flex-1 items-center justify-center">
-        <p className="text-[13px] text-destructive">Error: {error.message}</p>
-      </div>
-    );
-  }
-
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <div className="shrink-0 border-b border-border bg-card px-4 py-3.5 sm:px-6">
@@ -355,7 +406,14 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
                   {
                     id: "review" as const,
                     label: "Lead review",
-                    sub: `${jobs.filter((j) => j.status === "pending_review").length} pending`,
+                    sub:
+                      queueListState === "loading"
+                        ? "Loading…"
+                        : queueListState === "error"
+                          ? "Unavailable"
+                          : queueListState === "empty"
+                            ? "No leads"
+                            : `${pendingCount} pending`,
                   },
                   {
                     id: "analytics" as const,
@@ -438,6 +496,8 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
               onSelectJob={handleSelectReviewJob}
               onArchiveJob={handleArchiveFromQueue}
               onApproveJob={handleApproveFromQueue}
+              state={queueListState}
+              errorMessage={error?.message}
             />
           </div>
           <div
@@ -449,15 +509,18 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
             )}
           >
             <DetailPanel
-              key={selectedJob?.id ?? "empty"}
+              key={selectedJob?.id ?? reviewWorkspaceState}
               job={selectedJob}
-              onApprove={handleApprove}
-              onArchive={handleArchive}
+              onApprove={handleApproveFromDetail}
+              onArchive={handleArchiveFromDetail}
               onDraftUpdate={handleDraftUpdate}
               onResetDraft={handleResetDraft}
               onRegenerateNote={handleRegenerateNote}
               draftHasEdits={Boolean(draftHasEdits)}
               regenerateNote={selectedJob ? regenerateNotes[selectedJob.id] : undefined}
+              state={reviewWorkspaceState}
+              errorMessage={error?.message}
+              isLoadingSlow={isLoadingSlow}
               onBackToQueue={
                 isDesktopReviewLayout ? undefined : () => setMobileReviewPane("queue")
               }

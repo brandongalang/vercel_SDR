@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { SkipForward, CheckCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle, Inbox, Loader2, SkipForward } from "lucide-react";
 import { formatRelativeUpdated } from "@/lib/format";
 
 interface QueueListProps {
@@ -16,6 +16,8 @@ interface QueueListProps {
   onSelectJob: (jobId: string) => void;
   onApproveJob: (jobId: string) => void;
   onArchiveJob: (jobId: string) => void;
+  state: "loading" | "error" | "empty" | "ready";
+  errorMessage?: string;
 }
 
 function confidenceChipClass(tier: OutboundJob["confidence"]["tier"]) {
@@ -232,11 +234,82 @@ function SectionHeader({
   );
 }
 
-export default function QueueList({ jobs, selectedJobId, onSelectJob, onApproveJob, onArchiveJob }: QueueListProps) {
+function QueuePlaceholder({
+  state,
+  errorMessage,
+}: {
+  state: QueueListProps["state"];
+  errorMessage?: string;
+}) {
+  if (state === "loading") {
+    return (
+      <div className="flex flex-1 items-center justify-center px-5 py-8">
+        <div className="max-w-[240px] space-y-3 text-center">
+          <Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" aria-hidden />
+          <div>
+            <p className="text-[13px] font-medium text-zinc-900">Loading leads…</p>
+            <p className="mt-1 text-[12px] leading-relaxed text-zinc-500">
+              Connecting to InstantDB and fetching the latest review queue.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (state === "error") {
+    return (
+      <div className="flex flex-1 items-center justify-center px-5 py-8">
+        <div className="max-w-[260px] space-y-3 text-center">
+          <AlertTriangle className="mx-auto h-5 w-5 text-destructive" aria-hidden />
+          <div>
+            <p className="text-[13px] font-medium text-zinc-900">Queue unavailable</p>
+            <p className="mt-1 text-[12px] leading-relaxed text-zinc-500">
+              {errorMessage ?? "The review queue could not load right now."}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-1 items-center justify-center px-5 py-8">
+      <div className="max-w-[240px] space-y-3 text-center">
+        <Inbox className="mx-auto h-5 w-5 text-muted-foreground" aria-hidden />
+        <div>
+          <p className="text-[13px] font-medium text-zinc-900">No leads in queue</p>
+          <p className="mt-1 text-[12px] leading-relaxed text-zinc-500">
+            New runs will show up here once the pipeline saves them to InstantDB.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function QueueList({
+  jobs,
+  selectedJobId,
+  onSelectJob,
+  onApproveJob,
+  onArchiveJob,
+  state,
+  errorMessage,
+}: QueueListProps) {
   const needsReview = jobs.filter((j) => j.governance === "review_required" && j.status === "pending_review");
   const autoEligible = jobs.filter((j) => j.governance === "auto_eligible" && j.status === "pending_review");
   const approved = jobs.filter((j) => j.status === "approved" || j.status === "sent_stub");
   const reviewedOnly = jobs.filter((j) => j.status === "reviewed");
+  const pendingCount = needsReview.length + autoEligible.length;
+  const queueMeta =
+    state === "loading"
+      ? "Connecting to InstantDB…"
+      : state === "error"
+        ? "Queue unavailable"
+        : state === "empty"
+          ? "No leads yet"
+          : `${pendingCount} pending · ${jobs.length} total`;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden border-b border-border bg-card shadow-[0_4px_12px_-4px_rgba(0,0,0,0.06)] md:w-[min(100%,380px)] md:flex-none md:border-b-0 md:border-r md:shadow-[2px_0_12px_-4px_rgba(0,0,0,0.06)]">
@@ -245,91 +318,95 @@ export default function QueueList({ jobs, selectedJobId, onSelectJob, onApproveJ
           Review queue
         </h2>
         <p className="text-[12px] text-zinc-500 mt-0.5 tabular-nums">
-          {jobs.filter((j) => j.status === "pending_review").length} pending
-          <span className="text-zinc-300 font-normal mx-1">·</span>
-          {jobs.length} total
+          {queueMeta}
         </p>
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0">
-        {needsReview.length > 0 && (
-          <section className="mb-1">
-            <SectionHeader
-              title={`Needs review first (${needsReview.length})`}
-              sectionJobs={needsReview}
-              className="text-amber-900 bg-amber-50 border-amber-200/80"
-            />
-            {needsReview.map((job) => (
-              <QueueRow
-                key={job.id}
-                job={job}
-                isSelected={selectedJobId === job.id}
-                onSelect={() => onSelectJob(job.id)}
-                onApprove={() => onApproveJob(job.id)}
-                onArchive={() => onArchiveJob(job.id)}
-              />
-            ))}
-          </section>
-        )}
+        {state !== "ready" ? (
+          <QueuePlaceholder state={state} errorMessage={errorMessage} />
+        ) : (
+          <>
+            {needsReview.length > 0 && (
+              <section className="mb-1">
+                <SectionHeader
+                  title={`Needs review first (${needsReview.length})`}
+                  sectionJobs={needsReview}
+                  className="text-amber-900 bg-amber-50 border-amber-200/80"
+                />
+                {needsReview.map((job) => (
+                  <QueueRow
+                    key={job.id}
+                    job={job}
+                    isSelected={selectedJobId === job.id}
+                    onSelect={() => onSelectJob(job.id)}
+                    onApprove={() => onApproveJob(job.id)}
+                    onArchive={() => onArchiveJob(job.id)}
+                  />
+                ))}
+              </section>
+            )}
 
-        {autoEligible.length > 0 && (
-          <section className="mb-1">
-            <SectionHeader
-              title={`Auto-eligible (${autoEligible.length})`}
-              sectionJobs={autoEligible}
-              className="text-slate-700 bg-slate-100 border-slate-200"
-            />
-            {autoEligible.map((job) => (
-              <QueueRow
-                key={job.id}
-                job={job}
-                isSelected={selectedJobId === job.id}
-                onSelect={() => onSelectJob(job.id)}
-                onApprove={() => onApproveJob(job.id)}
-                onArchive={() => onArchiveJob(job.id)}
-              />
-            ))}
-          </section>
-        )}
+            {autoEligible.length > 0 && (
+              <section className="mb-1">
+                <SectionHeader
+                  title={`Auto-eligible (${autoEligible.length})`}
+                  sectionJobs={autoEligible}
+                  className="text-slate-700 bg-slate-100 border-slate-200"
+                />
+                {autoEligible.map((job) => (
+                  <QueueRow
+                    key={job.id}
+                    job={job}
+                    isSelected={selectedJobId === job.id}
+                    onSelect={() => onSelectJob(job.id)}
+                    onApprove={() => onApproveJob(job.id)}
+                    onArchive={() => onArchiveJob(job.id)}
+                  />
+                ))}
+              </section>
+            )}
 
-        {approved.length > 0 && (
-          <section className="mb-1">
-            <SectionHeader
-              title={`Approved (${approved.length})`}
-              sectionJobs={approved}
-              className="text-emerald-900 bg-emerald-50 border-emerald-200/90"
-            />
-            {approved.map((job) => (
-              <QueueRow
-                key={job.id}
-                job={job}
-                isSelected={selectedJobId === job.id}
-                onSelect={() => onSelectJob(job.id)}
-                onApprove={() => onApproveJob(job.id)}
-                onArchive={() => onArchiveJob(job.id)}
-              />
-            ))}
-          </section>
-        )}
+            {approved.length > 0 && (
+              <section className="mb-1">
+                <SectionHeader
+                  title={`Approved (${approved.length})`}
+                  sectionJobs={approved}
+                  className="text-emerald-900 bg-emerald-50 border-emerald-200/90"
+                />
+                {approved.map((job) => (
+                  <QueueRow
+                    key={job.id}
+                    job={job}
+                    isSelected={selectedJobId === job.id}
+                    onSelect={() => onSelectJob(job.id)}
+                    onApprove={() => onApproveJob(job.id)}
+                    onArchive={() => onArchiveJob(job.id)}
+                  />
+                ))}
+              </section>
+            )}
 
-        {reviewedOnly.length > 0 && (
-          <section>
-            <SectionHeader
-              title={`Skipped (${reviewedOnly.length})`}
-              sectionJobs={reviewedOnly}
-              className="text-zinc-600 bg-zinc-100 border-zinc-200"
-            />
-            {reviewedOnly.map((job) => (
-              <QueueRow
-                key={job.id}
-                job={job}
-                isSelected={selectedJobId === job.id}
-                onSelect={() => onSelectJob(job.id)}
-                onApprove={() => onApproveJob(job.id)}
-                onArchive={() => onArchiveJob(job.id)}
-              />
-            ))}
-          </section>
+            {reviewedOnly.length > 0 && (
+              <section>
+                <SectionHeader
+                  title={`Skipped (${reviewedOnly.length})`}
+                  sectionJobs={reviewedOnly}
+                  className="text-zinc-600 bg-zinc-100 border-zinc-200"
+                />
+                {reviewedOnly.map((job) => (
+                  <QueueRow
+                    key={job.id}
+                    job={job}
+                    isSelected={selectedJobId === job.id}
+                    onSelect={() => onSelectJob(job.id)}
+                    onApprove={() => onApproveJob(job.id)}
+                    onArchive={() => onArchiveJob(job.id)}
+                  />
+                ))}
+              </section>
+            )}
+          </>
         )}
       </div>
     </div>
