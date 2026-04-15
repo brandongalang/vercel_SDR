@@ -58,29 +58,97 @@ Your job:
 5. Return thread summaries, an orchestrator summary, and an uncertainty note.
 
 Guidance:
+- First verify the exact person/company match. If the company name is generic or shared by multiple businesses, use the company domain and the lead's role to reject same-name entities before broader research.
 - Always cover company context plus one person/play-specific angle unless the evidence clearly suggests a better split.
+- Prefer 2 to 4 reinforcing findings that could support one credible outbound angle, not a wide market scan.
+- For outbound prospecting and social-post style leads, bias toward recent public writing, speaking, shipping, hiring, or product-building signals from the lead before generic company overviews.
+- Prefer first-party domains, lead-authored posts/newsletters/profiles, named event pages, public code/product artifacts, or official company pages. Use directory/enrichment sites only as lightweight title confirmation when stronger sources are unavailable.
+- Do not force a Vercel narrative in research. Return the strongest concrete signal cluster and note when the product connection is indirect.
 - Thin-source leads should still get a usable packet; note uncertainty instead of blocking.
-- Keep the parent summary concise and decision-oriented.
+- Keep the parent summary concise, concrete, and decision-oriented.
 - The subagent tool returns the full report to the runtime, but you should only reason over the summary you are shown.
   `;
 }
 
 const PLAY_SPECIFIC_GOALS: Record<PlayType, string> = {
   event:
-    "Find context around the event, what the lead likely cared about, and how it connects to the company's current frontend or platform work.",
+    "Find what the lead engaged with at the event, what they likely cared about, and how it maps to an active product, platform, or operational initiative.",
   hiring_signal:
-    "Find hiring plans that imply frontend platform, developer productivity, or deployment workflow needs.",
+    "Find hiring plans that imply near-term tooling, workflow, AI, product, or platform needs.",
   outbound_prospecting:
-    "Find the strongest play-specific reason the timing could matter right now.",
+    "Find recent public writing, speaking, shipping, or product-building signals that show what the lead cares about right now and why the timing matters.",
   plg_signup:
     "Find evidence of active evaluation, preview workflow concerns, and team coordination signals.",
   social_post:
-    "Find the strongest play-specific reason the timing could matter right now.",
+    "Find the post, thread, article, or comment from the lead and the concrete workflow or product implication it points to.",
   tech_migration:
-    "Find the strongest play-specific reason the timing could matter right now.",
+    "Find explicit framework, stack, migration, or modernization signals and the operational consequence that likely follows.",
   web_intent:
-    "Find the strongest play-specific reason the timing could matter right now.",
+    "Find the strongest play-specific reason the timing could matter right now, but translate anonymous or indirect intent into a practical question rather than a surveillance-heavy claim.",
 };
+
+function buildSiteQuery(domain: string | undefined, query: string) {
+  return domain ? `site:${domain} ${query}` : query;
+}
+
+function buildPersonQueryHints(leadInput: LeadInput) {
+  return [
+    `"${leadInput.leadName}" ${leadInput.company} ${leadInput.leadTitle}`,
+    `"${leadInput.leadName}" ${leadInput.company} LinkedIn`,
+    `"${leadInput.leadName}" ${leadInput.company} post thread substack interview`,
+  ];
+}
+
+function buildCompanyQueryHints(leadInput: LeadInput) {
+  return [
+    buildSiteQuery(leadInput.companyDomain, `${leadInput.company} engineering`),
+    buildSiteQuery(leadInput.companyDomain, `${leadInput.company} blog product launch`),
+    buildSiteQuery(leadInput.companyDomain, `${leadInput.company} careers`),
+  ];
+}
+
+function buildPlayQueryHints(leadInput: LeadInput) {
+  switch (leadInput.play.type) {
+    case "event":
+      return [
+        `"${leadInput.leadName}" ${leadInput.company} ${leadInput.play.label}`,
+        `${leadInput.company} ${leadInput.play.context ?? leadInput.play.label}`,
+      ];
+    case "hiring_signal":
+      return [
+        buildSiteQuery(leadInput.companyDomain, `${leadInput.company} careers`),
+        `${leadInput.company} hiring ${leadInput.play.context ?? "platform product engineering"}`,
+      ];
+    case "social_post":
+      return [
+        `"${leadInput.leadName}" ${leadInput.company} LinkedIn post`,
+        `"${leadInput.leadName}" ${leadInput.company} Threads`,
+        `"${leadInput.leadName}" ${leadInput.company} newsletter article`,
+      ];
+    case "tech_migration":
+      return [
+        `${leadInput.company} migration engineering`,
+        `${leadInput.company} ${leadInput.play.context ?? "Next.js React platform migration"}`,
+      ];
+    case "web_intent":
+      return [
+        `${leadInput.company} ${leadInput.play.context ?? leadInput.play.label}`,
+        `${leadInput.company} docs pricing product evaluation`,
+      ];
+    case "plg_signup":
+      return [
+        `${leadInput.company} ${leadInput.play.label}`,
+        `${leadInput.company} ${leadInput.play.context ?? "product rollout launch"}`,
+      ];
+    case "outbound_prospecting":
+    default:
+      return [
+        `"${leadInput.leadName}" ${leadInput.company} AI product`,
+        `"${leadInput.leadName}" ${leadInput.company} workshop panel podcast`,
+        `"${leadInput.leadName}" ${leadInput.company} build ship prototype`,
+      ];
+  }
+}
 
 function buildFallbackThreads(leadInput: LeadInput) {
   const companyDomain = leadInput.companyDomain ? [leadInput.companyDomain] : [];
@@ -90,29 +158,19 @@ function buildFallbackThreads(leadInput: LeadInput) {
     {
       topic: "person-context",
       researchGoal: "Find recent public signals about the lead's priorities, role scope, or stated technical interests.",
-      queryHints: [
-        `${leadInput.leadName} ${leadInput.company} ${leadInput.leadTitle}`,
-        `${leadInput.leadName} ${leadInput.company} engineering`,
-      ],
+      queryHints: buildPersonQueryHints(leadInput),
       includeDomains: [],
     },
     {
       topic: "company-context",
-      researchGoal: "Find the most relevant company-level frontend, platform, product, or hiring context.",
-      queryHints: [
-        `${leadInput.company} engineering blog`,
-        `${leadInput.company} careers platform frontend`,
-        `${leadInput.company} next.js preview deployment`,
-      ],
+      researchGoal: "Find the most relevant company-level product, platform, hiring, or operational context tied to how the team ships.",
+      queryHints: buildCompanyQueryHints(leadInput),
       includeDomains: companyDomain,
     },
     {
       topic: "play-context",
       researchGoal: playSpecificGoal,
-      queryHints: [
-        `${leadInput.company} ${leadInput.play.label}`,
-        `${leadInput.company} ${leadInput.play.context ?? leadInput.play.label}`,
-      ],
+      queryHints: buildPlayQueryHints(leadInput),
       includeDomains: companyDomain,
     },
   ];

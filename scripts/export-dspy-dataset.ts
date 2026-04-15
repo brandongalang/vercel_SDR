@@ -36,9 +36,9 @@ const outArg = args.includes("--out") ? args[args.indexOf("--out") + 1] : null;
 
 async function loadJobs(): Promise<OutboundJob[]> {
   if (useMock) {
-    console.log("[export-dspy-dataset] Using mock data (--mock flag)");
-    const { MOCK_JOBS } = await import("../lib/mock-data");
-    return MOCK_JOBS;
+    console.log("[export-dspy-dataset] Using demo snapshot data (--mock flag)");
+    const snapshot = (await import("../data/demo-snapshot.json")).default as OutboundJob[];
+    return snapshot;
   }
 
   // Live path: read from InstantDB via admin SDK

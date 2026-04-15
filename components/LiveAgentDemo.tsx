@@ -10,6 +10,7 @@ import {
 import {
   AlertTriangle,
   Check,
+  ChevronRight,
   Loader2,
   Play as PlayIcon,
   Sparkles,
@@ -304,7 +305,9 @@ export default function LiveAgentDemo({
                     onClick={() =>
                       setShowAdvancedInputs((c) => !c)
                     }
+                    className="gap-1.5 text-[12px] font-medium text-zinc-500 hover:text-zinc-800"
                   >
+                    <ChevronRight className={cn("h-3.5 w-3.5 transition-transform duration-150", showAdvancedInputs && "rotate-90")} />
                     {showAdvancedInputs ? "Hide inputs" : "Customize input"}
                   </Button>
                 </div>
@@ -472,7 +475,7 @@ export default function LiveAgentDemo({
                       onChange={(e) =>
                         setForm((p) => ({ ...p, freeformContext: e.target.value }))
                       }
-                      className="min-h-40"
+                      className="min-h-40 focus:ring-2 focus:ring-teal-200/60 focus:border-teal-300"
                       placeholder="Paste rich lead notes, call prep, event context, and any timing signal you want the pipeline to use."
                     />
                     <p className="text-[12px] leading-relaxed text-zinc-500">

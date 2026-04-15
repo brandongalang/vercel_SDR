@@ -45,7 +45,7 @@ function renderBodyWithHighlight(body: string, span?: string) {
   return (
     <span className="whitespace-pre-wrap leading-relaxed">
       {before}
-      <mark className="bg-amber-100 text-zinc-900 rounded-[3px] px-0.5 not-italic border-b border-amber-300/80">
+      <mark className="bg-cyan-100/60 text-zinc-900 rounded-[3px] px-0.5 not-italic border-b border-cyan-400/80">
         {span}
       </mark>
       {after}
@@ -70,9 +70,10 @@ function DetailPanelEmptyState({
   isLoadingSlow?: boolean;
   onBackToQueue?: () => void;
 }) {
-  const config =
-    state === "loading"
-      ? {
+  function getEmptyStateConfig() {
+    switch (state) {
+      case "loading":
+        return {
           Icon: Loader2,
           iconClassName: "animate-spin text-muted-foreground",
           title: "Loading lead review queue",
@@ -80,38 +81,42 @@ function DetailPanelEmptyState({
           detail: isLoadingSlow
             ? "This is taking longer than usual. You can still switch to Analytics, DSPy, or Live Agent while the queue connects."
             : undefined,
-        }
-      : state === "error"
-        ? {
-            Icon: AlertTriangle,
-            iconClassName: "text-destructive",
-            title: "Couldn't load the review queue",
-            description: errorMessage ?? "The review queue is unavailable right now.",
-            detail: "You can still use the other demo surfaces while this connection issue is unresolved.",
-          }
-        : state === "empty"
-          ? {
-              Icon: Inbox,
-              iconClassName: "text-muted-foreground",
-              title: "No leads in review yet",
-              description: "Run the live pipeline to create a lead, or reseed demo data if this environment supports it.",
-              detail: undefined,
-            }
-          : state === "complete"
-            ? {
-                Icon: CheckCircle,
-                iconClassName: "text-emerald-600",
-                title: "All caught up",
-                description: "There are no AI-generated drafts waiting for review.",
-                detail: "Select any approved or skipped lead from the list to audit the final decision and evidence.",
-              }
-            : {
-                Icon: Inbox,
-                iconClassName: "text-muted-foreground",
-                title: "Select a lead",
-                description: "Choose a lead in the queue to review the draft and supporting evidence.",
-                detail: undefined,
-              };
+        };
+      case "error":
+        return {
+          Icon: AlertTriangle,
+          iconClassName: "text-destructive",
+          title: "Couldn't load the review queue",
+          description: errorMessage ?? "The review queue is unavailable right now.",
+          detail: "You can still use the other demo surfaces while this connection issue is unresolved.",
+        };
+      case "empty":
+        return {
+          Icon: Inbox,
+          iconClassName: "text-muted-foreground",
+          title: "No leads in review yet",
+          description: "Run the live pipeline to create a lead, or reseed demo data if this environment supports it.",
+          detail: undefined,
+        };
+      case "complete":
+        return {
+          Icon: CheckCircle,
+          iconClassName: "text-emerald-600",
+          title: "All caught up",
+          description: "There are no AI-generated drafts waiting for review.",
+          detail: "Select any approved or skipped lead from the list to audit the final decision and evidence.",
+        };
+      default:
+        return {
+          Icon: Inbox,
+          iconClassName: "text-muted-foreground",
+          title: "Select a lead",
+          description: "Choose a lead in the queue to review the draft and supporting evidence.",
+          detail: undefined,
+        };
+    }
+  }
+  const config = getEmptyStateConfig();
   const Icon = config.Icon;
 
   return (
@@ -325,12 +330,11 @@ export default function DetailPanel({
       : { label: "Auto-eligible", Icon: ShieldCheck, className: "border-slate-200 bg-slate-100 text-slate-800" };
   const GovIcon = gov.Icon;
 
-  const tierStyles =
-    job.confidence.tier === "high"
-      ? "text-emerald-800 border-emerald-200 bg-emerald-50"
-      : job.confidence.tier === "medium"
-        ? "text-amber-900 border-amber-200 bg-amber-50"
-        : "text-zinc-600 border-zinc-200 bg-zinc-100";
+  const tierStyleMap: Record<string, string> = {
+    high: "text-emerald-800 border-emerald-200 bg-emerald-50",
+    medium: "text-amber-900 border-amber-200 bg-amber-50",
+  };
+  const tierStyles = tierStyleMap[job.confidence.tier] ?? "text-zinc-600 border-zinc-200 bg-zinc-100";
 
   return (
     <>
@@ -363,25 +367,18 @@ export default function DetailPanel({
                 {job.lead.title}
               </p>
 
-              <div className="flex flex-wrap items-center gap-2 mt-3">
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-mono font-semibold uppercase tracking-wide",
-                    gov.className
-                  )}
-                >
-                  <GovIcon size={12} aria-hidden />
-                  {gov.label}
+              <div className="flex flex-wrap items-center gap-3 mt-3">
+                <span className="inline-flex items-center gap-1">
+                  <GovIcon size={13} className="text-amber-700" aria-hidden />
+                  <span className="text-[11px] text-zinc-600">{gov.label}</span>
                 </span>
+                <span className="text-zinc-300">·</span>
                 <Tooltip>
                   <TooltipTrigger
                     render={
                       <button
                         type="button"
-                        className={cn(
-                          "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-mono font-semibold uppercase tracking-wide",
-                          tierStyles
-                        )}
+                        className="inline-flex items-center gap-1 text-[11px] font-mono text-zinc-500"
                       >
                         Confidence: {job.confidence.tier}
                         <Info size={12} className="opacity-70" aria-hidden />
@@ -399,6 +396,7 @@ export default function DetailPanel({
                     )}
                   </TooltipContent>
                 </Tooltip>
+                <span className="text-zinc-300">·</span>
                 <span className="text-[11px] font-mono text-zinc-500">
                   Source: {formatLeadSource(job.play.leadSource)}
                 </span>
@@ -653,10 +651,12 @@ export default function DetailPanel({
                             <span className="text-[10px] font-mono uppercase text-zinc-500">{sig.source}</span>
                             <span
                               className={cn(
-                                "text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded border",
+                                "text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded border",
                                 sig.strength === "strong"
-                                  ? "text-emerald-900 border-emerald-200 bg-emerald-50"
-                                  : "text-zinc-600 bg-white border-zinc-200"
+                                  ? "bg-emerald-500 text-white border-emerald-500"
+                                  : sig.strength === "moderate"
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                    : "bg-zinc-100 text-zinc-500 border-zinc-200"
                               )}
                             >
                               {sig.strength}
@@ -854,10 +854,10 @@ export default function DetailPanel({
               />
             </div>
             {regenPreview && (
-              <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
+              <div className="rounded-xl border border-border bg-card border-l-[3px] border-l-teal-400 p-4 space-y-3">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
-                    Preview
+                  <p className="text-[10px] font-mono text-teal-600">
+                    NEW DRAFT
                   </p>
                   {!previewMatchesRequest && (
                     <span className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200/80 rounded-md px-2 py-0.5">

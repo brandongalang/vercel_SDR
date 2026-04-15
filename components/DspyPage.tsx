@@ -615,7 +615,7 @@ export default function DspyPage({
             type="button"
             onClick={handleRunOptimization}
             disabled={optimizationStatus !== "idle"}
-            className="min-w-[190px]"
+            className={cn("min-w-[190px]", optimizationStatus === "idle" && "bg-violet-600 text-white hover:bg-violet-700")}
           >
             {optimizationStatus === "running" ? (
               <>

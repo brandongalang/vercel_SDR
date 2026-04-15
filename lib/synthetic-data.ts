@@ -73,10 +73,4 @@ export function getSyntheticPromptSnapshots(): SyntheticPromptSnapshot[] {
   return [...SYNTHETIC_DSPY_PROMPT_SNAPSHOTS];
 }
 
-export function getSyntheticPromptSnapshot(
-  version: string,
-): SyntheticPromptSnapshot | undefined {
-  return SYNTHETIC_DSPY_PROMPT_SNAPSHOTS.find(
-    (snapshot) => snapshot.version === version,
-  );
-}
+

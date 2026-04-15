@@ -51,12 +51,23 @@ ${queryHints.length > 0 ? queryHints.map((query) => `- ${query}`).join("\n") : "
 Helpful domain constraints:
 ${includeDomains.length > 0 ? includeDomains.map((domain) => `- ${domain}`).join("\n") : "- None provided"}
 
+Exact-match guardrails:
+- The lead must match ${leadInput.leadName} at ${leadInput.company}${leadInput.companyDomain ? ` (${leadInput.companyDomain})` : ""}.
+- Use a source only if it clearly refers to this lead or this exact company.
+- Reject same-name companies, near-match brands, or unrelated domains even if the search result looks semantically relevant.
+
+Source quality preferences:
+- Prefer official company pages, lead-authored posts/newsletters/profiles, named event pages, public code/product artifacts, and credible reporting.
+- Use directory or enrichment pages only to confirm title/background when better sources are unavailable. Do not build the whole angle on them.
+
 Return a structured report for this topic only.
 Use up to 5 tool calls.
-Prefer recent, specific, source-backed findings.
+Prefer recent, specific, source-backed findings. Two to four strong findings are better than five weak ones.
 Every finding must keep the fact, source URL, optional date, optional quote, and confidence together.
-If evidence is weak, return weaker findings instead of inventing stronger ones.
-Make the summary compact because it will be shown to a parent orchestrator.
+Do not mix facts from separate sources into one finding.
+Do not infer frontend, deployment, migration, or governance pain unless the source itself points there.
+If evidence is weak, return a smaller, humbler report instead of inventing stronger evidence.
+Make the summary compact and concrete because it will be shown to a parent orchestrator.
 `;
 }
 
@@ -167,6 +178,8 @@ export async function runResearchThread(input: {
 
 Only investigate the single topic you were assigned.
 Use the available tools to gather evidence.
+Disambiguate same-name companies before using a source.
+Treat the task as evidence gathering, not storytelling.
 Do not write marketing copy.
 Do not mix facts from separate sources into one finding.
 End with a concise, high-signal summary that can be handed back to a parent orchestrator.`,

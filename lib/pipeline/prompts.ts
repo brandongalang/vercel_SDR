@@ -22,10 +22,10 @@ export async function getVercelProductContext() {
 }
 
 export const PROMPT_VERSIONS = {
-  researchOrchestrator: "2026-02-17.research-orchestrator.v1",
-  researchThread: "2026-02-17.research-thread.v1",
-  signalExtractor: "2026-02-17.signal-extractor.v1",
-  anglePlanner: "2026-02-17.angle-planner.v2",
+  researchOrchestrator: "2026-04-14.research-orchestrator.v2",
+  researchThread: "2026-04-14.research-thread.v2",
+  signalExtractor: "2026-04-14.signal-extractor.v2",
+  anglePlanner: "2026-04-14.angle-planner.v3",
   draftGenerator: LIVE_DRAFT_GENERATOR_ARTIFACT.promptVersionAfter,
 } as const;
 

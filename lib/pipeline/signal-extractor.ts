@@ -20,8 +20,14 @@ Convert the research packet into atomic scored signals for the UI and downstream
 Requirements:
 - Only use grounded evidence from the research packet.
 - Preserve provenance in evidenceUrl and signalDate when possible.
+- Prefer 3 to 5 total signals; use 2 to 4 when one tight cluster is stronger than breadth.
+- Each signal must map to one finding or a clearly corroborated pair of findings from the same exact company/entity.
 - Include weaker signals when the lead is thin; do not invent stronger evidence.
 - Rank signals from strongest to weakest.
+- Prefer first-party or lead-authored sources over enrichment/directory pages when both are available.
+- Do not infer frontend, deployment, migration, governance, or platform pain unless the underlying finding explicitly supports it.
+- Write labels and values like an SDR-ready trigger: concrete first, implication second. Avoid vague abstractions like "operational need" or "AI-ready interfaces."
+- If a fact is just background bio/title and does not sharpen timing or angle selection, rank it low or discard it.
 - Set usedInAngle to false for every signal at this stage.
 - Put anything interesting-but-not-worth-leading-with into discardedSignals.
 

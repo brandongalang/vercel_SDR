@@ -20,16 +20,18 @@ interface QueueListProps {
   errorMessage?: string;
 }
 
+const CONFIDENCE_CHIP: Record<string, { className: string; letter: string }> = {
+  high: { className: "bg-emerald-500 text-white", letter: "H" },
+  medium: { className: "bg-amber-400 text-white", letter: "M" },
+};
+const CONFIDENCE_CHIP_DEFAULT = { className: "bg-zinc-300 text-zinc-700", letter: "L" };
+
 function confidenceChipClass(tier: OutboundJob["confidence"]["tier"]) {
-  if (tier === "high") return "bg-emerald-500 text-white";
-  if (tier === "medium") return "bg-amber-400 text-white";
-  return "bg-zinc-300 text-zinc-700";
+  return (CONFIDENCE_CHIP[tier] ?? CONFIDENCE_CHIP_DEFAULT).className;
 }
 
 function tierLetter(tier: OutboundJob["confidence"]["tier"]) {
-  if (tier === "high") return "H";
-  if (tier === "medium") return "M";
-  return "L";
+  return (CONFIDENCE_CHIP[tier] ?? CONFIDENCE_CHIP_DEFAULT).letter;
 }
 
 function mostRecentUpdated(sectionJobs: OutboundJob[]): string | null {
@@ -98,19 +100,10 @@ function QueueRow({
               </p>
               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                 <span className="text-[12px] text-zinc-500 truncate max-w-[90px]">{job.company}</span>
+                <span className={cn("h-2 w-2 rounded-full shrink-0", atConfig.dot)} />
+                <span className="text-[11px] text-zinc-500 truncate">{atConfig.label}</span>
                 <span
-                  className={cn(
-                    "inline-flex items-center gap-0.5 rounded border px-1 py-0 text-[10px] font-mono uppercase tracking-wide shrink-0",
-                    atConfig.color
-                  )}
-                >
-                  {atConfig.label}
-                </span>
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-0.5 rounded border px-1 py-0 text-[10px] font-mono font-semibold shrink-0",
-                    playConfig.color
-                  )}
+                  className="inline-flex items-center gap-0.5 text-[10px] font-mono text-zinc-400 shrink-0"
                 >
                   {playConfig.icon}
                   {playConfig.label}
@@ -154,7 +147,11 @@ function QueueRow({
                   : "text-zinc-600 bg-zinc-100 border-zinc-200"
               )}
             >
-              {job.status === "approved" ? "Approved" : job.status === "sent_stub" ? "Sent" : "Skipped"}
+              {job.status === "approved"
+                ? "Approved"
+                : job.status === "sent_stub"
+                  ? "Sent"
+                  : "Skipped"}
             </Badge>
           </>
         )}
@@ -302,18 +299,19 @@ export default function QueueList({
   const approved = jobs.filter((j) => j.status === "approved" || j.status === "sent_stub");
   const reviewedOnly = jobs.filter((j) => j.status === "reviewed");
   const pendingCount = needsReview.length + autoEligible.length;
-  const queueMeta =
-    state === "loading"
-      ? "Connecting to InstantDB…"
-      : state === "error"
-        ? "Queue unavailable"
-        : state === "empty"
-          ? "No leads yet"
-          : `${pendingCount} pending · ${jobs.length} total`;
+  function getQueueMeta() {
+    switch (state) {
+      case "loading": return "Connecting to InstantDB…";
+      case "error": return "Queue unavailable";
+      case "empty": return "No leads yet";
+      default: return `${pendingCount} pending · ${jobs.length} total`;
+    }
+  }
+  const queueMeta = getQueueMeta();
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden border-b border-border bg-card shadow-[0_4px_12px_-4px_rgba(0,0,0,0.06)] md:border-b-0 md:border-r md:shadow-[2px_0_12px_-4px_rgba(0,0,0,0.06)]">
-      <div className="shrink-0 px-4 py-3.5 border-b border-border bg-card">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden border-b border-border bg-zinc-50/60 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.06)] md:border-b-0 md:border-r md:shadow-[2px_0_12px_-4px_rgba(0,0,0,0.06)]">
+      <div className="shrink-0 px-4 py-3.5 border-b border-border bg-zinc-50/80">
         <h2 className="text-[14px] font-semibold text-zinc-900 tracking-tight">
           Review queue
         </h2>

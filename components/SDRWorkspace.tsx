@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Loader2, RotateCcw } from "lucide-react";
 import { useMediaQuery } from "@/lib/use-media-query";
+import { useViewContext } from "@/lib/view-context";
 
 interface SDRWorkspaceProps {
   analyticsMap: Record<string, AnalyticsSnapshot>;
@@ -64,7 +65,7 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
   );
 
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<"review" | "analytics" | "debugger" | "dspy">("review");
+  const { activeView, setActiveView } = useViewContext();
   const [analyticsDateRange, setAnalyticsDateRange] = useState<AnalyticsDateRange>(() =>
     createDefaultAnalyticsDateRange()
   );
@@ -108,24 +109,18 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
     null;
   const selectedJob = resolvedSelectedJobId ? jobs.find((j) => j.id === resolvedSelectedJobId) || null : null;
   const pendingCount = jobs.filter((j) => j.status === "pending_review").length;
-  const queueListState = error
-    ? "error"
-    : isLoading
-      ? "loading"
-      : jobs.length === 0
-        ? "empty"
-        : "ready";
-  const reviewWorkspaceState: ReviewWorkspaceState = error
-    ? "error"
-    : isLoading
-      ? "loading"
-      : jobs.length === 0
-        ? "empty"
-        : pendingCount === 0 && !selectedJob
-          ? "complete"
-          : selectedJob
-            ? "ready"
-            : "idle";
+  const queueListState: "error" | "loading" | "empty" | "ready" =
+    error ? "error" : isLoading ? "loading" : jobs.length === 0 ? "empty" : "ready";
+
+  function deriveReviewWorkspaceState(): ReviewWorkspaceState {
+    if (error) return "error";
+    if (isLoading) return "loading";
+    if (jobs.length === 0) return "empty";
+    if (pendingCount === 0 && !selectedJob) return "complete";
+    if (selectedJob) return "ready";
+    return "idle";
+  }
+  const reviewWorkspaceState = deriveReviewWorkspaceState();
 
   const handleApprove = (jobId: string, payload: { subject: string; body: string; edited: boolean; editorNote?: string }) => {
     const now = getTimestamp();
@@ -303,36 +298,27 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
     }
   };
 
-  const reviewHeader =
-    isLoading
-      ? {
-          overline: "Lead review",
-          title: "Loading lead review queue",
-          subtitle: "Connecting to InstantDB so you can review the latest drafted leads.",
-        }
-      : error
-        ? {
-            overline: "Lead review",
-            title: "Lead review unavailable",
-            subtitle: "The queue could not load right now. You can still use the other demo surfaces.",
-          }
-        : jobs.length === 0
-          ? {
-              overline: "Lead review",
-              title: "Queue is empty",
-              subtitle: "No AI-generated drafts are waiting in review yet.",
-            }
-          : pendingCount === 0
-            ? {
-                overline: "Lead review",
-                title: "All caught up",
-                subtitle: "No drafts are currently waiting for SDR review.",
-              }
-            : {
-                overline: "Lead review",
-                title: `${pendingCount} lead${pendingCount !== 1 ? "s" : ""} pending review`,
-                subtitle: "Approve or skip each AI-generated first-touch draft.",
-              };
+  function getReviewHeader() {
+    const overline = "Lead review";
+    if (isLoading) {
+      return { overline, title: "Loading lead review queue", subtitle: "Connecting to InstantDB so you can review the latest drafted leads." };
+    }
+    if (error) {
+      return { overline, title: "Lead review unavailable", subtitle: "The queue could not load right now. You can still use the other demo surfaces." };
+    }
+    if (jobs.length === 0) {
+      return { overline, title: "Queue is empty", subtitle: "No AI-generated drafts are waiting in review yet." };
+    }
+    if (pendingCount === 0) {
+      return { overline, title: "All caught up", subtitle: "No drafts are currently waiting for SDR review." };
+    }
+    return {
+      overline,
+      title: `${pendingCount} lead${pendingCount !== 1 ? "s" : ""} pending review`,
+      subtitle: "Approve or skip each AI-generated first-touch draft.",
+    };
+  }
+  const reviewHeader = getReviewHeader();
   const viewHeader = {
     review: {
       ...reviewHeader,

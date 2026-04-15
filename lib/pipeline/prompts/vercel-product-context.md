@@ -10,6 +10,7 @@ Core value areas for this SDR prototype:
 3. Faster iteration for Next.js and modern React applications.
 4. Edge delivery, routing, and performance tooling for user-facing products.
 5. Governance for growing teams: shared workflows, access, team policies, and operational consistency.
+6. Rapid prototyping and shipping of AI-native web products, internal tools, and agentic interfaces without rebuilding the deployment workflow from scratch.
 
 ## ICP framing for this case study
 
@@ -23,6 +24,7 @@ Useful personas:
 - CTO
 - Frontend Platform lead
 - Developer Experience lead
+- Product or platform leaders responsible for AI-powered web products, internal tools, or experimentation workflows
 
 ## What makes a credible first touch
 
@@ -38,10 +40,12 @@ The message should connect the observed signal to one plausible Vercel-relevant 
 - friction in deployment workflows
 - migration or modernization pressure
 - onboarding new engineers into cleaner frontend infrastructure
+- moving AI or internal-tool prototypes into a repeatable shipping workflow
+- tightening iteration loops for teams building agentic or data-heavy product experiences
 
 ## Drafting constraints
 
-- Keep the email concise, typically 90-150 words.
+- Keep the email concise, typically 65-95 words.
 - Use a direct, plainspoken tone.
 - Use only the signals provided in the input.
 - Do not invent product usage, contracts, or customer history.

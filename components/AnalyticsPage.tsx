@@ -21,30 +21,31 @@ function MetricCard({
   sub,
   tone = "default",
   trend,
+  highlight,
 }: {
   label: string;
   value: string;
   sub: string;
   tone?: "default" | "emerald" | "amber" | "teal";
   trend?: number;
+  highlight?: boolean;
 }) {
-  const toneClasses =
-    tone === "emerald"
-      ? "border-emerald-200 bg-emerald-50"
-      : tone === "amber"
-        ? "border-amber-200 bg-amber-50"
-        : tone === "teal"
-          ? "border-teal-200 bg-teal-50"
-          : "border-zinc-200 bg-white";
+  const toneMap: Record<string, string> = {
+    emerald: "border-emerald-200 bg-emerald-50",
+    amber: "border-amber-200 bg-amber-50",
+    teal: "border-teal-200 bg-teal-50",
+    default: "border-zinc-200 bg-white",
+  };
+  const toneClasses = toneMap[tone] ?? toneMap.default;
 
   return (
-    <div className={cn("rounded-xl border px-4 py-4 shadow-sm", toneClasses)}>
+    <div className={cn("rounded-xl border px-4 py-4 shadow-sm", toneClasses, highlight && "ring-1 ring-emerald-200/60")}>
       <div className="flex items-start justify-between gap-4">
         <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-zinc-500">{label}</p>
         {trend !== undefined && (
           <span
             className={cn(
-              "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[11px] font-medium",
+              "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[12px] font-semibold",
               trend >= 0 ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
             )}
           >
@@ -192,6 +193,7 @@ export default function AnalyticsPage({
               sub="Meetings booked or active replies from generated emails."
               tone="emerald"
               trend={analytics.trends?.positiveReply}
+              highlight
             />
             <MetricCard
               label="Lift vs template ROI"
@@ -261,7 +263,7 @@ export default function AnalyticsPage({
                   const replyPct =
                     row.withOutcome > 0 ? Math.round((row.replied / row.withOutcome) * 100) : null;
                   return (
-                    <TableRow key={row.angleType}>
+                    <TableRow key={row.angleType} className={cn("border-l-[3px]", ANGLE_CONFIG[row.angleType].borderColor)}>
                       <TableCell className="font-medium text-zinc-900">
                         <span className="flex items-center gap-2">
                           <span
