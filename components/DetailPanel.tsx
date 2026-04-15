@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { OutboundJob } from "@/lib/types";
 import { ANGLE_CONFIG } from "@/lib/angle-config";
 import {
@@ -33,6 +33,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   SkipForward,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -186,7 +187,10 @@ export default function DetailPanel({
   const [regenPreview, setRegenPreview] = useState<OutboundJob["draft"] | null>(null);
   const [regenPreviewFingerprint, setRegenPreviewFingerprint] = useState<string | null>(null);
   const [showResearch, setShowResearch] = useState(false);
-  const [showEvidence, setShowEvidence] = useState(false);
+  const [showEvidence, setShowEvidence] = useState(job?.confidence.tier !== "high");
+  useEffect(() => {
+    setShowEvidence(job?.confidence.tier !== "high");
+  }, [job?.id, job?.confidence.tier]);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   if (!job) {
@@ -204,7 +208,7 @@ export default function DetailPanel({
   const atConfig = ANGLE_CONFIG[job.angleType] ?? ANGLE_CONFIG.generic;
   const run = job.researchRun;
   const usedSignals = job.signals.filter((s) => s.usedInAngle);
-  const primarySignals = usedSignals.slice(0, 2);
+
   const feedbackCaptured = job.feedback?.edited === true;
   const hasStructuredFeedback = feedbackCaptured || Boolean(job.feedback?.editorNote);
 
@@ -333,7 +337,7 @@ export default function DetailPanel({
 
   const tierStyleMap: Record<string, string> = {
     high: "text-emerald-800 border-emerald-200 bg-emerald-50",
-    medium: "text-amber-900 border-amber-200 bg-amber-50",
+    medium: "text-blue-800 border-blue-200 bg-blue-50",
   };
   const tierStyles = tierStyleMap[job.confidence.tier] ?? "text-zinc-600 border-zinc-200 bg-zinc-100";
 
@@ -370,7 +374,7 @@ export default function DetailPanel({
 
               <div className="flex flex-wrap items-center gap-3 mt-3">
                 <span className="inline-flex items-center gap-1">
-                  <GovIcon size={13} className="text-amber-700" aria-hidden />
+                  <GovIcon size={13} className={job.governance === "review_required" ? "text-amber-700" : "text-slate-500"} aria-hidden />
                   <span className="text-[11px] text-zinc-600">{gov.label}</span>
                 </span>
                 <span className="text-zinc-300">·</span>
@@ -379,10 +383,13 @@ export default function DetailPanel({
                     render={
                       <button
                         type="button"
-                        className="inline-flex items-center gap-1 text-[11px] font-mono text-zinc-500"
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded border px-1.5 py-0.5 text-[11px] font-mono font-medium transition-opacity hover:opacity-80",
+                          tierStyles
+                        )}
                       >
-                        Confidence: {job.confidence.tier}
-                        <Info size={12} className="opacity-70" aria-hidden />
+                        {job.confidence.tier}
+                        <Info size={11} className="opacity-60" aria-hidden />
                       </button>
                     }
                   />
@@ -451,7 +458,7 @@ export default function DetailPanel({
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0 bg-zinc-50/80">
-          <div className="mx-auto w-full max-w-[1380px] space-y-8 px-4 py-6 pb-24 sm:px-6">
+          <div className="mx-auto w-full max-w-[1380px] space-y-8 px-4 py-6 pb-4 sm:px-6">
             {job.status === "approved" && (
               <div
                 className={cn(
@@ -516,15 +523,22 @@ export default function DetailPanel({
                     {atConfig.label}
                   </span>
                   {job.outreach?.personAngleStrength && job.outreach.personAngleStrength !== "none" && (
-                    <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-mono font-semibold text-amber-800">
+                    <span className="inline-flex items-center gap-1.5 rounded-md border border-violet-200 bg-violet-50 px-2 py-1 text-[11px] font-mono font-semibold text-violet-800">
                       ★ Personal angle
                     </span>
                   )}
                 </div>
 
+                {job.whyNow && (
+                  <div className="flex items-start gap-2 rounded-md bg-zinc-50 border border-zinc-100 px-3 py-2">
+                    <Zap size={13} className="text-zinc-400 mt-px shrink-0" aria-hidden />
+                    <p className="text-[13px] text-zinc-700 leading-snug">{job.whyNow}</p>
+                  </div>
+                )}
+
                 {job.outreach?.personInsight && (
                   <div>
-                    <p className="text-[14px] text-zinc-900 leading-snug">
+                    <p className="text-[15px] text-zinc-900 leading-normal font-medium">
                       <span className="mr-1.5">👤</span>
                       {job.outreach.personInsight}
                     </p>
@@ -542,7 +556,7 @@ export default function DetailPanel({
 
                 {job.outreach?.companyInsight && (
                   <div>
-                    <p className="text-[14px] text-zinc-900 leading-snug">
+                    <p className="text-[15px] text-zinc-900 leading-normal font-medium">
                       <span className="mr-1.5">🏢</span>
                       {job.outreach.companyInsight}
                     </p>
@@ -558,16 +572,74 @@ export default function DetailPanel({
                   </div>
                 )}
 
-                {primarySignals.length > 0 && (
-                  <p className="text-[12px] text-zinc-400 border-t border-zinc-100 pt-3 mt-1">
-                    Based on:{" "}
-                    <span className="text-zinc-500 font-medium">
-                      {primarySignals.map((s) => s.label).join(" · ")}
-                    </span>
-                  </p>
-                )}
+                {usedSignals.length > 0 && (() => {
+                  const strong = usedSignals.filter((s) => s.strength === "strong");
+                  const moderate = usedSignals.filter((s) => s.strength === "moderate");
+                  const weak = usedSignals.filter((s) => s.strength === "weak");
+                  return (
+                    <div className="flex items-center gap-3 border-t border-zinc-100 pt-3 mt-1">
+                      <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wide shrink-0">
+                        {usedSignals.length} signal{usedSignals.length !== 1 ? "s" : ""}
+                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {strong.length > 0 && (
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <span className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-700 cursor-default">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
+                                  {strong.length} strong
+                                </span>
+                              }
+                            />
+                            <TooltipContent side="bottom" className="text-left max-w-[200px]">
+                              {strong.map((s) => s.label).join(", ")}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                        {moderate.length > 0 && (
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <span className="inline-flex items-center gap-1 rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[11px] font-medium text-blue-700 cursor-default">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-blue-400" aria-hidden />
+                                  {moderate.length} moderate
+                                </span>
+                              }
+                            />
+                            <TooltipContent side="bottom" className="text-left max-w-[200px]">
+                              {moderate.map((s) => s.label).join(", ")}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                        {weak.length > 0 && (
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <span className="inline-flex items-center gap-1 rounded border border-zinc-200 bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-500 cursor-default">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-zinc-400" aria-hidden />
+                                  {weak.length} weak
+                                </span>
+                              }
+                            />
+                            <TooltipContent side="bottom" className="text-left max-w-[200px]">
+                              {weak.map((s) => s.label).join(", ")}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
                 {(!job.outreach?.personInsight && !job.outreach?.companyInsight) && (
-                  <p className="text-[14px] text-zinc-900 leading-snug">{job.angle}</p>
+                  <p className="text-[15px] text-zinc-900 leading-normal font-medium">{job.angle}</p>
+                )}
+
+                {run.uncertainty && (
+                  <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50/80 px-3 py-2">
+                    <AlertTriangle size={13} className="text-amber-700 mt-px shrink-0" aria-hidden />
+                    <p className="text-[12px] text-amber-950/90 leading-snug">{run.uncertainty}</p>
+                  </div>
                 )}
               </div>
             </section>
@@ -600,8 +672,8 @@ export default function DetailPanel({
               </div>
 
               {draftHasEdits && !isDone && (
-                <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200/80 rounded-md px-2 py-1.5 w-fit">
-                  Unsaved edits — approving this draft keeps these changes.
+                <p className="text-[11px] text-teal-800 bg-teal-50 border border-teal-200/80 rounded-md px-2 py-1.5 w-fit">
+                  Draft edited — approving keeps these changes.
                 </p>
               )}
 
@@ -640,9 +712,23 @@ export default function DetailPanel({
                         aria-label="Email body"
                       />
                     ) : (
-                      <div className="w-full flex-1 text-[15px] leading-relaxed text-foreground p-5 overflow-y-auto">
+                      <button
+                        type="button"
+                        disabled={isDone}
+                        onClick={() => {
+                          if (!isDone) {
+                            setIsEditing(true);
+                            setTimeout(() => bodyRef.current?.focus(), 50);
+                          }
+                        }}
+                        className={cn(
+                          "w-full flex-1 text-[15px] leading-relaxed text-foreground p-5 overflow-y-auto text-left",
+                          !isDone && "cursor-text hover:bg-zinc-50/60 transition-colors"
+                        )}
+                        aria-label={isDone ? "Email body" : "Click to edit email body"}
+                      >
                         {renderBodyWithHighlight(job.draft.body, job.draft.highlightedSpan)}
-                      </div>
+                      </button>
                     )}
                   </div>
 
@@ -676,7 +762,7 @@ export default function DetailPanel({
                 <div className="space-y-6 pt-2 pl-6">
                   {/* Signals grid */}
                   <div>
-                    <h3 className="text-[12px] font-semibold text-zinc-900 tracking-tight mb-3 uppercase font-mono">Signals</h3>
+                    <h3 className="text-[13px] font-semibold text-zinc-900 tracking-tight mb-3">Signals</h3>
                     <div className="grid gap-2 sm:grid-cols-2">
                       {usedSignals.map((sig) => (
                         <div
@@ -725,7 +811,7 @@ export default function DetailPanel({
 
                   {/* Agent Strategy */}
                   <div>
-                    <h3 className="text-[12px] font-semibold text-zinc-900 tracking-tight mb-3 uppercase font-mono">Agent Strategy</h3>
+                    <h3 className="text-[13px] font-semibold text-zinc-900 tracking-tight mb-3">Agent Strategy</h3>
                     <div className="rounded-lg border border-zinc-200 bg-zinc-50/60 px-4 py-3 space-y-3">
                       <div>
                         <div className="flex items-center gap-2 mb-1.5">
@@ -836,6 +922,42 @@ export default function DetailPanel({
             </section>
           </div>
         </div>
+
+        {!isDone && (
+          <div className="shrink-0 z-20 border-t border-border bg-card/95 backdrop-blur-sm px-4 py-2.5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              {draftHasEdits && (
+                <span className="text-[11px] text-teal-700 bg-teal-50 border border-teal-200 rounded-md px-2 py-1 shrink-0">
+                  Draft edited
+                </span>
+              )}
+              {isEditing && !draftHasEdits && (
+                <span className="text-[11px] text-zinc-500 font-mono">Editing…</span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-zinc-600"
+                onClick={() => onArchive(job.id)}
+              >
+                <SkipForward size={13} />
+                Skip
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="gap-1.5"
+                onClick={handleApprove}
+              >
+                <CheckCircle size={13} />
+                {draftHasEdits ? "Approve with edits" : "Approve draft"}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <Sheet

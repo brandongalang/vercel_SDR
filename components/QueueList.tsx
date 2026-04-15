@@ -22,7 +22,7 @@ interface QueueListProps {
 
 const CONFIDENCE_CHIP: Record<string, { className: string; letter: string }> = {
   high: { className: "bg-emerald-500 text-white", letter: "H" },
-  medium: { className: "bg-amber-400 text-white", letter: "M" },
+  medium: { className: "bg-blue-500 text-white", letter: "M" },
 };
 const CONFIDENCE_CHIP_DEFAULT = { className: "bg-zinc-300 text-zinc-700", letter: "L" };
 
@@ -80,30 +80,33 @@ function QueueRow({
           <>
             {/* Zone 1 — Confidence chip */}
             <div
-              className="flex shrink-0 w-9 items-center justify-center self-stretch"
+              className="flex shrink-0 w-9 flex-col items-center justify-center gap-0.5 self-stretch"
               aria-label={`Confidence ${job.confidence.tier}`}
             >
               <span
                 className={cn(
-                  "w-7 h-7 rounded-md flex items-center justify-center font-mono font-bold text-[11px]",
+                  "w-7 h-6 rounded-md flex items-center justify-center font-mono font-bold text-[11px]",
                   confidenceChipClass(job.confidence.tier)
                 )}
               >
                 {tierLetter(job.confidence.tier)}
               </span>
+              <span className="text-[10px] font-mono text-zinc-400 tabular-nums leading-none">
+                {job.signals.filter((s) => s.usedInAngle).length}s
+              </span>
             </div>
 
             {/* Zone 2 — Identity + context */}
             <div className="min-w-0 flex-1 px-2">
-              <p className="font-semibold text-[13px] text-zinc-900 tracking-tight truncate leading-tight">
+              <p className="font-semibold text-[14px] text-zinc-900 tracking-tight truncate leading-tight">
                 {job.lead.name}
               </p>
               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                 <span className="text-[12px] text-zinc-500 truncate max-w-[90px]">{job.company}</span>
-                <span className={cn("h-2 w-2 rounded-full shrink-0", atConfig.dot)} />
-                <span className="text-[11px] text-zinc-500 truncate">{atConfig.label}</span>
+                <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", atConfig.dot)} />
+                <span className="text-[11px] text-zinc-600 truncate">{atConfig.label}</span>
                 <span
-                  className="inline-flex items-center gap-0.5 text-[10px] font-mono text-zinc-400 shrink-0"
+                  className="inline-flex items-center gap-0.5 text-[11px] font-mono text-zinc-500 shrink-0"
                 >
                   {playConfig.icon}
                   {playConfig.label}
@@ -141,7 +144,7 @@ function QueueRow({
             <Badge
               variant="outline"
               className={cn(
-                "text-[10px] uppercase font-mono rounded-sm px-1.5 py-0 h-5 shrink-0 border ml-2",
+                "text-[11px] font-mono rounded-sm px-1.5 py-0 h-5 shrink-0 border ml-2",
                 job.status === "approved" || job.status === "sent_stub"
                   ? "text-emerald-800 bg-emerald-50 border-emerald-200"
                   : "text-zinc-600 bg-zinc-100 border-zinc-200"
