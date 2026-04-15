@@ -77,6 +77,7 @@ export interface PipelinePhasePayloads {
     angle: string;
     whyNow: string;
     confidence: OutboundJob["confidence"];
+    outreach?: OutboundJob["outreach"];
   };
   draft: OutboundJob["draft"];
   persist: {
@@ -402,6 +403,7 @@ export async function runOutboundJobPipeline(input: {
           summary: anglePlan.confidence.summary,
           reasons: anglePlan.confidence.reasons,
         },
+        outreach: anglePlan.outreach,
       },
       input.onPhaseUpdate,
     );

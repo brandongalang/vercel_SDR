@@ -13,6 +13,7 @@ import type {
   JobStatus,
   LeadSource,
   OutboundJob,
+  OutreachContext,
   PipelineStatus,
   Play,
   PlayType,
@@ -34,6 +35,7 @@ export interface InstantJobRecord {
   confidenceSummary: string;
   confidenceReasons: string[];
   angle: string;
+  outreach: OutreachContext | null;
   draftSubject: string;
   draftBody: string;
   highlightedSpan: string | null;
@@ -276,6 +278,7 @@ export function fromInstantJobRecord(record: Record<string, unknown>): OutboundJ
       reasons: getStringArray(record.confidenceReasons),
     },
     angle: typeof record.angle === "string" ? record.angle : "",
+    outreach: isRecord(record.outreach) ? (record.outreach as unknown as OutboundJob["outreach"]) : undefined,
     signals: Array.isArray(record.signals) ? (record.signals as OutboundJob["signals"]) : [],
     discardedSignals: Array.isArray(record.discardedSignals)
       ? (record.discardedSignals as OutboundJob["discardedSignals"])
@@ -324,6 +327,7 @@ export function toInstantJobRecord(job: OutboundJob): InstantJobRecord {
     confidenceSummary: job.confidence.summary,
     confidenceReasons: job.confidence.reasons ?? [],
     angle: job.angle,
+    outreach: job.outreach ?? null,
     draftSubject: job.draft.subject,
     draftBody: job.draft.body,
     highlightedSpan: job.draft.highlightedSpan ?? null,

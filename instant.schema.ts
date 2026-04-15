@@ -21,6 +21,7 @@ export default i.schema({
       confidenceReasons: i.json(),
       // Content
       angle: i.string(),
+      outreach: i.json(),
       draftSubject: i.string(),
       draftBody: i.string(),
       highlightedSpan: i.any(),

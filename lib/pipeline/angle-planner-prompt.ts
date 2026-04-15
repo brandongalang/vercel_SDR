@@ -36,5 +36,12 @@ Requirements:
 - Even low-confidence leads should still get a usable but modest plan.
 - Do not select signal IDs that are not present.
 - Prefer specificity over breadth.
+- Generate an outreach object containing SDR-facing context (separate from the agent-to-agent angle and whyNow fields):
+  - companyInsight: 1-2 factual sentences about what is happening at the company right now, written for a human sales rep, not an LLM. Include inline source type and date references like "(engineering blog, Mar 27)" so the SDR can assess grounding at a glance. No strategy directives, no imperative verbs — just the situation.
+  - companyRefs: structured references for each claim, with label, url, date, and sourceType. Valid sourceType values: linkedin, twitter, conference, blog, podcast, job_posting, product_data, news.
+  - personInsight: 1-2 sentences about why THIS person specifically, based on their public professional activity. Include inline source and date. Set to null if no viable personal angle exists. Only use content the person authored, shared, or participated in publicly. Never reference browsing behavior or internal tracking attributed to the individual. Never be invasive or creepy.
+  - personRefs: structured references for person-level claims. Empty array when personInsight is null.
+  - personAngleStrength: "strong" when the person authored or said something directly related to the angle (blog post, conference talk, tweet, LinkedIn post). "moderate" when they have related professional activity but did not author an opinion (attended a session, reshared a job posting). "none" when no viable personal angle was found.
+- When personAngleStrength is "strong", the angle sentence should incorporate the personal hook so the draft generator can prioritize it as the opener.
 `;
 }

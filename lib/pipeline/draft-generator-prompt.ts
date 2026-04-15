@@ -108,5 +108,6 @@ Requirements:
 - Preserve the chosen angle and the same underlying signal set unless the SDR note explicitly asks for a reframing.
 - Return highlightedSpan as an exact substring from the body when possible.
 - End with a single CTA.
+- When the angle plan includes outreach.personAngleStrength "strong", prefer opening with the person-level hook rather than a company-level observation. Keep it professional and non-invasive.
 `;
 }

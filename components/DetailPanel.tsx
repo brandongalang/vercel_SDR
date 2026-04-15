@@ -186,6 +186,7 @@ export default function DetailPanel({
   const [regenPreview, setRegenPreview] = useState<OutboundJob["draft"] | null>(null);
   const [regenPreviewFingerprint, setRegenPreviewFingerprint] = useState<string | null>(null);
   const [showResearch, setShowResearch] = useState(false);
+  const [showEvidence, setShowEvidence] = useState(false);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   if (!job) {
@@ -501,11 +502,10 @@ export default function DetailPanel({
               </div>
             )}
 
-            {/* Decision context — angle, signals, and timing surfaced before the draft */}
+            {/* TL;DR Hook surfaced before the draft */}
             <section>
-              <h2 className="text-[14px] font-semibold text-zinc-900 tracking-tight mb-3">Why this lead</h2>
-              <div className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
-                <div className="px-4 pt-4 pb-3 space-y-2">
+              <div className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden p-4 space-y-3">
+                <div className="flex items-center gap-2">
                   <span
                     className={cn(
                       "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-mono font-semibold",
@@ -515,26 +515,60 @@ export default function DetailPanel({
                     <span className={cn("h-2 w-2 rounded-full shrink-0", atConfig.dot)} aria-hidden />
                     {atConfig.label}
                   </span>
-                  <p className="text-[14px] font-medium text-zinc-900 leading-snug">{job.angle}</p>
-                  {primarySignals.length > 0 && (
-                    <p className="text-[12px] text-zinc-400">
-                      Based on:{" "}
-                      <span className="text-zinc-500">
-                        {primarySignals.map((s) => s.label).join(" · ")}
-                      </span>
-                    </p>
+                  {job.outreach?.personAngleStrength && job.outreach.personAngleStrength !== "none" && (
+                    <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-mono font-semibold text-amber-800">
+                      ★ Personal angle
+                    </span>
                   )}
                 </div>
-                <div className="border-t border-zinc-100 bg-zinc-50/70 px-4 py-3 grid gap-3 sm:grid-cols-2">
+
+                {job.outreach?.personInsight && (
                   <div>
-                    <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-400 mb-1">Why now</p>
-                    <p className="text-[12px] leading-relaxed text-zinc-700">{job.whyNow}</p>
+                    <p className="text-[14px] text-zinc-900 leading-snug">
+                      <span className="mr-1.5">👤</span>
+                      {job.outreach.personInsight}
+                    </p>
+                    {job.outreach.personRefs && job.outreach.personRefs.length > 0 && (
+                      <div className="mt-1.5 flex flex-wrap gap-2 pl-6">
+                        {job.outreach.personRefs.map((r, i) => (
+                          <a href={r.url} key={i} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-zinc-800 bg-zinc-50 hover:bg-zinc-100 border border-border rounded px-1.5 py-0.5 transition-colors">
+                            {r.label} · {r.date}
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
+                )}
+
+                {job.outreach?.companyInsight && (
                   <div>
-                    <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-400 mb-1">Research summary</p>
-                    <p className="text-[12px] leading-relaxed text-zinc-600 line-clamp-3">{run.orchestratorSummary}</p>
+                    <p className="text-[14px] text-zinc-900 leading-snug">
+                      <span className="mr-1.5">🏢</span>
+                      {job.outreach.companyInsight}
+                    </p>
+                    {job.outreach.companyRefs && job.outreach.companyRefs.length > 0 && (
+                      <div className="mt-1.5 flex flex-wrap gap-2 pl-6">
+                        {job.outreach.companyRefs.map((r, i) => (
+                          <a href={r.url} key={i} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-zinc-800 bg-zinc-50 hover:bg-zinc-100 border border-border rounded px-1.5 py-0.5 transition-colors">
+                            {r.label} · {r.date}
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
+
+                {primarySignals.length > 0 && (
+                  <p className="text-[12px] text-zinc-400 border-t border-zinc-100 pt-3 mt-1">
+                    Based on:{" "}
+                    <span className="text-zinc-500 font-medium">
+                      {primarySignals.map((s) => s.label).join(" · ")}
+                    </span>
+                  </p>
+                )}
+                {(!job.outreach?.personInsight && !job.outreach?.companyInsight) && (
+                  <p className="text-[14px] text-zinc-900 leading-snug">{job.angle}</p>
+                )}
               </div>
             </section>
 
@@ -629,157 +663,176 @@ export default function DetailPanel({
             </section>
 
             <section className="space-y-4">
-              <h2 className="text-[14px] font-semibold text-zinc-900 tracking-tight">
-                Supporting evidence
-              </h2>
+              <button
+                type="button"
+                onClick={() => setShowEvidence((v) => !v)}
+                className="flex items-center gap-1.5 text-[14px] font-semibold text-zinc-900 tracking-tight hover:text-zinc-600 transition-colors"
+              >
+                <ChevronRight size={16} className={cn("transition-transform duration-150 text-zinc-400 group-hover:text-zinc-500", showEvidence && "rotate-90")} />
+                {usedSignals.length} signals · agent strategy · research
+              </button>
 
-              {/* Signals grid — always visible */}
-              <div>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {usedSignals.map((sig) => (
-                    <div
-                      key={sig.id}
-                      className={cn(
-                        "rounded-lg border border-zinc-200 bg-white px-3 py-3 border-l-[3px]",
-                        sig.source === "internal" ? "border-l-emerald-500" : sig.source === "external" ? "border-l-teal-500" : "border-l-zinc-300"
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="text-[13px] font-medium text-zinc-900">{sig.label}</span>
-                            <span className="text-[10px] font-mono uppercase text-zinc-500">{sig.source}</span>
-                            <span
-                              className={cn(
-                                "text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded border",
-                                sig.strength === "strong"
-                                  ? "bg-emerald-500 text-white border-emerald-500"
-                                  : sig.strength === "moderate"
-                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                    : "bg-zinc-100 text-zinc-500 border-zinc-200"
-                              )}
-                            >
-                              {sig.strength}
-                            </span>
-                          </div>
-                          <p className="mt-1.5 text-[12px] leading-relaxed text-zinc-600">{sig.value}</p>
-                        </div>
-                        {sig.evidenceUrl && (
-                          <a
-                            href={sig.evidenceUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-teal-700 hover:text-teal-900 shrink-0 mt-0.5"
-                            aria-label={`Open evidence for ${sig.label}`}
-                          >
-                            <ExternalLink size={14} />
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Why this angle strategy — describes the angle type rationale */}
-              <div className="rounded-lg border border-zinc-200 bg-zinc-50/60 px-4 py-3 space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className={cn("inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-mono font-semibold", atConfig.color)}>
-                    <span className={cn("h-2 w-2 rounded-full shrink-0", atConfig.dot)} aria-hidden />
-                    {atConfig.label}
-                  </span>
-                  <p className="text-[10px] font-mono uppercase text-zinc-500">Angle strategy</p>
-                </div>
-                <p className="text-[12px] leading-relaxed text-zinc-700">{atConfig.description}</p>
-              </div>
-
-              {/* Research details — collapsible toggle */}
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setShowResearch((v) => !v)}
-                  className="flex items-center gap-1.5 text-[11px] font-mono text-zinc-500 hover:text-zinc-800 transition-colors"
-                >
-                  <ChevronRight size={12} className={cn("transition-transform duration-150", showResearch && "rotate-90")} />
-                  Research details
-                </button>
-                {showResearch && (
-                  <div className="mt-3 space-y-3">
-                    <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 px-3 py-3">
-                      <p className="text-[12px] font-medium text-zinc-900">Research packet</p>
-                      <p className="mt-1 text-[12px] leading-relaxed text-zinc-600">
-                        The orchestrator delegated topic-specific research threads, summarized the coverage, then handed a narrowed packet into signal extraction and drafting.
-                      </p>
-                    </div>
-
-                    {run.threadSummaries.length > 0 && (
-                      <div className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
-                        <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">Thread summaries</p>
-                        <ul className="mt-2 space-y-2">
-                          {run.threadSummaries.map((summary, index) => (
-                            <li key={`${summary}-${index}`} className="text-[12px] leading-relaxed text-zinc-700">
-                              {summary}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
+              {showEvidence && (
+                <div className="space-y-6 pt-2 pl-6">
+                  {/* Signals grid */}
+                  <div>
+                    <h3 className="text-[12px] font-semibold text-zinc-900 tracking-tight mb-3 uppercase font-mono">Signals</h3>
                     <div className="grid gap-2 sm:grid-cols-2">
-                      {run.reports.map((report) => (
-                        <div key={report.topic} className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
-                          <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">{report.topic}</p>
-                          <p className="mt-2 text-[12px] font-medium text-zinc-900">{report.summary}</p>
-                          {report.findings.length > 0 && (
-                            <ul className="mt-2 space-y-2">
-                              {report.findings.slice(0, 2).map((finding, index) => (
-                                <li key={`${report.topic}-${index}`} className="text-[11px] leading-relaxed text-zinc-600">
-                                  <span className="font-medium text-zinc-800">{finding.text}</span>
-                                  {finding.date ? ` · ${finding.date}` : ""}
-                                </li>
-                              ))}
-                            </ul>
+                      {usedSignals.map((sig) => (
+                        <div
+                          key={sig.id}
+                          className={cn(
+                            "rounded-lg border border-zinc-200 bg-white px-3 py-3 border-l-[3px]",
+                            sig.source === "internal" ? "border-l-emerald-500" : sig.source === "external" ? "border-l-teal-500" : "border-l-zinc-300"
                           )}
-                          {report.gaps.length > 0 && (
-                            <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
-                              Gaps: {report.gaps.join("; ")}
-                            </p>
-                          )}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="text-[13px] font-medium text-zinc-900">{sig.label}</span>
+                                <span className="text-[10px] font-mono uppercase text-zinc-500">{sig.source}</span>
+                                <span
+                                  className={cn(
+                                    "text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded border",
+                                    sig.strength === "strong"
+                                      ? "bg-emerald-500 text-white border-emerald-500"
+                                      : sig.strength === "moderate"
+                                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                        : "bg-zinc-100 text-zinc-500 border-zinc-200"
+                                  )}
+                                >
+                                  {sig.strength}
+                                </span>
+                              </div>
+                              <p className="mt-1.5 text-[12px] leading-relaxed text-zinc-600">{sig.value}</p>
+                            </div>
+                            {sig.evidenceUrl && (
+                              <a
+                                href={sig.evidenceUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-teal-700 hover:text-teal-900 shrink-0 mt-0.5"
+                                aria-label={`Open evidence for ${sig.label}`}
+                              >
+                                <ExternalLink size={14} />
+                              </a>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
+                  </div>
 
-                    <div className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
-                      <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">Lead source</p>
-                      <p className="mt-2 text-[12px] font-medium text-zinc-900">{formatLeadSource(job.play.leadSource)}</p>
-                      <p className="mt-1 text-[12px] leading-relaxed text-zinc-600">
-                        This lead already existed upstream. The agent enriched it, narrowed to one angle, and generated a first-touch draft.
-                      </p>
-                    </div>
-
-                    {job.discardedSignals && job.discardedSignals.length > 0 && (
-                      <div className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
-                        <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">Not leading with</p>
-                        <ul className="mt-2 space-y-2">
-                          {job.discardedSignals.map((ds, i) => (
-                            <li key={i} className="text-[12px] text-zinc-700">
-                              <span className="font-medium text-zinc-900">{ds.label}</span>
-                              <p className="mt-1 leading-relaxed text-zinc-600">{ds.reason}</p>
-                            </li>
-                          ))}
-                        </ul>
+                  {/* Agent Strategy */}
+                  <div>
+                    <h3 className="text-[12px] font-semibold text-zinc-900 tracking-tight mb-3 uppercase font-mono">Agent Strategy</h3>
+                    <div className="rounded-lg border border-zinc-200 bg-zinc-50/60 px-4 py-3 space-y-3">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className={cn("inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-mono font-semibold", atConfig.color)}>
+                            <span className={cn("h-2 w-2 rounded-full shrink-0", atConfig.dot)} aria-hidden />
+                            {atConfig.label}
+                          </span>
+                          <span className="text-[10px] font-mono uppercase text-zinc-400">Angle</span>
+                        </div>
+                        <p className="text-[12px] leading-relaxed text-zinc-700 font-medium">{job.angle}</p>
                       </div>
-                    )}
+                      <div className="border-t border-zinc-200 pt-3">
+                        <p className="text-[10px] font-mono uppercase text-zinc-400 mb-1">Why Now</p>
+                        <p className="text-[12px] leading-relaxed text-zinc-700">{job.whyNow}</p>
+                      </div>
+                    </div>
+                  </div>
 
-                    {run.uncertainty && (
-                      <div className="rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-3">
-                        <p className="text-[10px] font-mono uppercase tracking-wide text-amber-800">Uncertainty note</p>
-                        <p className="mt-2 text-[12px] leading-relaxed text-amber-950/85">{run.uncertainty}</p>
+                  {/* Research details — collapsible toggle */}
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setShowResearch((v) => !v)}
+                      className="flex items-center gap-1.5 text-[11px] font-mono text-zinc-500 hover:text-zinc-800 transition-colors"
+                    >
+                      <ChevronRight size={12} className={cn("transition-transform duration-150", showResearch && "rotate-90")} />
+                      Research details
+                    </button>
+                    {showResearch && (
+                      <div className="mt-3 space-y-3">
+                        <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 px-3 py-3">
+                          <p className="text-[12px] font-medium text-zinc-900">Research packet</p>
+                          <p className="mt-1 text-[12px] leading-relaxed text-zinc-600">
+                            The orchestrator delegated topic-specific research threads, summarized the coverage, then handed a narrowed packet into signal extraction and drafting.
+                          </p>
+                        </div>
+
+                        {run.threadSummaries.length > 0 && (
+                          <div className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
+                            <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">Thread summaries</p>
+                            <ul className="mt-2 space-y-2">
+                              {run.threadSummaries.map((summary, index) => (
+                                <li key={`${summary}-${index}`} className="text-[12px] leading-relaxed text-zinc-700">
+                                  {summary}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {run.reports.map((report) => (
+                            <div key={report.topic} className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
+                              <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">{report.topic}</p>
+                              <p className="mt-2 text-[12px] font-medium text-zinc-900">{report.summary}</p>
+                              {report.findings.length > 0 && (
+                                <ul className="mt-2 space-y-2">
+                                  {report.findings.slice(0, 2).map((finding, index) => (
+                                    <li key={`${report.topic}-${index}`} className="text-[11px] leading-relaxed text-zinc-600">
+                                      <span className="font-medium text-zinc-800">{finding.text}</span>
+                                      {finding.date ? ` · ${finding.date}` : ""}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                              {report.gaps.length > 0 && (
+                                <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
+                                  Gaps: {report.gaps.join("; ")}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
+                          <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">Lead source</p>
+                          <p className="mt-2 text-[12px] font-medium text-zinc-900">{formatLeadSource(job.play.leadSource)}</p>
+                          <p className="mt-1 text-[12px] leading-relaxed text-zinc-600">
+                            This lead already existed upstream. The agent enriched it, narrowed to one angle, and generated a first-touch draft.
+                          </p>
+                        </div>
+
+                        {job.discardedSignals && job.discardedSignals.length > 0 && (
+                          <div className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
+                            <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">Not leading with</p>
+                            <ul className="mt-2 space-y-2">
+                              {job.discardedSignals.map((ds, i) => (
+                                <li key={i} className="text-[12px] text-zinc-700">
+                                  <span className="font-medium text-zinc-900">{ds.label}</span>
+                                  <p className="mt-1 leading-relaxed text-zinc-600">{ds.reason}</p>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {run.uncertainty && (
+                          <div className="rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-3">
+                            <p className="text-[10px] font-mono uppercase tracking-wide text-amber-800">Uncertainty note</p>
+                            <p className="mt-2 text-[12px] leading-relaxed text-amber-950/85">{run.uncertainty}</p>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </section>
           </div>
         </div>

@@ -66,6 +66,7 @@ export function buildGeneratedJob(input: {
       reasons: input.anglePlan.confidence.reasons,
     },
     angle: input.anglePlan.angle,
+    outreach: input.anglePlan.outreach,
     signals: input.signals,
     discardedSignals: input.discardedSignals,
     draft: input.draft,

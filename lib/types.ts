@@ -11,6 +11,9 @@ import {
   SIGNAL_CATEGORY_VALUES,
   SIGNAL_SOURCE_VALUES,
   SIGNAL_STRENGTH_VALUES,
+  SIGNAL_SCOPE_VALUES,
+  PERSON_ANGLE_STRENGTH_VALUES,
+  INSIGHT_SOURCE_TYPE_VALUES,
 } from "@/lib/pipeline/vocab";
 
 // ─── Core enums ──────────────────────────────────────────────────────────────
@@ -33,6 +36,10 @@ export type PlayType = (typeof PLAY_TYPE_VALUES)[number];
 
 export type LeadSource =
   | (typeof LEAD_SOURCE_VALUES)[number];
+
+export type SignalScope = (typeof SIGNAL_SCOPE_VALUES)[number];
+export type PersonAngleStrength = (typeof PERSON_ANGLE_STRENGTH_VALUES)[number];
+export type InsightSourceType = (typeof INSIGHT_SOURCE_TYPE_VALUES)[number];
 
 // ─── Pipeline input ───────────────────────────────────────────────────────────
 
@@ -103,6 +110,7 @@ export interface ScoredSignal {
   usedInAngle: boolean;
   signalDate?: string;       // ISO date of underlying event (post, job posting, etc.)
   evidenceUrl?: string;
+  scope?: SignalScope;
 }
 
 export interface DiscardedSignal {
@@ -120,6 +128,22 @@ export interface AnglePlan {
     reasons: string[];
   };
   usedSignalIds: string[];
+  outreach?: OutreachContext;
+}
+
+export interface InsightRef {
+  label: string;
+  url: string;
+  date: string;
+  sourceType: InsightSourceType;
+}
+
+export interface OutreachContext {
+  companyInsight: string;
+  companyRefs: InsightRef[];
+  personInsight: string | null;
+  personRefs: InsightRef[];
+  personAngleStrength: PersonAngleStrength;
 }
 
 // ─── Job ──────────────────────────────────────────────────────────────────────
@@ -159,6 +183,7 @@ export interface OutboundJob {
     reasons?: string[];
   };
   angle: string;
+  outreach?: OutreachContext;
   signals: ScoredSignal[];
   discardedSignals?: DiscardedSignal[];
   draft: { subject: string; body: string; highlightedSpan?: string };

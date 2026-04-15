@@ -29,6 +29,7 @@ Requirements:
 - Write labels and values like an SDR-ready trigger: concrete first, implication second. Avoid vague abstractions like "operational need" or "AI-ready interfaces."
 - If a fact is just background bio/title and does not sharpen timing or angle selection, rank it low or discard it.
 - Set usedInAngle to false for every signal at this stage.
+- Set scope to "person" when the signal describes something the individual said, wrote, attended, or shared publicly. Set scope to "company" for org-level activity like hiring waves, product launches, product telemetry, or migrations.
 - Put anything interesting-but-not-worth-leading-with into discardedSignals.
 
 Research packet:

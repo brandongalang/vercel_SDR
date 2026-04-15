@@ -10,6 +10,9 @@ import {
   SIGNAL_CATEGORY_VALUES,
   SIGNAL_SOURCE_VALUES,
   SIGNAL_STRENGTH_VALUES,
+  SIGNAL_SCOPE_VALUES,
+  PERSON_ANGLE_STRENGTH_VALUES,
+  INSIGHT_SOURCE_TYPE_VALUES,
 } from "@/lib/pipeline/vocab";
 import { REGENERATION_PRESETS } from "@/lib/regeneration-presets";
 
@@ -83,6 +86,25 @@ export const researchPacketModelOutputSchema = z.object({
   uncertainty: z.string().optional(),
 });
 
+export const signalScopeSchema = z.enum(SIGNAL_SCOPE_VALUES);
+export const personAngleStrengthSchema = z.enum(PERSON_ANGLE_STRENGTH_VALUES);
+export const insightSourceTypeSchema = z.enum(INSIGHT_SOURCE_TYPE_VALUES);
+
+export const insightRefSchema = z.object({
+  label: z.string().min(1),
+  url: z.string().min(1),
+  date: z.string().min(1),
+  sourceType: insightSourceTypeSchema,
+});
+
+export const outreachContextSchema = z.object({
+  companyInsight: z.string().min(1),
+  companyRefs: z.array(insightRefSchema),
+  personInsight: z.string().nullable(),
+  personRefs: z.array(insightRefSchema),
+  personAngleStrength: personAngleStrengthSchema,
+});
+
 export const scoredSignalSchema = z.object({
   id: z.string().min(1),
   category: signalCategorySchema,
@@ -94,6 +116,7 @@ export const scoredSignalSchema = z.object({
   usedInAngle: z.boolean(),
   signalDate: z.string().optional(),
   evidenceUrl: z.string().optional(),
+  scope: signalScopeSchema.optional(),
 });
 
 export const discardedSignalSchema = z.object({
@@ -116,6 +139,7 @@ export const anglePlanSchema = z.object({
     reasons: z.array(z.string()).min(1),
   }),
   usedSignalIds: z.array(z.string()).min(1),
+  outreach: outreachContextSchema.optional(),
 });
 
 export const draftOutputSchema = z.object({

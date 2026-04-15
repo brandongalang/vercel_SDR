@@ -59,3 +59,16 @@ export const LEAD_SOURCE_VALUES = [
   "web_deanonymization",
   "inbound_request",
 ] as const;
+
+export const SIGNAL_SCOPE_VALUES = ["person", "company"] as const;
+export const PERSON_ANGLE_STRENGTH_VALUES = ["strong", "moderate", "none"] as const;
+export const INSIGHT_SOURCE_TYPE_VALUES = [
+  "linkedin",
+  "twitter",
+  "conference",
+  "blog",
+  "podcast",
+  "job_posting",
+  "product_data",
+  "news",
+] as const;
