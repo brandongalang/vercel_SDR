@@ -476,36 +476,6 @@ export default function DetailPanel({
               </div>
             </div>
           </div>
-          {!isDone && (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-3">
-              <div className="flex items-center gap-2 min-w-0">
-                {draftHasEdits && (
-                  <span className="text-[11px] text-teal-700 bg-teal-50 border border-teal-200 rounded-md px-2 py-1 shrink-0">
-                    Draft edited
-                  </span>
-                )}
-                {isEditing && !draftHasEdits && (
-                  <span className="text-[11px] text-zinc-500 font-mono">Editing…</span>
-                )}
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Button type="button" size="sm" onClick={handleApprove} className="gap-1.5">
-                  <CheckCircle size={13} />
-                  {draftHasEdits ? "Approve with edits" : "Approve draft"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 text-zinc-600"
-                  onClick={() => onArchive(job.id)}
-                >
-                  <SkipForward size={13} />
-                  Skip
-                </Button>
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0 bg-zinc-50/80">
@@ -1138,6 +1108,37 @@ export default function DetailPanel({
             </section>
           </div>
         </div>
+
+        {!isDone && (
+          <div className="shrink-0 z-20 border-t border-border bg-card/95 backdrop-blur-sm px-4 py-2.5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              {draftHasEdits && (
+                <span className="text-[11px] text-teal-700 bg-teal-50 border border-teal-200 rounded-md px-2 py-1 shrink-0">
+                  Draft edited
+                </span>
+              )}
+              {isEditing && !draftHasEdits && (
+                <span className="text-[11px] text-zinc-500 font-mono">Editing…</span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button type="button" size="sm" onClick={handleApprove} className="gap-1.5">
+                <CheckCircle size={13} />
+                {draftHasEdits ? "Approve with edits" : "Approve draft"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-zinc-600"
+                onClick={() => onArchive(job.id)}
+              >
+                <SkipForward size={13} />
+                Skip
+              </Button>
+            </div>
+          </div>
+        )}
 
       </div>
 
