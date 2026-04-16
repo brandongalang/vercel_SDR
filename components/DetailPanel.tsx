@@ -33,7 +33,6 @@ import {
   ShieldAlert,
   ShieldCheck,
   SkipForward,
-  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -331,8 +330,18 @@ export default function DetailPanel({
 
   const gov =
     job.governance === "review_required"
-      ? { label: "Review required", Icon: ShieldAlert, className: "border-amber-200 bg-amber-50 text-amber-900" }
-      : { label: "Auto-eligible", Icon: ShieldCheck, className: "border-slate-200 bg-slate-100 text-slate-800" };
+      ? {
+          label: "Review required",
+          Icon: ShieldAlert,
+          className: "border-amber-200 bg-amber-50 text-amber-900",
+          iconClassName: "text-amber-700",
+        }
+      : {
+          label: "Auto-eligible",
+          Icon: ShieldCheck,
+          className: "border-slate-200 bg-slate-100 text-slate-800",
+          iconClassName: "text-slate-500",
+        };
   const GovIcon = gov.Icon;
 
   const tierStyleMap: Record<string, string> = {
@@ -340,6 +349,7 @@ export default function DetailPanel({
     medium: "text-blue-800 border-blue-200 bg-blue-50",
   };
   const tierStyles = tierStyleMap[job.confidence.tier] ?? "text-zinc-600 border-zinc-200 bg-zinc-100";
+  const signalLabel = job.confidence.tier === "high" ? "Strong relevance" : job.confidence.tier === "medium" ? "Moderate relevance" : "Weak relevance";
 
   return (
     <>
@@ -509,146 +519,90 @@ export default function DetailPanel({
               </div>
             )}
 
-            {/* TL;DR Hook surfaced before the draft */}
-            <section>
-              <div className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden p-4 space-y-3">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-mono font-semibold",
-                      atConfig.color
-                    )}
-                  >
-                    <span className={cn("h-2 w-2 rounded-full shrink-0", atConfig.dot)} aria-hidden />
-                    {atConfig.label}
-                  </span>
-                  {job.outreach?.personAngleStrength && job.outreach.personAngleStrength !== "none" && (
-                    <span className="inline-flex items-center gap-1.5 rounded-md border border-violet-200 bg-violet-50 px-2 py-1 text-[11px] font-mono font-semibold text-violet-800">
-                      ★ Personal angle
-                    </span>
-                  )}
-                </div>
-
-                {job.whyNow && (
-                  <div className="flex items-start gap-2 rounded-md bg-zinc-50 border border-zinc-100 px-3 py-2">
-                    <Zap size={13} className="text-zinc-400 mt-px shrink-0" aria-hidden />
-                    <p className="text-[13px] text-zinc-700 leading-snug">{job.whyNow}</p>
-                  </div>
-                )}
-
-                {job.outreach?.personInsight && (
-                  <div>
-                    <p className="text-[15px] text-zinc-900 leading-normal font-medium">
-                      <span className="mr-1.5">👤</span>
-                      {job.outreach.personInsight}
-                    </p>
-                    {job.outreach.personRefs && job.outreach.personRefs.length > 0 && (
-                      <div className="mt-1.5 flex flex-wrap gap-2 pl-6">
-                        {job.outreach.personRefs.map((r, i) => (
-                          <a href={r.url} key={i} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-zinc-800 bg-zinc-50 hover:bg-zinc-100 border border-border rounded px-1.5 py-0.5 transition-colors">
-                            {r.label} · {r.date}
-                          </a>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {job.outreach?.companyInsight && (
-                  <div>
-                    <p className="text-[15px] text-zinc-900 leading-normal font-medium">
-                      <span className="mr-1.5">🏢</span>
-                      {job.outreach.companyInsight}
-                    </p>
-                    {job.outreach.companyRefs && job.outreach.companyRefs.length > 0 && (
-                      <div className="mt-1.5 flex flex-wrap gap-2 pl-6">
-                        {job.outreach.companyRefs.map((r, i) => (
-                          <a href={r.url} key={i} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-zinc-800 bg-zinc-50 hover:bg-zinc-100 border border-border rounded px-1.5 py-0.5 transition-colors">
-                            {r.label} · {r.date}
-                          </a>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {usedSignals.length > 0 && (() => {
-                  const strong = usedSignals.filter((s) => s.strength === "strong");
-                  const moderate = usedSignals.filter((s) => s.strength === "moderate");
-                  const weak = usedSignals.filter((s) => s.strength === "weak");
-                  return (
-                    <div className="flex items-center gap-3 border-t border-zinc-100 pt-3 mt-1">
-                      <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wide shrink-0">
-                        {usedSignals.length} signal{usedSignals.length !== 1 ? "s" : ""}
-                      </span>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {strong.length > 0 && (
-                          <Tooltip>
-                            <TooltipTrigger
-                              render={
-                                <span className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-700 cursor-default">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
-                                  {strong.length} strong
-                                </span>
-                              }
-                            />
-                            <TooltipContent side="bottom" className="text-left max-w-[200px]">
-                              {strong.map((s) => s.label).join(", ")}
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                        {moderate.length > 0 && (
-                          <Tooltip>
-                            <TooltipTrigger
-                              render={
-                                <span className="inline-flex items-center gap-1 rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[11px] font-medium text-blue-700 cursor-default">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-blue-400" aria-hidden />
-                                  {moderate.length} moderate
-                                </span>
-                              }
-                            />
-                            <TooltipContent side="bottom" className="text-left max-w-[200px]">
-                              {moderate.map((s) => s.label).join(", ")}
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                        {weak.length > 0 && (
-                          <Tooltip>
-                            <TooltipTrigger
-                              render={
-                                <span className="inline-flex items-center gap-1 rounded border border-zinc-200 bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-500 cursor-default">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-zinc-400" aria-hidden />
-                                  {weak.length} weak
-                                </span>
-                              }
-                            />
-                            <TooltipContent side="bottom" className="text-left max-w-[200px]">
-                              {weak.map((s) => s.label).join(", ")}
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
-                {(!job.outreach?.personInsight && !job.outreach?.companyInsight) && (
-                  <p className="text-[15px] text-zinc-900 leading-normal font-medium">{job.angle}</p>
-                )}
-
-                {run.uncertainty && (
-                  <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50/80 px-3 py-2">
-                    <AlertTriangle size={13} className="text-amber-700 mt-px shrink-0" aria-hidden />
-                    <p className="text-[12px] text-amber-950/90 leading-snug">{run.uncertainty}</p>
-                  </div>
-                )}
-              </div>
-            </section>
-
+            {/* Draft */}
             <section className="space-y-4">
+              <div className="rounded-xl border border-border bg-card/80 px-4 py-3 shadow-sm">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0 space-y-1.5">
+                    <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      At a glance
+                    </p>
+                    <p className="max-w-[72ch] text-[13px] leading-relaxed text-foreground/90">
+                      {job.whyNow ?? job.angle}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 lg:max-w-[45%] lg:justify-end">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-mono font-semibold",
+                        gov.className
+                      )}
+                    >
+                      <GovIcon size={12} className={gov.iconClassName} aria-hidden />
+                      {gov.label}
+                    </span>
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-mono font-semibold",
+                        tierStyles
+                      )}
+                    >
+                      {signalLabel}
+                    </span>
+                    <span className="inline-flex items-center rounded-md border border-border bg-muted px-2 py-1 text-[10px] font-mono font-semibold text-muted-foreground">
+                      {usedSignals.length} signal{usedSignals.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex items-center justify-between">
-                <h2 className="text-[14px] font-semibold text-zinc-900 tracking-tight">
-                  Generated draft
-                </h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-[14px] font-semibold text-foreground tracking-tight">
+                    Generated draft
+                  </h2>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[10px] font-mono font-semibold",
+                        atConfig.color
+                      )}
+                    >
+                      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", atConfig.dot)} aria-hidden />
+                      {atConfig.label}
+                    </span>
+                    {job.outreach?.personAngleStrength && job.outreach.personAngleStrength !== "none" && (
+                      <span className="inline-flex items-center gap-1.5 rounded-md border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-mono font-semibold text-violet-800 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-300">
+                        ★ Personal hook
+                      </span>
+                    )}
+                    {Array.from(new Set(job.signals?.filter((s) => s.usedInAngle).map((s) => s.category))).map((category) => {
+                      const labels: Record<string, string> = {
+                        event: "Event",
+                        plg: "Product Signal",
+                        tech_stack: "Tech Stack",
+                        social: "Social",
+                        web_activity: "Web Intent",
+                        hiring_signal: "Hiring",
+                        internal: "CRM",
+                      };
+                      return (
+                        <span
+                          key={category}
+                          className="inline-flex items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-mono font-semibold text-blue-800 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"
+                        >
+                          {labels[category] || category}
+                        </span>
+                      );
+                    })}
+                    {job.signals?.filter((s) => s.usedInAngle).length === 0 &&
+                      (!job.outreach?.personAngleStrength || job.outreach.personAngleStrength === "none") && (
+                        <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted px-2 py-0.5 text-[10px] font-mono font-semibold text-muted-foreground">
+                          Generic template
+                        </span>
+                      )}
+                  </div>
+                </div>
                 {!isDone && (
                   <div className="flex flex-wrap items-center gap-2 shrink-0">
                     <Button type="button" variant="outline" size="sm" onClick={() => setRegenOpen(true)}>
@@ -748,13 +702,151 @@ export default function DetailPanel({
               </div>
             </section>
 
+            {/* Angle & context — demoted below the draft for deeper inspection */}
+            <section className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-[14px] font-semibold text-foreground tracking-tight">
+                    Angle &amp; context
+                  </h2>
+                  <p className="mt-1 text-[12px] text-muted-foreground">
+                    Review the reasoning after the draft if you need to validate or tune the recommendation.
+                  </p>
+                </div>
+                <span className={cn("inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-mono font-semibold", atConfig.color)}>
+                  <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", atConfig.dot)} aria-hidden />
+                  {atConfig.label}
+                </span>
+              </div>
+              <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+                <div className="p-4 space-y-5">
+                  {job.whyNow && (
+                    <div>
+                      <p className="mb-1.5 text-[11px] font-mono font-semibold uppercase tracking-widest text-muted-foreground">Trigger</p>
+                      <p className="text-[14px] leading-relaxed text-foreground">{job.whyNow}</p>
+                    </div>
+                  )}
+
+                  {job.outreach?.personInsight && (
+                    <div>
+                      <p className="mb-1.5 text-[11px] font-mono font-semibold uppercase tracking-widest text-muted-foreground">Person Context</p>
+                      <p className="text-[14px] leading-relaxed text-foreground">{job.outreach.personInsight}</p>
+                      {job.outreach.personRefs && job.outreach.personRefs.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {job.outreach.personRefs.map((r, i) => (
+                            <a href={r.url} key={i} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground/60 transition-colors hover:text-muted-foreground">
+                              [{i + 1}] {r.label}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {job.outreach?.companyInsight && (
+                    <div>
+                      <p className="mb-1.5 text-[11px] font-mono font-semibold uppercase tracking-widest text-muted-foreground">Account Context</p>
+                      <p className="text-[14px] leading-relaxed text-foreground">{job.outreach.companyInsight}</p>
+                      {job.outreach.companyRefs && job.outreach.companyRefs.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {job.outreach.companyRefs.map((r, i) => (
+                            <a href={r.url} key={i} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground/60 transition-colors hover:text-muted-foreground">
+                              [{i + 1}] {r.label}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {(!job.outreach?.personInsight && !job.outreach?.companyInsight) && (
+                    <div>
+                      <p className="mb-1.5 text-[11px] font-mono font-semibold uppercase tracking-widest text-muted-foreground">Selected Angle</p>
+                      <p className="text-[14px] leading-relaxed text-foreground">{job.angle}</p>
+                    </div>
+                  )}
+                </div>
+
+                {(usedSignals.length > 0 || run.uncertainty) && (
+                  <div className="space-y-2 border-t border-border/50 bg-muted/30 px-4 py-3">
+                    {usedSignals.length > 0 && (() => {
+                      const strong = usedSignals.filter((s) => s.strength === "strong");
+                      const moderate = usedSignals.filter((s) => s.strength === "moderate");
+                      const weak = usedSignals.filter((s) => s.strength === "weak");
+                      return (
+                        <div className="flex flex-wrap items-center gap-3">
+                          <span className="text-[11px] font-semibold text-muted-foreground">
+                            {usedSignals.length} research signal{usedSignals.length !== 1 ? "s" : ""}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            {strong.length > 0 && (
+                              <Tooltip>
+                                <TooltipTrigger
+                                  render={
+                                    <span className="inline-flex cursor-default items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
+                                      {strong.length} strong
+                                    </span>
+                                  }
+                                />
+                                <TooltipContent side="bottom" className="max-w-[200px] text-left">
+                                  {strong.map((s) => s.label).join(", ")}
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                            {moderate.length > 0 && (
+                              <Tooltip>
+                                <TooltipTrigger
+                                  render={
+                                    <span className="inline-flex cursor-default items-center gap-1 rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-blue-400" aria-hidden />
+                                      {moderate.length} moderate
+                                    </span>
+                                  }
+                                />
+                                <TooltipContent side="bottom" className="max-w-[200px] text-left">
+                                  {moderate.map((s) => s.label).join(", ")}
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                            {weak.length > 0 && (
+                              <Tooltip>
+                                <TooltipTrigger
+                                  render={
+                                    <span className="inline-flex cursor-default items-center gap-1 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" aria-hidden />
+                                      {weak.length} weak
+                                    </span>
+                                  }
+                                />
+                                <TooltipContent side="bottom" className="max-w-[200px] text-left">
+                                  {weak.map((s) => s.label).join(", ")}
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    {run.uncertainty && (
+                      <div className="mt-1 flex items-start gap-1.5 border-t border-amber-100/50 pt-1 text-amber-700 dark:border-amber-800/50 dark:text-amber-400">
+                        <AlertTriangle size={13} className="mt-0.5 shrink-0" aria-hidden />
+                        <p className="text-[12px] font-medium leading-snug">{run.uncertainty}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </section>
+
             <section className="space-y-4">
               <button
                 type="button"
                 onClick={() => setShowEvidence((v) => !v)}
-                className="flex items-center gap-1.5 text-[14px] font-semibold text-zinc-900 tracking-tight hover:text-zinc-600 transition-colors"
+                aria-expanded={showEvidence}
+                className="flex items-center gap-1.5 text-[14px] font-semibold text-foreground tracking-tight hover:text-foreground/70 transition-colors"
               >
-                <ChevronRight size={16} className={cn("transition-transform duration-150 text-zinc-400 group-hover:text-zinc-500", showEvidence && "rotate-90")} />
+                <ChevronRight size={16} className={cn("transition-transform duration-150 text-muted-foreground/60", showEvidence && "rotate-90")} />
                 {usedSignals.length} signals · agent strategy · research
               </button>
 
