@@ -552,9 +552,17 @@ export default function DetailPanel({
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-[14px] font-semibold text-foreground tracking-tight">
-                    Generated draft
-                  </h2>
+                  <div className="min-w-0">
+                    <h2 className="text-[14px] font-semibold text-foreground tracking-tight">
+                      Generated draft
+                    </h2>
+                    {!isDone && !isEditing && (
+                      <p className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <PencilLine size={12} aria-hidden />
+                        Click the subject or body to edit
+                      </p>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2">
                     <span
                       className={cn(
@@ -610,18 +618,6 @@ export default function DetailPanel({
                     >
                       <RotateCcw size={13} />
                       {regenOpen ? "Close regenerate" : "Try another version"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={isEditing ? "secondary" : "outline"}
-                      size="sm"
-                      onClick={() => {
-                        setIsEditing((v) => !v);
-                        if (!isEditing) setTimeout(() => bodyRef.current?.focus(), 50);
-                      }}
-                    >
-                      <PencilLine size={13} />
-                      {isEditing ? "Done editing" : "Edit draft"}
                     </Button>
                   </div>
                 )}
@@ -793,7 +789,12 @@ export default function DetailPanel({
                 </p>
               )}
 
-              <div className="rounded-xl border border-zinc-200 bg-card shadow-sm overflow-hidden">
+              <div
+                className={cn(
+                  "rounded-xl border bg-card shadow-sm overflow-hidden transition-colors",
+                  isEditing ? "border-teal-300" : "border-border hover:border-border/80"
+                )}
+              >
                 <div className="space-y-3 p-4">
                   {isEditing ? (
                     <input
@@ -805,16 +806,32 @@ export default function DetailPanel({
                       aria-label="Email subject"
                     />
                   ) : (
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 shrink-0">Subject</span>
+                    <button
+                      type="button"
+                      disabled={isDone}
+                      onClick={() => {
+                        if (!isDone) {
+                          setIsEditing(true);
+                          setTimeout(() => bodyRef.current?.focus(), 50);
+                        }
+                      }}
+                      className={cn(
+                        "flex w-full items-baseline gap-2 rounded-md px-2 py-1.5 -mx-2 -my-1.5 text-left transition-colors",
+                        !isDone && "cursor-text hover:bg-muted/40"
+                      )}
+                      aria-label={isDone ? "Email subject" : "Click to edit email subject"}
+                    >
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/60 shrink-0">Subject</span>
                       <span className="text-[15px] font-semibold text-foreground">{job.draft.subject}</span>
-                    </div>
+                    </button>
                   )}
 
                   <div
                     className={cn(
                       "flex max-h-[min(640px,70vh)] min-h-[200px] flex-col overflow-hidden rounded-xl border transition-shadow md:max-h-[min(640px,64vh)] md:min-h-[340px]",
-                      isEditing ? "border-teal-300 ring-1 ring-teal-200/70 bg-card" : "border-border bg-card"
+                      isEditing
+                        ? "border-teal-300 ring-1 ring-teal-200/70 bg-card"
+                        : "border-border bg-card hover:border-border/80"
                     )}
                   >
                     {isEditing ? (
@@ -838,8 +855,8 @@ export default function DetailPanel({
                           }
                         }}
                         className={cn(
-                          "w-full flex-1 text-[15px] leading-relaxed text-foreground p-5 overflow-y-auto text-left",
-                          !isDone && "cursor-text hover:bg-zinc-50/60 transition-colors"
+                          "w-full flex-1 overflow-y-auto p-5 text-left text-[15px] leading-relaxed text-foreground transition-colors",
+                          !isDone && "cursor-text hover:bg-muted/30"
                         )}
                         aria-label={isDone ? "Email body" : "Click to edit email body"}
                       >
