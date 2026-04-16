@@ -386,8 +386,7 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
           </div>
 
           <div className="flex flex-col gap-2 lg:items-end">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="-mx-1 flex max-w-full overflow-x-auto rounded-xl border border-border bg-muted p-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:inline-flex sm:w-fit [&::-webkit-scrollbar]:hidden">
+            <div className="-mx-1 flex max-w-full overflow-x-auto rounded-xl border border-border bg-muted p-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:inline-flex sm:w-fit [&::-webkit-scrollbar]:hidden">
                 {[
                   {
                     id: "review" as const,
@@ -435,8 +434,12 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
                     </p>
                   </button>
                 ))}
-              </div>
+            </div>
 
+            <div className="flex items-center gap-2 lg:self-end">
+              <p className="hidden text-[11px] text-muted-foreground lg:block">
+                Utilities
+              </p>
               <Button
                 type="button"
                 variant="outline"
