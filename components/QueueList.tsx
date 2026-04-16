@@ -114,8 +114,8 @@ function QueueRow({
               </div>
             </div>
 
-            {/* Zone 3 — spacer for hover quick-actions overlay */}
-            <div className="shrink-0 w-[68px]" aria-hidden />
+            {/* Zone 3 — keep a little breathing room before the action cluster */}
+            <div className="shrink-0 w-2" aria-hidden />
           </>
         ) : (
           /* Done row — single scanline */
@@ -161,15 +161,20 @@ function QueueRow({
       </button>
 
       {isPending && (
-        <div className="absolute top-1.5 right-1.5 z-10 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity duration-150">
+        <div className="flex shrink-0 items-center gap-1 pr-2 py-2">
           <Tooltip>
             <TooltipTrigger
               render={
                 <Button
                   type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  className="size-8 text-zinc-700 hover:bg-emerald-50 hover:text-emerald-700"
+                  variant={isSelected ? "secondary" : "ghost"}
+                  size="sm"
+                  className={cn(
+                    "h-8 gap-1.5 rounded-md px-2.5 text-xs font-medium",
+                    isSelected
+                      ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-200 dark:hover:bg-emerald-950"
+                      : "text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-200",
+                  )}
                   onClick={(e) => {
                     e.stopPropagation();
                     onApprove();
@@ -177,6 +182,7 @@ function QueueRow({
                   aria-label="Approve draft"
                 >
                   <CheckCircle size={14} />
+                  <span>Approve</span>
                 </Button>
               }
             />
@@ -189,9 +195,14 @@ function QueueRow({
               render={
                 <Button
                   type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  className="size-8 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100"
+                  variant={isSelected ? "secondary" : "ghost"}
+                  size="sm"
+                  className={cn(
+                    "h-8 gap-1.5 rounded-md px-2.5 text-xs font-medium",
+                    isSelected
+                      ? "bg-muted text-foreground hover:bg-muted/80"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                  )}
                   onClick={(e) => {
                     e.stopPropagation();
                     onArchive();
