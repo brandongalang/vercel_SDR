@@ -545,37 +545,13 @@ export default function DetailPanel({
             {/* Draft */}
             <section className="space-y-4">
               <div className="rounded-xl border border-border bg-card/80 px-4 py-3 shadow-sm">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="min-w-0 space-y-1.5">
-                    <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                      At a glance
-                    </p>
-                    <p className="max-w-[72ch] text-[13px] leading-relaxed text-foreground/90">
-                      {job.whyNow ?? job.angle}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 lg:max-w-[45%] lg:justify-end">
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-mono font-semibold",
-                        gov.className
-                      )}
-                    >
-                      <GovIcon size={12} className={gov.iconClassName} aria-hidden />
-                      {gov.label}
-                    </span>
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-mono font-semibold",
-                        tierStyles
-                      )}
-                    >
-                      {signalLabel}
-                    </span>
-                    <span className="inline-flex items-center rounded-md border border-border bg-muted px-2 py-1 text-[10px] font-mono font-semibold text-muted-foreground">
-                      {usedSignals.length} signal{usedSignals.length !== 1 ? "s" : ""}
-                    </span>
-                  </div>
+                <div className="min-w-0 space-y-1.5">
+                  <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    At a glance
+                  </p>
+                  <p className="max-w-[72ch] text-[13px] leading-relaxed text-foreground/90">
+                    {job.whyNow ?? job.angle}
+                  </p>
                 </div>
               </div>
 
