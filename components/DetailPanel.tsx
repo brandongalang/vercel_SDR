@@ -670,7 +670,8 @@ export default function DetailPanel({
                         <div className="flex flex-wrap items-center gap-2">
                           <Button
                             type="button"
-                            variant="secondary"
+                            variant="default"
+                            className="shadow-sm hover:shadow-md"
                             disabled={regenBusy || regenPresets.length === 0}
                             onClick={handleRegeneratePreview}
                           >
