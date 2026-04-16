@@ -844,9 +844,9 @@ export default function DetailPanel({
                   {atConfig.label}
                 </span>
               </div>
-              <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+              <div className="rounded-xl border border-border bg-card/80 overflow-hidden flex flex-col">
                 <div className="p-4 space-y-5">
-                  <div className="space-y-3 rounded-xl border border-border bg-card/70 px-4 py-4">
+                  <div className="space-y-3 border-b border-border/50 pb-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                         Selected angle
@@ -982,7 +982,7 @@ export default function DetailPanel({
                       <p className="text-[11px] font-mono font-semibold uppercase tracking-widest text-muted-foreground">
                         Additional Context Signals
                       </p>
-                      <div className="overflow-hidden rounded-lg border border-border bg-card/60">
+                      <div className="overflow-hidden rounded-lg border border-border/80 bg-muted/15">
                         {contextSignals.map((sig, index) => (
                           <div
                             key={sig.id}
