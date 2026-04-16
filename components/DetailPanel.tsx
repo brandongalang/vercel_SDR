@@ -544,15 +544,13 @@ export default function DetailPanel({
 
             {/* Draft */}
             <section className="space-y-4">
-              <div className="rounded-xl border border-border bg-card/80 px-4 py-3 shadow-sm">
-                <div className="min-w-0 space-y-1.5">
-                  <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                    At a glance
-                  </p>
-                  <p className="max-w-[72ch] text-[13px] leading-relaxed text-foreground/90">
-                    {job.whyNow ?? job.angle}
-                  </p>
-                </div>
+              <div className="min-w-0 space-y-1 px-0.5">
+                <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  At a glance
+                </p>
+                <p className="max-w-[72ch] text-[13px] leading-relaxed text-foreground/90">
+                  {job.whyNow ?? job.angle}
+                </p>
               </div>
 
               <div className="flex items-center justify-between">
