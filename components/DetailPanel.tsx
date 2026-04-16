@@ -178,13 +178,11 @@ export default function DetailPanel({
   const [regenPreview, setRegenPreview] = useState<OutboundJob["draft"] | null>(null);
   const [regenPreviewFingerprint, setRegenPreviewFingerprint] = useState<string | null>(null);
   const [showResearch, setShowResearch] = useState(false);
-  const [showEvidence, setShowEvidence] = useState(job?.confidence.tier !== "high");
   const [showAllSignals, setShowAllSignals] = useState(false);
   useEffect(() => {
-    setShowEvidence(job?.confidence.tier !== "high");
     setShowResearch(false);
     setShowAllSignals(false);
-  }, [job?.id, job?.confidence.tier]);
+  }, [job?.id]);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   if (!job) {
@@ -867,7 +865,7 @@ export default function DetailPanel({
                     Angle &amp; context
                   </h2>
                   <p className="mt-1 text-[12px] text-muted-foreground">
-                    Review the broader research backdrop if you need to validate or tune the recommendation.
+                    Review the selected angle first, then the broader backdrop if you need to validate or tune the recommendation.
                   </p>
                 </div>
                 <span className={cn("inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-mono font-semibold", atConfig.color)}>
@@ -877,6 +875,98 @@ export default function DetailPanel({
               </div>
               <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
                 <div className="p-4 space-y-5">
+                  <div className="space-y-3 rounded-xl border border-border bg-card/70 px-4 py-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                        Selected angle
+                      </p>
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[10px] font-mono font-semibold",
+                          atConfig.color
+                        )}
+                      >
+                        <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", atConfig.dot)} aria-hidden />
+                        {atConfig.label}
+                      </span>
+                    </div>
+                    <p className="max-w-[58ch] text-[14px] font-semibold leading-6 tracking-tight text-foreground">
+                      {job.angle}
+                    </p>
+                    {run.uncertainty && (
+                      <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2">
+                        <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-700" aria-hidden />
+                        <p className="text-[12px] leading-5 text-amber-950/85">
+                          {run.uncertainty}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-[12px] font-semibold tracking-tight text-foreground">
+                        Signals used in the draft
+                      </h3>
+                      <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
+                        {usedSignals.length} signal{usedSignals.length !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+
+                    {sortedUsedSignals.length > 0 ? (
+                      <div className="overflow-hidden rounded-xl border border-border bg-card/60">
+                        {visibleSignals.map((sig, index) => (
+                          <div
+                            key={sig.id}
+                            className={cn("px-4 py-3", index > 0 && "border-t border-border/70")}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                                  <p className="text-[13px] font-semibold leading-5 text-foreground">
+                                    {sig.label}
+                                  </p>
+                                  <span className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground">
+                                    {sig.strength} · {sig.source.replace(/_/g, " ")}
+                                  </span>
+                                </div>
+                                <p className="mt-1 max-w-[62ch] text-[12px] leading-5 text-zinc-700">
+                                  {sig.value}
+                                </p>
+                              </div>
+                              {sig.evidenceUrl && (
+                                <a
+                                  href={sig.evidenceUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="mt-0.5 inline-flex shrink-0 items-center justify-center rounded-md p-1.5 text-zinc-500 transition-colors hover:text-zinc-900"
+                                  aria-label={`Open evidence for ${sig.label}`}
+                                >
+                                  <ExternalLink size={14} />
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-border bg-card/60 px-3 py-3">
+                        <p className="text-[12px] leading-relaxed text-muted-foreground">
+                          No supporting signals were retained for this draft.
+                        </p>
+                      </div>
+                    )}
+                    {hiddenSignalCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllSignals(true)}
+                        className="text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        Show {hiddenSignalCount} more signal{hiddenSignalCount !== 1 ? "s" : ""}
+                      </button>
+                    )}
+                  </div>
+
                   {job.whyNow && (
                     <div>
                       <p className="mb-1.5 text-[11px] font-mono font-semibold uppercase tracking-widest text-muted-foreground">Trigger</p>
@@ -959,127 +1049,11 @@ export default function DetailPanel({
 
                   {!job.whyNow && !job.outreach?.personInsight && !job.outreach?.companyInsight && contextSignals.length === 0 && (
                     <div>
-                      <p className="mb-1.5 text-[11px] font-mono font-semibold uppercase tracking-widest text-muted-foreground">Selected Angle</p>
-                      <p className="text-[14px] leading-relaxed text-foreground">{job.angle}</p>
+                      <p className="text-[12px] leading-relaxed text-muted-foreground">
+                        No additional context was attached beyond the selected angle and supporting signals.
+                      </p>
                     </div>
                   )}
-                </div>
-              </div>
-            </section>
-
-            <section className="space-y-4">
-              <button
-                type="button"
-                onClick={() => setShowEvidence((v) => !v)}
-                aria-expanded={showEvidence}
-                className="flex w-full items-center justify-between gap-3 text-left hover:text-foreground/70 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <ChevronRight
-                    size={16}
-                    className={cn(
-                      "shrink-0 transition-transform duration-150 text-muted-foreground/60",
-                      showEvidence && "rotate-90"
-                    )}
-                  />
-                  <p className="text-[14px] font-semibold tracking-tight text-foreground">
-                    Why this draft was chosen
-                  </p>
-                </div>
-                <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
-                  {usedSignals.length} signal{usedSignals.length !== 1 ? "s" : ""}
-                </span>
-              </button>
-
-              {showEvidence && (
-                <div className="space-y-4 border-l border-border/40 pl-4 pt-1">
-                  <div className="space-y-3 rounded-xl border border-border bg-card/70 px-4 py-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                        Agent strategy
-                      </p>
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[10px] font-mono font-semibold",
-                          atConfig.color
-                        )}
-                      >
-                        <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", atConfig.dot)} aria-hidden />
-                        {atConfig.label}
-                      </span>
-                    </div>
-                    <p className="max-w-[58ch] text-[14px] font-semibold leading-6 tracking-tight text-foreground">
-                      {job.angle}
-                    </p>
-                    {run.uncertainty && (
-                      <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2">
-                        <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-700" aria-hidden />
-                        <p className="text-[12px] leading-5 text-amber-950/85">
-                          {run.uncertainty}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="text-[12px] font-semibold tracking-tight text-foreground">
-                      Supporting signals
-                    </h3>
-
-                    {sortedUsedSignals.length > 0 ? (
-                      <div className="overflow-hidden rounded-xl border border-border bg-card/60">
-                        {visibleSignals.map((sig, index) => (
-                          <div
-                            key={sig.id}
-                            className={cn("px-4 py-3", index > 0 && "border-t border-border/70")}
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                                  <p className="text-[13px] font-semibold leading-5 text-foreground">
-                                    {sig.label}
-                                  </p>
-                                  <span className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground">
-                                    {sig.strength} · {sig.source.replace(/_/g, " ")}
-                                  </span>
-                                </div>
-                                <p className="mt-1 max-w-[62ch] text-[12px] leading-5 text-zinc-700">
-                                  {sig.value}
-                                </p>
-                              </div>
-                              {sig.evidenceUrl && (
-                                <a
-                                  href={sig.evidenceUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="mt-0.5 inline-flex shrink-0 items-center justify-center rounded-md p-1.5 text-zinc-500 transition-colors hover:text-zinc-900"
-                                  aria-label={`Open evidence for ${sig.label}`}
-                                >
-                                  <ExternalLink size={14} />
-                                </a>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="rounded-lg border border-border bg-card/60 px-3 py-3">
-                        <p className="text-[12px] leading-relaxed text-muted-foreground">
-                          No supporting signals were retained for this draft.
-                        </p>
-                      </div>
-                    )}
-                    {hiddenSignalCount > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setShowAllSignals(true)}
-                        className="text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
-                      >
-                        Show {hiddenSignalCount} more signal{hiddenSignalCount !== 1 ? "s" : ""}
-                      </button>
-                    )}
-                  </div>
-
                   <div className="space-y-3 border-t border-border/50 pt-4">
                     <button
                       type="button"
@@ -1160,7 +1134,7 @@ export default function DetailPanel({
                     )}
                   </div>
                 </div>
-              )}
+              </div>
             </section>
           </div>
         </div>
