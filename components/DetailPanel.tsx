@@ -845,6 +845,41 @@ export default function DetailPanel({
                       <span className="block mt-0.5 text-foreground/90">{regenerateNote}</span>
                     </p>
                   )}
+                  {!isDone && (
+                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card/70 px-4 py-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {draftHasEdits && (
+                          <span className="text-[11px] text-teal-700 bg-teal-50 border border-teal-200 rounded-md px-2 py-1 shrink-0">
+                            Draft edited
+                          </span>
+                        )}
+                        {isEditing && !draftHasEdits && (
+                          <span className="text-[11px] text-zinc-500 font-mono">Editing…</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="gap-1.5"
+                          onClick={handleApprove}
+                        >
+                          <CheckCircle size={13} />
+                          {draftHasEdits ? "Approve with edits" : "Approve draft"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5 text-zinc-600"
+                          onClick={() => onArchive(job.id)}
+                        >
+                          <SkipForward size={13} />
+                          Skip
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </section>
@@ -1155,41 +1190,6 @@ export default function DetailPanel({
           </div>
         </div>
 
-        {!isDone && (
-          <div className="shrink-0 z-20 border-t border-border bg-card/95 backdrop-blur-sm px-4 py-2.5 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
-              {draftHasEdits && (
-                <span className="text-[11px] text-teal-700 bg-teal-50 border border-teal-200 rounded-md px-2 py-1 shrink-0">
-                  Draft edited
-                </span>
-              )}
-              {isEditing && !draftHasEdits && (
-                <span className="text-[11px] text-zinc-500 font-mono">Editing…</span>
-              )}
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-zinc-600"
-                onClick={() => onArchive(job.id)}
-              >
-                <SkipForward size={13} />
-                Skip
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                className="gap-1.5"
-                onClick={handleApprove}
-              >
-                <CheckCircle size={13} />
-                {draftHasEdits ? "Approve with edits" : "Approve draft"}
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
 
     </>

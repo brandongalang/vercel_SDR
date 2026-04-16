@@ -164,13 +164,11 @@ function QueueRow({
               render={
                 <Button
                   type="button"
-                  variant={isSelected ? "secondary" : "ghost"}
+                  variant="ghost"
                   size="sm"
                   className={cn(
                     "h-8 gap-1.5 rounded-md px-2.5 text-xs font-medium",
-                    isSelected
-                      ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-200 dark:hover:bg-emerald-950"
-                      : "text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-200",
+                    "text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-200",
                   )}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -192,13 +190,11 @@ function QueueRow({
               render={
                 <Button
                   type="button"
-                  variant={isSelected ? "secondary" : "ghost"}
+                  variant="ghost"
                   size="sm"
                   className={cn(
                     "h-8 gap-1.5 rounded-md px-2.5 text-xs font-medium",
-                    isSelected
-                      ? "bg-muted text-foreground hover:bg-muted/80"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                    "text-muted-foreground hover:text-foreground hover:bg-muted",
                   )}
                   onClick={(e) => {
                     e.stopPropagation();
