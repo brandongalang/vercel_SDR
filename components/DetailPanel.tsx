@@ -778,7 +778,8 @@ export default function DetailPanel({
                       "flex max-h-[min(640px,70vh)] min-h-[200px] flex-col overflow-hidden rounded-xl border transition-shadow md:max-h-[min(640px,64vh)] md:min-h-[340px]",
                       isEditing
                         ? "border-teal-300 ring-1 ring-teal-200/70 bg-card"
-                        : "border-border bg-card hover:border-border/80"
+                        : "border-border bg-card hover:border-border/80",
+                      !isDone && !isEditing && "cursor-text hover:bg-muted/10"
                     )}
                   >
                     {isEditing ? (
