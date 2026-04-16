@@ -978,101 +978,83 @@ export default function DetailPanel({
                 type="button"
                 onClick={() => setShowEvidence((v) => !v)}
                 aria-expanded={showEvidence}
-                className="w-full text-left hover:text-foreground/70 transition-colors"
+                className="flex w-full items-center justify-between gap-3 text-left hover:text-foreground/70 transition-colors"
               >
-                <div className="flex items-start gap-2">
+                <div className="flex items-center gap-2">
                   <ChevronRight
                     size={16}
                     className={cn(
-                      "mt-0.5 shrink-0 transition-transform duration-150 text-muted-foreground/60",
+                      "shrink-0 transition-transform duration-150 text-muted-foreground/60",
                       showEvidence && "rotate-90"
                     )}
                   />
-                  <div className="min-w-0">
-                    <p className="text-[14px] font-semibold tracking-tight text-foreground">
-                      Why this draft was chosen
-                    </p>
-                    <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
-                      {usedSignals.length} supporting signal{usedSignals.length !== 1 ? "s" : ""}
-                      {run.uncertainty ? " · includes an uncertainty note" : ""}
-                    </p>
-                  </div>
+                  <p className="text-[14px] font-semibold tracking-tight text-foreground">
+                    Why this draft was chosen
+                  </p>
                 </div>
+                <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
+                  {usedSignals.length} signal{usedSignals.length !== 1 ? "s" : ""}
+                </span>
               </button>
 
               {showEvidence && (
-                <div className="space-y-5 border-l border-border/50 pl-6 pt-1">
-                  <div className="rounded-xl border border-border bg-card/80 px-4 py-4">
+                <div className="space-y-4 border-l border-border/40 pl-4 pt-1">
+                  <div className="space-y-3 rounded-xl border border-border bg-card/70 px-4 py-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                         Agent strategy
                       </p>
                       <span
                         className={cn(
-                          "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-mono font-semibold",
+                          "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[10px] font-mono font-semibold",
                           atConfig.color
                         )}
                       >
-                        <span className={cn("h-2 w-2 rounded-full shrink-0", atConfig.dot)} aria-hidden />
+                        <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", atConfig.dot)} aria-hidden />
                         {atConfig.label}
                       </span>
                     </div>
-                    <p className="mt-3 max-w-[64ch] text-[15px] font-semibold leading-6 tracking-tight text-foreground">
+                    <p className="max-w-[58ch] text-[14px] font-semibold leading-6 tracking-tight text-foreground">
                       {job.angle}
                     </p>
                     {job.whyNow && (
-                      <p className="mt-3 max-w-[65ch] text-[12px] leading-relaxed text-muted-foreground">
+                      <p className="max-w-[60ch] text-[12px] leading-5 text-muted-foreground">
                         {job.whyNow}
                       </p>
                     )}
                     {run.uncertainty && (
-                      <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2">
+                      <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2">
                         <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-700" aria-hidden />
-                        <p className="text-[12px] leading-relaxed text-amber-950/85">
+                        <p className="text-[12px] leading-5 text-amber-950/85">
                           {run.uncertainty}
                         </p>
                       </div>
                     )}
                   </div>
 
-                  <div className="space-y-3">
-                    <div>
-                      <h3 className="text-[13px] font-semibold tracking-tight text-foreground">
-                        Supporting signals
-                      </h3>
-                      <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
-                        Evidence the agent weighted most heavily for this angle.
-                      </p>
-                    </div>
+                  <div className="space-y-2">
+                    <h3 className="text-[12px] font-semibold tracking-tight text-foreground">
+                      Supporting signals
+                    </h3>
 
                     {usedSignals.length > 0 ? (
-                      <div className="space-y-2.5">
+                      <div className="overflow-hidden rounded-xl border border-border bg-card/60">
                         {usedSignals.map((sig, index) => (
-                          <div key={sig.id} className="rounded-lg border border-border bg-card/60 px-3 py-3">
+                          <div
+                            key={sig.id}
+                            className={cn("px-4 py-3", index > 0 && "border-t border-border/70")}
+                          >
                             <div className="flex items-start gap-3">
-                              <span className="mt-0.5 text-[10px] font-mono font-semibold text-muted-foreground/60 tabular-nums">
-                                {String(index + 1).padStart(2, "0")}
-                              </span>
                               <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <p className="text-[13px] font-semibold text-foreground">{sig.label}</p>
-                                  <span className="rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-wide text-muted-foreground">
-                                    {sig.source.replace(/_/g, " ")}
-                                  </span>
-                                  <span
-                                    className={cn(
-                                      "rounded border px-1.5 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-wide",
-                                      sig.strength === "strong"
-                                        ? "border-emerald-500 bg-emerald-500 text-white"
-                                        : sig.strength === "moderate"
-                                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                                          : "border-border bg-zinc-100 text-zinc-500"
-                                    )}
-                                  >
-                                    {sig.strength}
+                                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                                  <p className="text-[13px] font-semibold leading-5 text-foreground">
+                                    {sig.label}
+                                  </p>
+                                  <span className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground">
+                                    {sig.strength} · {sig.source.replace(/_/g, " ")}
                                   </span>
                                 </div>
-                                <p className="mt-1.5 max-w-[65ch] text-[12px] leading-6 text-zinc-700">
+                                <p className="mt-1 max-w-[62ch] text-[12px] leading-5 text-zinc-700">
                                   {sig.value}
                                 </p>
                               </div>
@@ -1081,7 +1063,7 @@ export default function DetailPanel({
                                   href={sig.evidenceUrl}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="mt-0.5 inline-flex shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-white p-1.5 text-zinc-500 transition-colors hover:text-zinc-900"
+                                  className="mt-0.5 inline-flex shrink-0 items-center justify-center rounded-md p-1.5 text-zinc-500 transition-colors hover:text-zinc-900"
                                   aria-label={`Open evidence for ${sig.label}`}
                                 >
                                   <ExternalLink size={14} />
@@ -1111,11 +1093,8 @@ export default function DetailPanel({
                     </button>
                     {showResearch && (
                       <div className="mt-3 space-y-3">
-                        <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 px-4 py-3">
-                          <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-zinc-500">
-                            How the packet was built
-                          </p>
-                          <p className="mt-2 max-w-[65ch] text-[12px] leading-relaxed text-zinc-600">
+                        <div className="px-1">
+                          <p className="max-w-[65ch] text-[12px] leading-5 text-zinc-600">
                             The orchestrator delegated topic-specific research threads, summarized the coverage, then handed a narrowed packet into signal extraction and drafting.
                           </p>
                         </div>
