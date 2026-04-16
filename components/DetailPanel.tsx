@@ -19,7 +19,6 @@ import {
   Inbox,
   Info,
   Loader2,
-  PencilLine,
   RotateCcw,
   Send,
   ShieldAlert,
@@ -49,6 +48,34 @@ const MAX_REGENERATION_PRESETS = 3;
 
 function formatLeadSource(source: OutboundJob["play"]["leadSource"]) {
   return source.replace(/_/g, " ");
+}
+
+function ContextLabel({
+  label,
+  tooltip,
+}: {
+  label: string;
+  tooltip: string;
+}) {
+  return (
+    <div className="mb-1.5 flex items-center gap-1.5">
+      <p className="text-[11px] font-mono font-semibold uppercase tracking-widest text-muted-foreground">
+        {label}
+      </p>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <span className="inline-flex items-center justify-center rounded-full p-0.5 text-muted-foreground/65 transition-colors hover:text-muted-foreground">
+              <Info size={12} aria-hidden />
+            </span>
+          }
+        />
+        <TooltipContent side="top" className="max-w-[220px] text-left leading-snug">
+          {tooltip}
+        </TooltipContent>
+      </Tooltip>
+    </div>
+  );
 }
 
 function DetailPanelEmptyState({
@@ -941,14 +968,20 @@ export default function DetailPanel({
 
                   {job.whyNow && (
                     <div>
-                      <p className="mb-1.5 text-[11px] font-mono font-semibold uppercase tracking-widest text-muted-foreground">Trigger</p>
+                      <ContextLabel
+                        label="Trigger"
+                        tooltip="The immediate reason this lead looks timely right now, such as a launch, hiring pattern, or public signal."
+                      />
                       <p className="text-[14px] leading-relaxed text-foreground">{job.whyNow}</p>
                     </div>
                   )}
 
                   {job.outreach?.personInsight && (
                     <div>
-                      <p className="mb-1.5 text-[11px] font-mono font-semibold uppercase tracking-widest text-muted-foreground">Person Context</p>
+                      <ContextLabel
+                        label="Person Context"
+                        tooltip="Research about this specific contact that can sharpen the message, such as role priorities, recent posts, or team remit."
+                      />
                       <p className="text-[14px] leading-relaxed text-foreground">{job.outreach.personInsight}</p>
                       {job.outreach.personRefs && job.outreach.personRefs.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-2">
@@ -964,7 +997,10 @@ export default function DetailPanel({
 
                   {job.outreach?.companyInsight && (
                     <div>
-                      <p className="mb-1.5 text-[11px] font-mono font-semibold uppercase tracking-widest text-muted-foreground">Account Context</p>
+                      <ContextLabel
+                        label="Account Context"
+                        tooltip="Company-level research that frames the opportunity, like expansion, product changes, infrastructure moves, or hiring momentum."
+                      />
                       <p className="text-[14px] leading-relaxed text-foreground">{job.outreach.companyInsight}</p>
                       {job.outreach.companyRefs && job.outreach.companyRefs.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-2">
@@ -980,9 +1016,10 @@ export default function DetailPanel({
 
                   {contextSignals.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-[11px] font-mono font-semibold uppercase tracking-widest text-muted-foreground">
-                        Additional Context Signals
-                      </p>
+                      <ContextLabel
+                        label="Additional Context Signals"
+                        tooltip="Useful research signals that were found but not selected as the primary reasons for this draft."
+                      />
                       <div className="overflow-hidden rounded-lg border border-border/80 bg-muted/15">
                         {contextSignals.map((sig, index) => (
                           <div
