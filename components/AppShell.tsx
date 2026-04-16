@@ -7,9 +7,10 @@ import { RailNav } from "@/components/RailNav";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [activeView, setActiveView] = useState<ActiveView>("review");
+  const [railControls, setRailControls] = useState<ReactNode>(null);
 
   return (
-    <ViewContext.Provider value={{ activeView, setActiveView }}>
+    <ViewContext.Provider value={{ activeView, setActiveView, railControls, setRailControls }}>
       <aside
         className="hidden md:flex md:w-16 md:shrink-0 md:flex-col md:items-center md:justify-between md:border-r md:border-border md:bg-muted/40 md:px-3 md:py-4"
         aria-label="Workspace utilities"

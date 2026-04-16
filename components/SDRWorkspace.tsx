@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AnalyticsDateRange,
   AnalyticsSnapshot,
@@ -24,7 +24,7 @@ import DspyPage, {
 import LiveAgentDemo from "./LiveAgentDemo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Loader2, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { useMediaQuery } from "@/lib/use-media-query";
 import { useViewContext } from "@/lib/view-context";
 
@@ -65,7 +65,7 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
   );
 
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
-  const { activeView, setActiveView } = useViewContext();
+  const { activeView, setActiveView, setRailControls } = useViewContext();
   const [analyticsDateRange, setAnalyticsDateRange] = useState<AnalyticsDateRange>(() =>
     createDefaultAnalyticsDateRange()
   );
@@ -251,7 +251,7 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
     });
   };
 
-  const handleResetDemo = async () => {
+  const handleResetDemo = useCallback(async () => {
     if (isResettingDemo) return;
 
     setIsResettingDemo(true);
@@ -296,7 +296,7 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
     } finally {
       setIsResettingDemo(false);
     }
-  };
+  }, [isResettingDemo, setActiveView]);
 
   function getReviewHeader() {
     const overline = "Lead review";
@@ -369,6 +369,25 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
     if (!isDesktopReviewLayout) setMobileReviewPane("detail");
   };
 
+  useEffect(() => {
+    setRailControls(
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className="size-10 rounded-md bg-background/80 text-muted-foreground hover:text-foreground"
+        onClick={handleResetDemo}
+        disabled={isResettingDemo}
+        title={isResettingDemo ? "Resetting demo" : "Reset demo"}
+        aria-label={isResettingDemo ? "Resetting demo" : "Reset demo"}
+      >
+        <RotateCcw className={cn("size-4", isResettingDemo && "animate-spin")} aria-hidden />
+      </Button>,
+    );
+
+    return () => setRailControls(null);
+  }, [handleResetDemo, isResettingDemo, setRailControls]);
+
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <div className="shrink-0 border-b border-border bg-card px-4 py-3.5 sm:px-6">
@@ -436,29 +455,6 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
                 ))}
             </div>
 
-            <div className="flex items-center gap-2 lg:self-end">
-              <p className="hidden text-[11px] text-muted-foreground lg:block">
-                Utilities
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleResetDemo}
-                disabled={isResettingDemo}
-              >
-                {isResettingDemo ? (
-                  <>
-                    <Loader2 className="animate-spin" />
-                    Resetting…
-                  </>
-                ) : (
-                  <>
-                    <RotateCcw />
-                    Reset Demo
-                  </>
-                )}
-              </Button>
-            </div>
             {resetError && (
               <p className="text-[12px] text-destructive">{resetError}</p>
             )}
