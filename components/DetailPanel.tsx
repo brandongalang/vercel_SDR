@@ -210,6 +210,7 @@ export default function DetailPanel({
   const visibleSignals = showAllSignals ? sortedUsedSignals : sortedUsedSignals.slice(0, 3);
   const hiddenSignalCount = Math.max(sortedUsedSignals.length - visibleSignals.length, 0);
   const shouldShowThreadSummaries = run.reports.length === 0 && run.threadSummaries.length > 0;
+  const showReviewState = draftHasEdits || (isEditing && !draftHasEdits);
 
   const feedbackCaptured = job.feedback?.edited === true;
   const hasStructuredFeedback = feedbackCaptured || Boolean(job.feedback?.editorNote);
@@ -1110,32 +1111,39 @@ export default function DetailPanel({
         </div>
 
         {!isDone && (
-          <div className="shrink-0 z-20 border-t border-border bg-card/95 backdrop-blur-sm px-4 py-2.5 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
-              {draftHasEdits && (
-                <span className="text-[11px] text-teal-700 bg-teal-50 border border-teal-200 rounded-md px-2 py-1 shrink-0">
-                  Draft edited
-                </span>
+          <div className="shrink-0 z-20 border-t border-border bg-card/95 backdrop-blur-sm px-4 py-2.5">
+            <div
+              className={cn(
+                "mx-auto flex w-full max-w-[1380px] items-center gap-3",
+                showReviewState ? "justify-between" : "justify-end"
               )}
-              {isEditing && !draftHasEdits && (
-                <span className="text-[11px] text-zinc-500 font-mono">Editing…</span>
-              )}
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button type="button" size="sm" onClick={handleApprove} className="gap-1.5">
-                <CheckCircle size={13} />
-                {draftHasEdits ? "Approve with edits" : "Approve draft"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-zinc-600"
-                onClick={() => onArchive(job.id)}
-              >
-                <SkipForward size={13} />
-                Skip
-              </Button>
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                {draftHasEdits && (
+                  <span className="text-[11px] text-teal-700 bg-teal-50 border border-teal-200 rounded-md px-2 py-1 shrink-0">
+                    Draft edited
+                  </span>
+                )}
+                {isEditing && !draftHasEdits && (
+                  <span className="text-[11px] text-zinc-500 font-mono">Editing…</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button type="button" size="sm" onClick={handleApprove} className="gap-1.5 shadow-sm hover:shadow-md">
+                  <CheckCircle size={13} />
+                  {draftHasEdits ? "Approve with edits" : "Approve draft"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-zinc-600"
+                  onClick={() => onArchive(job.id)}
+                >
+                  <SkipForward size={13} />
+                  Skip
+                </Button>
+              </div>
             </div>
           </div>
         )}
