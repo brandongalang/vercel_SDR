@@ -91,9 +91,6 @@ function QueueRow({
               >
                 {tierLetter(job.confidence.tier)}
               </span>
-              <span className="text-[10px] font-mono text-zinc-400 tabular-nums leading-none">
-                {job.signals.filter((s) => s.usedInAngle).length}s
-              </span>
             </div>
 
             {/* Zone 2 — Identity + context */}
