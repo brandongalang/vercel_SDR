@@ -552,15 +552,15 @@ export default function DetailPanel({
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex items-center gap-2">
                     <h2 className="text-[14px] font-semibold text-foreground tracking-tight">
                       Generated draft
                     </h2>
                     {!isDone && !isEditing && (
-                      <p className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <span className="inline-flex items-center gap-1 rounded-md border border-border bg-background/80 px-2 py-0.5 text-[11px] text-muted-foreground">
                         <PencilLine size={12} aria-hidden />
-                        Click the subject or body to edit
-                      </p>
+                        Click draft to edit
+                      </span>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
@@ -601,18 +601,13 @@ export default function DetailPanel({
               {!isDone && regenOpen && (
                 <div className="rounded-xl border border-border bg-card/70 px-4 py-4 shadow-sm">
                   <div className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0">
-                        <h3 className="text-[14px] font-semibold tracking-tight text-foreground">
-                          Try another version
-                        </h3>
-                        <p className="mt-1 max-w-[60ch] text-[12px] leading-relaxed text-muted-foreground">
-                          Tweak the tone or shape of the current draft without changing the angle or research behind it.
-                        </p>
-                      </div>
-                      <span className="inline-flex w-fit items-center rounded-md border border-border bg-background/80 px-2 py-1 text-[11px] text-muted-foreground">
-                        The angle and evidence stay the same
-                      </span>
+                    <div className="min-w-0">
+                      <h3 className="text-[14px] font-semibold tracking-tight text-foreground">
+                        Try another version
+                      </h3>
+                      <p className="mt-1 max-w-[60ch] text-[12px] leading-relaxed text-muted-foreground">
+                        Tweak the current draft. The angle and evidence stay the same.
+                      </p>
                     </div>
 
                     <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
@@ -646,9 +641,6 @@ export default function DetailPanel({
                               );
                             })}
                           </div>
-                          <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
-                            Useful for making the draft shorter, more direct, less creepy, or more executive without re-running research.
-                          </p>
                         </div>
 
                         <div>
@@ -693,14 +685,9 @@ export default function DetailPanel({
 
                       <div className="rounded-xl border border-dashed border-border bg-background/60 p-4">
                         <div className="flex items-center justify-between gap-2">
-                          <div>
-                            <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                              Preview
-                            </p>
-                            <p className="mt-1 text-[12px] text-muted-foreground">
-                              Review the new version before replacing the current draft.
-                            </p>
-                          </div>
+                          <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                            Preview
+                          </p>
                           {regenPreview && !previewMatchesRequest && (
                             <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-800">
                               Preview is outdated
@@ -731,24 +718,12 @@ export default function DetailPanel({
                               >
                                 Use this draft
                               </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                disabled={regenBusy}
-                                onClick={() => {
-                                  setRegenPreview(null);
-                                  setRegenPreviewFingerprint(null);
-                                  setRegenError(null);
-                                }}
-                              >
-                                Clear preview
-                              </Button>
                             </div>
                           </div>
                         ) : (
                           <div className="mt-4 flex min-h-[200px] items-center justify-center rounded-lg border border-dashed border-border/80 bg-card/40 px-6 text-center">
                             <p className="max-w-[32ch] text-[12px] leading-relaxed text-muted-foreground">
-                              Choose a few adjustments, then generate a preview here while keeping the current draft visible below.
+                              Pick a few adjustments, then generate a preview here.
                             </p>
                           </div>
                         )}
