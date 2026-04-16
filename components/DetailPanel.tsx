@@ -978,99 +978,144 @@ export default function DetailPanel({
                 type="button"
                 onClick={() => setShowEvidence((v) => !v)}
                 aria-expanded={showEvidence}
-                className="flex items-center gap-1.5 text-[14px] font-semibold text-foreground tracking-tight hover:text-foreground/70 transition-colors"
+                className="w-full text-left hover:text-foreground/70 transition-colors"
               >
-                <ChevronRight size={16} className={cn("transition-transform duration-150 text-muted-foreground/60", showEvidence && "rotate-90")} />
-                {usedSignals.length} signals · agent strategy · research
+                <div className="flex items-start gap-2">
+                  <ChevronRight
+                    size={16}
+                    className={cn(
+                      "mt-0.5 shrink-0 transition-transform duration-150 text-muted-foreground/60",
+                      showEvidence && "rotate-90"
+                    )}
+                  />
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-semibold tracking-tight text-foreground">
+                      Why this draft was chosen
+                    </p>
+                    <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
+                      {usedSignals.length} supporting signal{usedSignals.length !== 1 ? "s" : ""}
+                      {run.uncertainty ? " · includes an uncertainty note" : ""}
+                    </p>
+                  </div>
+                </div>
               </button>
 
               {showEvidence && (
-                <div className="space-y-6 pt-2 pl-6">
-                  {/* Signals grid */}
-                  <div>
-                    <h3 className="text-[13px] font-semibold text-zinc-900 tracking-tight mb-3">Signals</h3>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {usedSignals.map((sig) => (
-                        <div
-                          key={sig.id}
-                          className={cn(
-                            "rounded-lg border border-zinc-200 bg-white px-3 py-3 border-l-[3px]",
-                            sig.source === "internal" ? "border-l-emerald-500" : sig.source === "external" ? "border-l-teal-500" : "border-l-zinc-300"
-                          )}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <span className="text-[13px] font-medium text-zinc-900">{sig.label}</span>
-                                <span className="text-[10px] font-mono uppercase text-zinc-500">{sig.source}</span>
-                                <span
-                                  className={cn(
-                                    "text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded border",
-                                    sig.strength === "strong"
-                                      ? "bg-emerald-500 text-white border-emerald-500"
-                                      : sig.strength === "moderate"
-                                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                        : "bg-zinc-100 text-zinc-500 border-zinc-200"
-                                  )}
-                                >
-                                  {sig.strength}
-                                </span>
+                <div className="space-y-5 border-l border-border/50 pl-6 pt-1">
+                  <div className="rounded-xl border border-border bg-card/80 px-4 py-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                        Agent strategy
+                      </p>
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-mono font-semibold",
+                          atConfig.color
+                        )}
+                      >
+                        <span className={cn("h-2 w-2 rounded-full shrink-0", atConfig.dot)} aria-hidden />
+                        {atConfig.label}
+                      </span>
+                    </div>
+                    <p className="mt-3 max-w-[64ch] text-[15px] font-semibold leading-6 tracking-tight text-foreground">
+                      {job.angle}
+                    </p>
+                    {job.whyNow && (
+                      <p className="mt-3 max-w-[65ch] text-[12px] leading-relaxed text-muted-foreground">
+                        {job.whyNow}
+                      </p>
+                    )}
+                    {run.uncertainty && (
+                      <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2">
+                        <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-700" aria-hidden />
+                        <p className="text-[12px] leading-relaxed text-amber-950/85">
+                          {run.uncertainty}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <h3 className="text-[13px] font-semibold tracking-tight text-foreground">
+                        Supporting signals
+                      </h3>
+                      <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
+                        Evidence the agent weighted most heavily for this angle.
+                      </p>
+                    </div>
+
+                    {usedSignals.length > 0 ? (
+                      <div className="space-y-2.5">
+                        {usedSignals.map((sig, index) => (
+                          <div key={sig.id} className="rounded-lg border border-border bg-card/60 px-3 py-3">
+                            <div className="flex items-start gap-3">
+                              <span className="mt-0.5 text-[10px] font-mono font-semibold text-muted-foreground/60 tabular-nums">
+                                {String(index + 1).padStart(2, "0")}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p className="text-[13px] font-semibold text-foreground">{sig.label}</p>
+                                  <span className="rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-wide text-muted-foreground">
+                                    {sig.source.replace(/_/g, " ")}
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      "rounded border px-1.5 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-wide",
+                                      sig.strength === "strong"
+                                        ? "border-emerald-500 bg-emerald-500 text-white"
+                                        : sig.strength === "moderate"
+                                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                          : "border-border bg-zinc-100 text-zinc-500"
+                                    )}
+                                  >
+                                    {sig.strength}
+                                  </span>
+                                </div>
+                                <p className="mt-1.5 max-w-[65ch] text-[12px] leading-6 text-zinc-700">
+                                  {sig.value}
+                                </p>
                               </div>
-                              <p className="mt-1.5 text-[12px] leading-relaxed text-zinc-600">{sig.value}</p>
+                              {sig.evidenceUrl && (
+                                <a
+                                  href={sig.evidenceUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="mt-0.5 inline-flex shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-white p-1.5 text-zinc-500 transition-colors hover:text-zinc-900"
+                                  aria-label={`Open evidence for ${sig.label}`}
+                                >
+                                  <ExternalLink size={14} />
+                                </a>
+                              )}
                             </div>
-                            {sig.evidenceUrl && (
-                              <a
-                                href={sig.evidenceUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-teal-700 hover:text-teal-900 shrink-0 mt-0.5"
-                                aria-label={`Open evidence for ${sig.label}`}
-                              >
-                                <ExternalLink size={14} />
-                              </a>
-                            )}
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-border bg-card/60 px-3 py-3">
+                        <p className="text-[12px] leading-relaxed text-muted-foreground">
+                          No supporting signals were retained for this draft.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Agent Strategy */}
-                  <div>
-                    <h3 className="text-[13px] font-semibold text-zinc-900 tracking-tight mb-3">Agent Strategy</h3>
-                    <div className="rounded-lg border border-zinc-200 bg-zinc-50/60 px-4 py-3 space-y-3">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <span className={cn("inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-mono font-semibold", atConfig.color)}>
-                            <span className={cn("h-2 w-2 rounded-full shrink-0", atConfig.dot)} aria-hidden />
-                            {atConfig.label}
-                          </span>
-                          <span className="text-[10px] font-mono uppercase text-zinc-400">Angle</span>
-                        </div>
-                        <p className="text-[12px] leading-relaxed text-zinc-700 font-medium">{job.angle}</p>
-                      </div>
-                      <div className="border-t border-zinc-200 pt-3">
-                        <p className="text-[10px] font-mono uppercase text-zinc-400 mb-1">Why Now</p>
-                        <p className="text-[12px] leading-relaxed text-zinc-700">{job.whyNow}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Research details — collapsible toggle */}
-                  <div>
+                  <div className="space-y-3 border-t border-border/50 pt-4">
                     <button
                       type="button"
                       onClick={() => setShowResearch((v) => !v)}
-                      className="flex items-center gap-1.5 text-[11px] font-mono text-zinc-500 hover:text-zinc-800 transition-colors"
+                      className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      <ChevronRight size={12} className={cn("transition-transform duration-150", showResearch && "rotate-90")} />
-                      Research details
+                      <ChevronRight size={13} className={cn("transition-transform duration-150", showResearch && "rotate-90")} />
+                      Research packet
                     </button>
                     {showResearch && (
                       <div className="mt-3 space-y-3">
-                        <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 px-3 py-3">
-                          <p className="text-[12px] font-medium text-zinc-900">Research packet</p>
-                          <p className="mt-1 text-[12px] leading-relaxed text-zinc-600">
+                        <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 px-4 py-3">
+                          <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-zinc-500">
+                            How the packet was built
+                          </p>
+                          <p className="mt-2 max-w-[65ch] text-[12px] leading-relaxed text-zinc-600">
                             The orchestrator delegated topic-specific research threads, summarized the coverage, then handed a narrowed packet into signal extraction and drafting.
                           </p>
                         </div>
@@ -1134,12 +1179,6 @@ export default function DetailPanel({
                           </div>
                         )}
 
-                        {run.uncertainty && (
-                          <div className="rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-3">
-                            <p className="text-[10px] font-mono uppercase tracking-wide text-amber-800">Uncertainty note</p>
-                            <p className="mt-2 text-[12px] leading-relaxed text-amber-950/85">{run.uncertainty}</p>
-                          </div>
-                        )}
                       </div>
                     )}
                   </div>
