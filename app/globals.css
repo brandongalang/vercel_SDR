@@ -5,16 +5,16 @@
 @custom-variant dark (&:is(.dark *));
 
 /**
- * Light-first UI tokens (see layout: no `dark` class on <html>).
+ * Refined operational tokens for the SDR review workspace.
  *
  * Hierarchy intent:
- * - Canvas (--background): page chrome; recedes.
- * - Surfaces (--card, --muted): panels and rails; subtle separation from canvas.
- * - Content: --foreground primary, --muted-foreground secondary/meta.
+ * - Canvas (--background): cool paper with a subtle atmospheric wash.
+ * - Surfaces (--card, --muted): lifted, lightly tinted panels.
+ * - Content: inky foreground, softer slate metadata.
  * - Semantic accents (use sparingly in components):
- *   - Amber: governance / “needs attention” / review queue emphasis.
- *   - Emerald: approved / positive outcome / high confidence.
- *   - Blue: product / trial / PLG (single family, not competing with amber).
+ *   - Amber: governance / review-required moments.
+ *   - Teal / Emerald: approval, confidence, positive progress.
+ *   - Sky: product / signal / PLG supporting emphasis.
  */
 
 @theme inline {
@@ -65,83 +65,82 @@
 }
 
 :root {
-  /* Geist / Vercel light tokens */
-  --background: #ffffff;
-  --foreground: #000000;
-  --card: #ffffff;
-  --card-foreground: #000000;
-  --popover: #ffffff;
-  --popover-foreground: #000000;
-  --primary: #000000;
-  --primary-foreground: #ffffff;
-  --secondary: #fafafa;
-  --secondary-foreground: #000000;
-  --muted: #fafafa;
-  --muted-foreground: #666666;
-  --accent: #fafafa;
-  --accent-foreground: #000000;
-  --destructive: #ee0000;
-  --destructive-foreground: #ffffff;
-  --border: #eaeaea;
-  --input: #eaeaea;
-  --ring: #0070f3;
-  /* Vercel brand tokens */
-  --success: #0070f3;
-  --success-foreground: #ffffff;
-  --cyan: #79ffe1;
-  --geist-cyan: #79ffe1;
-  --geist-violet: #7928ca;
-  --geist-pink: #ff0080;
-  --geist-orange: #f5a623;
+  --background: oklch(0.985 0.004 248);
+  --foreground: oklch(0.258 0.018 255);
+  --card: oklch(0.992 0.003 248);
+  --card-foreground: oklch(0.258 0.018 255);
+  --popover: oklch(0.989 0.004 248);
+  --popover-foreground: oklch(0.258 0.018 255);
+  --primary: oklch(0.31 0.045 248);
+  --primary-foreground: oklch(0.985 0.004 248);
+  --secondary: oklch(0.972 0.007 236);
+  --secondary-foreground: oklch(0.3 0.02 250);
+  --muted: oklch(0.965 0.009 228);
+  --muted-foreground: oklch(0.54 0.019 242);
+  --accent: oklch(0.955 0.017 204);
+  --accent-foreground: oklch(0.3 0.025 240);
+  --destructive: oklch(0.62 0.21 27);
+  --destructive-foreground: oklch(0.985 0.004 248);
+  --border: oklch(0.91 0.011 240);
+  --input: oklch(0.91 0.011 240);
+  --ring: oklch(0.68 0.095 214);
+  --success: oklch(0.67 0.104 171);
+  --success-foreground: oklch(0.985 0.004 248);
+  --cyan: oklch(0.84 0.08 191);
+  --geist-cyan: oklch(0.84 0.08 191);
+  --geist-violet: oklch(0.61 0.164 305);
+  --geist-pink: oklch(0.68 0.214 356);
+  --geist-orange: oklch(0.74 0.154 62);
   --radius: 0.5rem;
-  /* Sidebar */
-  --sidebar: #fafafa;
-  --sidebar-foreground: #666666;
-  --sidebar-primary: #000000;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #eaeaea;
-  --sidebar-accent-foreground: #000000;
-  --sidebar-border: #eaeaea;
-  --sidebar-ring: #0070f3;
+  --sidebar: oklch(0.978 0.005 244);
+  --sidebar-foreground: oklch(0.51 0.018 242);
+  --sidebar-primary: oklch(0.31 0.045 248);
+  --sidebar-primary-foreground: oklch(0.985 0.004 248);
+  --sidebar-accent: oklch(0.954 0.011 236);
+  --sidebar-accent-foreground: oklch(0.28 0.02 248);
+  --sidebar-border: oklch(0.91 0.011 240);
+  --sidebar-ring: oklch(0.68 0.095 214);
+  --page-glow-primary: oklch(0.86 0.07 205 / 0.4);
+  --page-glow-secondary: oklch(0.91 0.045 160 / 0.32);
 }
 
 .dark {
-  /* Geist / Vercel dark tokens */
-  --background: #000000;
-  --foreground: #ffffff;
-  --card: #111111;
-  --card-foreground: #ffffff;
-  --popover: #111111;
-  --popover-foreground: #ffffff;
-  --primary: #ffffff;
-  --primary-foreground: #000000;
-  --secondary: #111111;
-  --secondary-foreground: #ffffff;
-  --muted: #111111;
-  --muted-foreground: #888888;
-  --accent: #111111;
-  --accent-foreground: #ffffff;
-  --destructive: #ff4444;
-  --destructive-foreground: #ffffff;
-  --border: #333333;
-  --input: #333333;
-  --ring: #0070f3;
-  --success: #0070f3;
-  --success-foreground: #ffffff;
-  --cyan: #79ffe1;
-  --geist-cyan: #79ffe1;
-  --geist-violet: #9050e9;
-  --geist-pink: #ff0080;
-  --geist-orange: #f5a623;
-  /* Sidebar */
-  --sidebar: #0a0a0a;
-  --sidebar-foreground: #888888;
-  --sidebar-primary: #ffffff;
-  --sidebar-primary-foreground: #000000;
-  --sidebar-accent: #1a1a1a;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #333333;
-  --sidebar-ring: #0070f3;
+  --background: oklch(0.205 0.014 252);
+  --foreground: oklch(0.952 0.008 235);
+  --card: oklch(0.24 0.014 250);
+  --card-foreground: oklch(0.952 0.008 235);
+  --popover: oklch(0.232 0.014 250);
+  --popover-foreground: oklch(0.952 0.008 235);
+  --primary: oklch(0.92 0.01 235);
+  --primary-foreground: oklch(0.235 0.02 252);
+  --secondary: oklch(0.275 0.015 248);
+  --secondary-foreground: oklch(0.952 0.008 235);
+  --muted: oklch(0.272 0.015 248);
+  --muted-foreground: oklch(0.72 0.014 238);
+  --accent: oklch(0.315 0.028 214);
+  --accent-foreground: oklch(0.952 0.008 235);
+  --destructive: oklch(0.68 0.18 26);
+  --destructive-foreground: oklch(0.952 0.008 235);
+  --border: oklch(0.335 0.015 248);
+  --input: oklch(0.335 0.015 248);
+  --ring: oklch(0.74 0.11 210);
+  --success: oklch(0.75 0.11 170);
+  --success-foreground: oklch(0.235 0.02 252);
+  --cyan: oklch(0.78 0.09 188);
+  --geist-cyan: oklch(0.78 0.09 188);
+  --geist-violet: oklch(0.72 0.16 305);
+  --geist-pink: oklch(0.76 0.19 356);
+  --geist-orange: oklch(0.78 0.14 62);
+  --sidebar: oklch(0.19 0.014 252);
+  --sidebar-foreground: oklch(0.72 0.014 238);
+  --sidebar-primary: oklch(0.92 0.01 235);
+  --sidebar-primary-foreground: oklch(0.235 0.02 252);
+  --sidebar-accent: oklch(0.255 0.015 248);
+  --sidebar-accent-foreground: oklch(0.952 0.008 235);
+  --sidebar-border: oklch(0.335 0.015 248);
+  --sidebar-ring: oklch(0.74 0.11 210);
+  --page-glow-primary: oklch(0.46 0.09 205 / 0.32);
+  --page-glow-secondary: oklch(0.42 0.07 168 / 0.24);
 }
 
 @layer base {
@@ -150,6 +149,10 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-image:
+      radial-gradient(circle at top right, var(--page-glow-primary), transparent 28rem),
+      radial-gradient(circle at left -10% bottom 0%, var(--page-glow-secondary), transparent 24rem);
+    background-attachment: fixed;
   }
   html {
     @apply font-sans;
