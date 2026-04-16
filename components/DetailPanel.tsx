@@ -9,14 +9,6 @@ import {
   type RegenerationPreset,
 } from "@/lib/regeneration-presets";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertTriangle,
@@ -226,6 +218,15 @@ export default function DetailPanel({
     setIsEditing(false);
   };
 
+  const resetRegenerationWorkspace = () => {
+    setRegenOpen(false);
+    setRegenError(null);
+    setRegenPresets([]);
+    setRegenNote("");
+    setRegenPreview(null);
+    setRegenPreviewFingerprint(null);
+  };
+
   const handleRegenerateToggle = (preset: RegenerationPreset) => {
     setRegenError(null);
     setRegenPresets((current) => {
@@ -321,11 +322,7 @@ export default function DetailPanel({
       job.id,
       summarizeRegenerationRequest(regenPresets, note || undefined) || undefined,
     );
-    setRegenOpen(false);
-    setRegenPresets([]);
-    setRegenNote("");
-    setRegenPreview(null);
-    setRegenPreviewFingerprint(null);
+    resetRegenerationWorkspace();
   };
 
   const gov =
@@ -602,9 +599,17 @@ export default function DetailPanel({
                 </div>
                 {!isDone && (
                   <div className="flex flex-wrap items-center gap-2 shrink-0">
-                    <Button type="button" variant="outline" size="sm" onClick={() => setRegenOpen(true)}>
+                    <Button
+                      type="button"
+                      variant={regenOpen ? "secondary" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setRegenError(null);
+                        setRegenOpen((open) => !open);
+                      }}
+                    >
                       <RotateCcw size={13} />
-                      Regenerate
+                      {regenOpen ? "Close regenerate" : "Try another version"}
                     </Button>
                     <Button
                       type="button"
@@ -621,6 +626,166 @@ export default function DetailPanel({
                   </div>
                 )}
               </div>
+
+              {!isDone && regenOpen && (
+                <div className="rounded-xl border border-border bg-card/70 px-4 py-4 shadow-sm">
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <h3 className="text-[14px] font-semibold tracking-tight text-foreground">
+                          Try another version
+                        </h3>
+                        <p className="mt-1 max-w-[60ch] text-[12px] leading-relaxed text-muted-foreground">
+                          Tweak the tone or shape of the current draft without changing the angle or research behind it.
+                        </p>
+                      </div>
+                      <span className="inline-flex w-fit items-center rounded-md border border-border bg-background/80 px-2 py-1 text-[11px] text-muted-foreground">
+                        The angle and evidence stay the same
+                      </span>
+                    </div>
+
+                    <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+                      <div className="space-y-4">
+                        <div>
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="mb-2 text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
+                              Adjustments
+                            </p>
+                            <span className="text-[11px] text-muted-foreground">
+                              Choose up to {MAX_REGENERATION_PRESETS}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {REGENERATION_PRESETS.map((preset) => {
+                              const isSelected = regenPresets.includes(preset.id);
+                              const disableSelect =
+                                !isSelected && regenPresets.length >= MAX_REGENERATION_PRESETS;
+
+                              return (
+                                <Button
+                                  key={preset.id}
+                                  type="button"
+                                  size="sm"
+                                  variant={isSelected ? "secondary" : "outline"}
+                                  disabled={disableSelect || regenBusy}
+                                  onClick={() => handleRegenerateToggle(preset.id)}
+                                >
+                                  {preset.label}
+                                </Button>
+                              );
+                            })}
+                          </div>
+                          <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
+                            Useful for making the draft shorter, more direct, less creepy, or more executive without re-running research.
+                          </p>
+                        </div>
+
+                        <div>
+                          <label
+                            htmlFor="regen-note"
+                            className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground"
+                          >
+                            Note (optional)
+                          </label>
+                          <textarea
+                            id="regen-note"
+                            value={regenNote}
+                            onChange={(e) => setRegenNote(e.target.value)}
+                            placeholder="e.g. Strong idea, but make it less familiar"
+                            className="mt-2 min-h-[88px] w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/40"
+                          />
+                        </div>
+
+                        {regenError && (
+                          <p className="text-[12px] text-destructive">{regenError}</p>
+                        )}
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            disabled={regenBusy || regenPresets.length === 0}
+                            onClick={handleRegeneratePreview}
+                          >
+                            {regenBusy ? "Generating…" : regenPreview ? "Regenerate preview" : "Generate preview"}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={regenBusy}
+                            onClick={() => resetRegenerationWorkspace()}
+                          >
+                            {regenPreview ? "Keep current draft" : "Cancel"}
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-dashed border-border bg-background/60 p-4">
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                              Preview
+                            </p>
+                            <p className="mt-1 text-[12px] text-muted-foreground">
+                              Review the new version before replacing the current draft.
+                            </p>
+                          </div>
+                          {regenPreview && !previewMatchesRequest && (
+                            <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-800">
+                              Preview is outdated
+                            </span>
+                          )}
+                        </div>
+
+                        {regenPreview ? (
+                          <div className="mt-4 space-y-4">
+                            <div>
+                              <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                                Subject
+                              </span>
+                              <p className="mt-1 text-[15px] font-semibold text-foreground">
+                                {regenPreview.subject}
+                              </p>
+                            </div>
+                            <div className="max-h-[min(320px,40vh)] overflow-y-auto rounded-lg border border-border bg-card">
+                              <div className="p-4 text-[15px] leading-relaxed text-foreground">
+                                {renderBodyWithHighlight(regenPreview.body, regenPreview.highlightedSpan)}
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Button
+                                type="button"
+                                disabled={regenBusy || !previewMatchesRequest}
+                                onClick={handleUseRegeneratedDraft}
+                              >
+                                Use this draft
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                disabled={regenBusy}
+                                onClick={() => {
+                                  setRegenPreview(null);
+                                  setRegenPreviewFingerprint(null);
+                                  setRegenError(null);
+                                }}
+                              >
+                                Clear preview
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mt-4 flex min-h-[200px] items-center justify-center rounded-lg border border-dashed border-border/80 bg-card/40 px-6 text-center">
+                            <p className="max-w-[32ch] text-[12px] leading-relaxed text-muted-foreground">
+                              Choose a few adjustments, then generate a preview here while keeping the current draft visible below.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {draftHasEdits && !isDone && (
                 <p className="text-[11px] text-teal-800 bg-teal-50 border border-teal-200/80 rounded-md px-2 py-1.5 w-fit">
@@ -1049,123 +1214,6 @@ export default function DetailPanel({
         )}
       </div>
 
-      <Sheet
-        open={regenOpen}
-        onOpenChange={(open) => {
-          setRegenOpen(open);
-          if (!open) {
-            setRegenError(null);
-            setRegenPresets([]);
-            setRegenNote("");
-            setRegenPreview(null);
-            setRegenPreviewFingerprint(null);
-          }
-        }}
-      >
-        <SheetContent side="bottom" className="rounded-t-xl border-t max-h-[85vh] overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Regenerate draft</SheetTitle>
-            <SheetDescription>
-              Choose adjustments and an optional note, generate a preview here, then apply it to the
-              lead when you are ready. The angle plan and signals stay the same.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="px-4 space-y-4">
-            <div>
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground mb-2">
-                  Adjustments
-                </p>
-                <span className="text-[11px] text-muted-foreground">
-                  Choose up to {MAX_REGENERATION_PRESETS}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {REGENERATION_PRESETS.map((preset) => {
-                  const isSelected = regenPresets.includes(preset.id);
-                  const disableSelect =
-                    !isSelected && regenPresets.length >= MAX_REGENERATION_PRESETS;
-
-                  return (
-                  <Button
-                    key={preset.id}
-                    type="button"
-                    size="sm"
-                    variant={isSelected ? "secondary" : "outline"}
-                    disabled={disableSelect}
-                    onClick={() => handleRegenerateToggle(preset.id)}
-                  >
-                    {preset.label}
-                  </Button>
-                  );
-                })}
-              </div>
-              <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
-                Useful for things like making the draft shorter, more direct, less creepy, or more
-                executive without re-running research or changing the angle.
-              </p>
-            </div>
-            <div>
-              <label htmlFor="regen-note" className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
-                Note (optional)
-              </label>
-              <textarea
-                id="regen-note"
-                value={regenNote}
-                onChange={(e) => setRegenNote(e.target.value)}
-                placeholder="e.g. Wrong hook — needs re-plan"
-                className="mt-2 w-full min-h-[72px] rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/40"
-              />
-            </div>
-            {regenPreview && (
-              <div className="rounded-xl border border-border bg-card border-l-[3px] border-l-teal-400 p-4 space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-[10px] font-mono text-teal-600">
-                    NEW DRAFT
-                  </p>
-                  {!previewMatchesRequest && (
-                    <span className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200/80 rounded-md px-2 py-0.5">
-                      Settings changed — generate preview again
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Subject</span>
-                  <p className="mt-1 text-[15px] font-semibold text-foreground">{regenPreview.subject}</p>
-                </div>
-                <div className="rounded-lg border border-border bg-background max-h-[min(360px,45vh)] overflow-y-auto">
-                  <div className="p-4 text-[15px] leading-relaxed text-foreground">
-                    {renderBodyWithHighlight(regenPreview.body, regenPreview.highlightedSpan)}
-                  </div>
-                </div>
-              </div>
-            )}
-            {regenError && (
-              <p className="text-[12px] text-destructive">{regenError}</p>
-            )}
-          </div>
-          <SheetFooter className="flex-row flex-wrap justify-end gap-2 sm:justify-end">
-            <Button type="button" variant="outline" onClick={() => setRegenOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={regenBusy || regenPresets.length === 0}
-              onClick={handleRegeneratePreview}
-            >
-              {regenBusy ? "Generating…" : regenPreview ? "Regenerate preview" : "Generate preview"}
-            </Button>
-            <Button
-              type="button"
-              disabled={regenBusy || !regenPreview || !previewMatchesRequest}
-              onClick={handleUseRegeneratedDraft}
-            >
-              Use this draft
-            </Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
     </>
   );
 }
