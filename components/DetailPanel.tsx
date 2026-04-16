@@ -179,8 +179,11 @@ export default function DetailPanel({
   const [regenPreviewFingerprint, setRegenPreviewFingerprint] = useState<string | null>(null);
   const [showResearch, setShowResearch] = useState(false);
   const [showEvidence, setShowEvidence] = useState(job?.confidence.tier !== "high");
+  const [showAllSignals, setShowAllSignals] = useState(false);
   useEffect(() => {
     setShowEvidence(job?.confidence.tier !== "high");
+    setShowResearch(false);
+    setShowAllSignals(false);
   }, [job?.id, job?.confidence.tier]);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
@@ -199,6 +202,14 @@ export default function DetailPanel({
   const atConfig = ANGLE_CONFIG[job.angleType] ?? ANGLE_CONFIG.generic;
   const run = job.researchRun;
   const usedSignals = job.signals.filter((s) => s.usedInAngle);
+  const sortedUsedSignals = [...usedSignals].sort((a, b) => {
+    const rankA = a.rank ?? Number.MAX_SAFE_INTEGER;
+    const rankB = b.rank ?? Number.MAX_SAFE_INTEGER;
+    return rankA - rankB;
+  });
+  const visibleSignals = showAllSignals ? sortedUsedSignals : sortedUsedSignals.slice(0, 3);
+  const hiddenSignalCount = Math.max(sortedUsedSignals.length - visibleSignals.length, 0);
+  const shouldShowThreadSummaries = run.reports.length === 0 && run.threadSummaries.length > 0;
 
   const feedbackCaptured = job.feedback?.edited === true;
   const hasStructuredFeedback = feedbackCaptured || Boolean(job.feedback?.editorNote);
@@ -1037,9 +1048,9 @@ export default function DetailPanel({
                       Supporting signals
                     </h3>
 
-                    {usedSignals.length > 0 ? (
+                    {sortedUsedSignals.length > 0 ? (
                       <div className="overflow-hidden rounded-xl border border-border bg-card/60">
-                        {usedSignals.map((sig, index) => (
+                        {visibleSignals.map((sig, index) => (
                           <div
                             key={sig.id}
                             className={cn("px-4 py-3", index > 0 && "border-t border-border/70")}
@@ -1080,6 +1091,15 @@ export default function DetailPanel({
                         </p>
                       </div>
                     )}
+                    {hiddenSignalCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllSignals(true)}
+                        className="text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        Show {hiddenSignalCount} more signal{hiddenSignalCount !== 1 ? "s" : ""}
+                      </button>
+                    )}
                   </div>
 
                   <div className="space-y-3 border-t border-border/50 pt-4">
@@ -1099,7 +1119,7 @@ export default function DetailPanel({
                           </p>
                         </div>
 
-                        {run.threadSummaries.length > 0 && (
+                        {shouldShowThreadSummaries && (
                           <div className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
                             <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">Thread summaries</p>
                             <ul className="mt-2 space-y-2">
