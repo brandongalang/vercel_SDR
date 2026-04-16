@@ -578,31 +578,6 @@ export default function DetailPanel({
                         ★ Personal hook
                       </span>
                     )}
-                    {Array.from(new Set(job.signals?.filter((s) => s.usedInAngle).map((s) => s.category))).map((category) => {
-                      const labels: Record<string, string> = {
-                        event: "Event",
-                        plg: "Product Signal",
-                        tech_stack: "Tech Stack",
-                        social: "Social",
-                        web_activity: "Web Intent",
-                        hiring_signal: "Hiring",
-                        internal: "CRM",
-                      };
-                      return (
-                        <span
-                          key={category}
-                          className="inline-flex items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-mono font-semibold text-blue-800 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"
-                        >
-                          {labels[category] || category}
-                        </span>
-                      );
-                    })}
-                    {job.signals?.filter((s) => s.usedInAngle).length === 0 &&
-                      (!job.outreach?.personAngleStrength || job.outreach.personAngleStrength === "none") && (
-                        <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted px-2 py-0.5 text-[10px] font-mono font-semibold text-muted-foreground">
-                          Generic template
-                        </span>
-                      )}
                   </div>
                 </div>
                 {!isDone && (
