@@ -202,11 +202,13 @@ export default function DetailPanel({
   const atConfig = ANGLE_CONFIG[job.angleType] ?? ANGLE_CONFIG.generic;
   const run = job.researchRun;
   const usedSignals = job.signals.filter((s) => s.usedInAngle);
-  const sortedUsedSignals = [...usedSignals].sort((a, b) => {
+  const sortSignalsByRank = (a: (typeof job.signals)[number], b: (typeof job.signals)[number]) => {
     const rankA = a.rank ?? Number.MAX_SAFE_INTEGER;
     const rankB = b.rank ?? Number.MAX_SAFE_INTEGER;
     return rankA - rankB;
-  });
+  };
+  const sortedUsedSignals = [...usedSignals].sort(sortSignalsByRank);
+  const contextSignals = [...job.signals.filter((s) => !s.usedInAngle)].sort(sortSignalsByRank);
   const visibleSignals = showAllSignals ? sortedUsedSignals : sortedUsedSignals.slice(0, 3);
   const hiddenSignalCount = Math.max(sortedUsedSignals.length - visibleSignals.length, 0);
   const shouldShowThreadSummaries = run.reports.length === 0 && run.threadSummaries.length > 0;
@@ -855,7 +857,7 @@ export default function DetailPanel({
                     Angle &amp; context
                   </h2>
                   <p className="mt-1 text-[12px] text-muted-foreground">
-                    Review the reasoning after the draft if you need to validate or tune the recommendation.
+                    Review the broader research backdrop if you need to validate or tune the recommendation.
                   </p>
                 </div>
                 <span className={cn("inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-mono font-semibold", atConfig.color)}>
@@ -904,83 +906,54 @@ export default function DetailPanel({
                     </div>
                   )}
 
-                  {(!job.outreach?.personInsight && !job.outreach?.companyInsight) && (
+                  {contextSignals.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-mono font-semibold uppercase tracking-widest text-muted-foreground">
+                        Additional Context Signals
+                      </p>
+                      <div className="overflow-hidden rounded-lg border border-border bg-card/60">
+                        {contextSignals.map((sig, index) => (
+                          <div
+                            key={sig.id}
+                            className={cn("flex items-start gap-3 px-3 py-3", index > 0 && "border-t border-border/70")}
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                                <p className="text-[13px] font-semibold leading-5 text-foreground">
+                                  {sig.label}
+                                </p>
+                                <span className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground">
+                                  {sig.strength} · {sig.source.replace(/_/g, " ")}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-[12px] leading-5 text-zinc-700">
+                                {sig.value}
+                              </p>
+                            </div>
+                            {sig.evidenceUrl && (
+                              <a
+                                href={sig.evidenceUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="mt-0.5 inline-flex shrink-0 items-center justify-center rounded-md p-1.5 text-zinc-500 transition-colors hover:text-zinc-900"
+                                aria-label={`Open evidence for ${sig.label}`}
+                              >
+                                <ExternalLink size={14} />
+                              </a>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {!job.whyNow && !job.outreach?.personInsight && !job.outreach?.companyInsight && contextSignals.length === 0 && (
                     <div>
                       <p className="mb-1.5 text-[11px] font-mono font-semibold uppercase tracking-widest text-muted-foreground">Selected Angle</p>
                       <p className="text-[14px] leading-relaxed text-foreground">{job.angle}</p>
                     </div>
                   )}
                 </div>
-
-                {(usedSignals.length > 0 || run.uncertainty) && (
-                  <div className="space-y-2 border-t border-border/50 bg-muted/30 px-4 py-3">
-                    {usedSignals.length > 0 && (() => {
-                      const strong = usedSignals.filter((s) => s.strength === "strong");
-                      const moderate = usedSignals.filter((s) => s.strength === "moderate");
-                      const weak = usedSignals.filter((s) => s.strength === "weak");
-                      return (
-                        <div className="flex flex-wrap items-center gap-3">
-                          <span className="text-[11px] font-semibold text-muted-foreground">
-                            {usedSignals.length} research signal{usedSignals.length !== 1 ? "s" : ""}
-                          </span>
-                          <div className="flex items-center gap-1.5">
-                            {strong.length > 0 && (
-                              <Tooltip>
-                                <TooltipTrigger
-                                  render={
-                                    <span className="inline-flex cursor-default items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
-                                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
-                                      {strong.length} strong
-                                    </span>
-                                  }
-                                />
-                                <TooltipContent side="bottom" className="max-w-[200px] text-left">
-                                  {strong.map((s) => s.label).join(", ")}
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-                            {moderate.length > 0 && (
-                              <Tooltip>
-                                <TooltipTrigger
-                                  render={
-                                    <span className="inline-flex cursor-default items-center gap-1 rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300">
-                                      <span className="h-1.5 w-1.5 rounded-full bg-blue-400" aria-hidden />
-                                      {moderate.length} moderate
-                                    </span>
-                                  }
-                                />
-                                <TooltipContent side="bottom" className="max-w-[200px] text-left">
-                                  {moderate.map((s) => s.label).join(", ")}
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-                            {weak.length > 0 && (
-                              <Tooltip>
-                                <TooltipTrigger
-                                  render={
-                                    <span className="inline-flex cursor-default items-center gap-1 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                                      <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" aria-hidden />
-                                      {weak.length} weak
-                                    </span>
-                                  }
-                                />
-                                <TooltipContent side="bottom" className="max-w-[200px] text-left">
-                                  {weak.map((s) => s.label).join(", ")}
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })()}
-                    {run.uncertainty && (
-                      <div className="mt-1 flex items-start gap-1.5 border-t border-amber-100/50 pt-1 text-amber-700 dark:border-amber-800/50 dark:text-amber-400">
-                        <AlertTriangle size={13} className="mt-0.5 shrink-0" aria-hidden />
-                        <p className="text-[12px] font-medium leading-snug">{run.uncertainty}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             </section>
 
@@ -1028,11 +1001,6 @@ export default function DetailPanel({
                     <p className="max-w-[58ch] text-[14px] font-semibold leading-6 tracking-tight text-foreground">
                       {job.angle}
                     </p>
-                    {job.whyNow && (
-                      <p className="max-w-[60ch] text-[12px] leading-5 text-muted-foreground">
-                        {job.whyNow}
-                      </p>
-                    )}
                     {run.uncertainty && (
                       <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2">
                         <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-700" aria-hidden />
