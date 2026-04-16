@@ -350,6 +350,54 @@ export default function DetailPanel({
   };
   const tierStyles = tierStyleMap[job.confidence.tier] ?? "text-zinc-600 border-zinc-200 bg-zinc-100";
   const signalLabel = job.confidence.tier === "high" ? "Strong relevance" : job.confidence.tier === "medium" ? "Moderate relevance" : "Weak relevance";
+  const reviewMetadata = (
+    <div className="flex flex-wrap items-center gap-3">
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500/70">Routing</span>
+        <span className="inline-flex items-center gap-1">
+          <GovIcon size={13} className={job.governance === "review_required" ? "text-amber-700" : "text-slate-500"} aria-hidden />
+          <span className="text-[11px] text-zinc-600">{gov.label}</span>
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500/70">Signal</span>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <button
+                type="button"
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded border px-1.5 py-0.5 text-[11px] font-mono font-medium transition-opacity hover:opacity-80",
+                  tierStyles
+                )}
+              >
+                {signalLabel}
+                <Info size={11} className="opacity-60" aria-hidden />
+              </button>
+            }
+          />
+          <TooltipContent side="bottom" className="max-w-sm text-left leading-snug">
+            <p className="font-medium text-background mb-1.5">{job.confidence.summary}</p>
+            {job.confidence.reasons && job.confidence.reasons.length > 0 && (
+              <ul className="list-disc pl-4 space-y-1 text-[11px] opacity-95">
+                {job.confidence.reasons.map((r, i) => (
+                  <li key={i}>{r}</li>
+                ))}
+              </ul>
+            )}
+          </TooltipContent>
+        </Tooltip>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500/70">Source</span>
+        <span className="text-[11px] font-mono text-zinc-500">
+          {formatLeadSource(job.play.leadSource)}
+        </span>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -370,7 +418,7 @@ export default function DetailPanel({
               </Button>
             </div>
           )}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
             <div className="min-w-0">
               <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.16em] text-zinc-500">
                 {job.status === "reviewed" ? "Skipped lead" : job.status === "pending_review" ? "Draft under review" : "Reviewed lead"}
@@ -382,46 +430,20 @@ export default function DetailPanel({
                 {job.lead.title}
               </p>
 
-              <div className="flex flex-wrap items-center gap-3 mt-3">
-                <span className="inline-flex items-center gap-1">
-                  <GovIcon size={13} className={job.governance === "review_required" ? "text-amber-700" : "text-slate-500"} aria-hidden />
-                  <span className="text-[11px] text-zinc-600">{gov.label}</span>
-                </span>
-                <span className="text-zinc-300">·</span>
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <button
-                        type="button"
-                        className={cn(
-                          "inline-flex items-center gap-1.5 rounded border px-1.5 py-0.5 text-[11px] font-mono font-medium transition-opacity hover:opacity-80",
-                          tierStyles
-                        )}
-                      >
-                        {job.confidence.tier}
-                        <Info size={11} className="opacity-60" aria-hidden />
-                      </button>
-                    }
-                  />
-                  <TooltipContent side="bottom" className="max-w-sm text-left leading-snug">
-                    <p className="font-medium text-background mb-1.5">{job.confidence.summary}</p>
-                    {job.confidence.reasons && job.confidence.reasons.length > 0 && (
-                      <ul className="list-disc pl-4 space-y-1 text-[11px] opacity-95">
-                        {job.confidence.reasons.map((r, i) => (
-                          <li key={i}>{r}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </TooltipContent>
-                </Tooltip>
-                <span className="text-zinc-300">·</span>
-                <span className="text-[11px] font-mono text-zinc-500">
-                  Source: {formatLeadSource(job.play.leadSource)}
-                </span>
-              </div>
+              {isDone && (
+                <div className="mt-4 border-t border-border/60 pt-3">
+                  {reviewMetadata}
+                </div>
+              )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 shrink-0 sm:pt-0.5">
+            <div className="flex flex-col gap-3 lg:items-end">
+              {!isDone && (
+                <div className="rounded-lg border border-border/70 bg-card px-3 py-2 lg:max-w-[30rem]">
+                  {reviewMetadata}
+                </div>
+              )}
+              <div className="flex flex-wrap items-center gap-2 shrink-0 sm:pt-0.5">
               {isDone ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <span
@@ -463,6 +485,7 @@ export default function DetailPanel({
                   </Button>
                 </>
               )}
+              </div>
             </div>
           </div>
         </div>
