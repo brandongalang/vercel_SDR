@@ -633,6 +633,10 @@ export default function DetailPanel({
                                   type="button"
                                   size="sm"
                                   variant={isSelected ? "secondary" : "outline"}
+                                  className={cn(
+                                    isSelected &&
+                                      "border-foreground/15 bg-foreground text-background shadow-sm hover:bg-foreground/92 dark:border-foreground/20 dark:bg-foreground dark:text-background dark:hover:bg-foreground/90"
+                                  )}
                                   disabled={disableSelect || regenBusy}
                                   onClick={() => handleRegenerateToggle(preset.id)}
                                 >
