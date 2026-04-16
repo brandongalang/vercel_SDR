@@ -98,12 +98,16 @@ function QueueRow({
               <p className="font-semibold text-[14px] text-zinc-900 tracking-tight truncate leading-tight">
                 {job.lead.name}
               </p>
-              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                <span className="text-[12px] text-zinc-500 truncate max-w-[90px]">{job.company}</span>
-                <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", atConfig.dot)} />
-                <span className="text-[11px] text-zinc-600 truncate">{atConfig.label}</span>
+              <div className="mt-0.5 flex items-center gap-1 flex-wrap text-zinc-500">
+                <span className="text-[12px] truncate max-w-[108px]">{job.company}</span>
+                <span className="shrink-0 text-zinc-400 text-[11px]">·</span>
+                <span className="inline-flex items-center gap-1 text-[11px] truncate">
+                  <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", atConfig.dot)} />
+                  {atConfig.label}
+                </span>
+                <span className="shrink-0 text-zinc-400 text-[11px]">·</span>
                 <span
-                  className="inline-flex items-center gap-0.5 text-[11px] font-mono text-zinc-500 shrink-0"
+                  className="inline-flex items-center gap-1 text-[11px] font-mono text-zinc-500 shrink-0"
                 >
                   {playConfig.icon}
                   {playConfig.label}
