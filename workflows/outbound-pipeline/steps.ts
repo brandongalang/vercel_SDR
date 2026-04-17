@@ -1,4 +1,11 @@
-import type { LeadInput, ScoredSignal, DiscardedSignal, AnglePlan, OutboundJob } from "@/lib/types";
+import type {
+  LeadInput,
+  ScoredSignal,
+  DiscardedSignal,
+  AnglePlan,
+  OutboundJob,
+  PipelinePhase,
+} from "@/lib/types";
 import type { ResearchStageResult } from "@/lib/pipeline/execution-core";
 
 export type ResearchStepOutput = {
@@ -60,7 +67,7 @@ export async function draftStep(input: {
   "use step";
   const { markAngleSignals } = await import("@/lib/pipeline/job-builder");
   const { runDraftGenerator } = await import("@/lib/pipeline/draft-generator");
-  
+
   const draftSignals = markAngleSignals(input.signals, input.anglePlan.usedSignalIds);
   return runDraftGenerator({
     leadInput: input.leadInput,
@@ -80,18 +87,15 @@ export async function persistStep(input: {
   "use step";
   const { buildGeneratedJob } = await import("@/lib/pipeline/job-builder");
   const runJobModule = await import("@/lib/pipeline/run-job");
-  
-  // We need to construct the pipeline run audit record
+
   const audit = runJobModule.createPipelineRunAudit(input.leadInput);
-  
-  // Mark all phases as completed for the audit 
-  const phases = ["ingest", "research", "signals", "angle", "draft"];
+
+  const phases: PipelinePhase[] = ["ingest", "research", "signals", "angle", "draft"];
   for (const phase of phases) {
-    runJobModule.startPipelineAuditPhase(audit, phase as any);
-    runJobModule.completePipelineAuditPhase(audit, phase as any);
+    runJobModule.startPipelineAuditPhase(audit, phase);
+    runJobModule.completePipelineAuditPhase(audit, phase);
   }
 
-  // Then build the job
   const job = buildGeneratedJob({
     leadInput: input.leadInput,
     researchPacket: input.researchPacket,
@@ -102,9 +106,9 @@ export async function persistStep(input: {
   });
 
   const { persistPipelineRun } = await import("@/lib/pipeline/persistence");
-  const persisted = await persistPipelineRun({ 
-    job, 
-    audit 
+  const persisted = await persistPipelineRun({
+    job,
+    audit,
   });
 
   return {

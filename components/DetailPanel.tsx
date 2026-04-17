@@ -27,6 +27,17 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+function formatCompanySize(size?: string): string {
+  const labels: Record<string, string> = {
+    smb: "SMB",
+    mid_market: "Mid-market",
+    enterprise: "Enterprise",
+    startup: "Startup",
+  };
+  return size ? (labels[size] ?? size.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())) : "Unknown";
+}
+
+
 function renderBodyWithHighlight(body: string, span?: string) {
   if (!span) return <span className="whitespace-pre-wrap leading-relaxed">{body}</span>;
   const idx = body.indexOf(span);
@@ -36,7 +47,7 @@ function renderBodyWithHighlight(body: string, span?: string) {
   return (
     <span className="whitespace-pre-wrap leading-relaxed">
       {before}
-      <mark className="bg-cyan-100/60 text-zinc-900 rounded-[3px] px-0.5 not-italic border-b border-cyan-400/80">
+      <mark className="bg-cyan-100/60 text-zinc-900 dark:bg-cyan-900/40 dark:border-cyan-600/60 dark:text-cyan-100 rounded-[3px] px-0.5 not-italic border-b border-cyan-400/80">
         {span}
       </mark>
       {after}
@@ -47,7 +58,7 @@ function renderBodyWithHighlight(body: string, span?: string) {
 const MAX_REGENERATION_PRESETS = 3;
 
 function formatLeadSource(source: OutboundJob["play"]["leadSource"]) {
-  return source.replace(/_/g, " ");
+  return source.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function ContextLabel({
@@ -123,7 +134,7 @@ function DetailPanelEmptyState({
           iconClassName: "text-emerald-600",
           title: "All caught up",
           description: "There are no AI-generated drafts waiting for review.",
-          detail: "Select any approved or skipped lead from the list to audit the final decision and evidence.",
+          detail: "Switch to History to audit sent or skipped leads without bringing them back into the active queue.",
         };
       default:
         return {
@@ -313,7 +324,7 @@ export default function DetailPanel({
       }),
     });
 
-    const payload = (await response.json().catch(() => null)) as
+    const payload = (await response.json()) as
       | { error?: string; draft?: OutboundJob["draft"] }
       | null;
 
@@ -367,44 +378,61 @@ export default function DetailPanel({
   const gov =
     job.governance === "review_required"
       ? {
-          label: "Review required",
+          label: "Review suggested",
           Icon: ShieldAlert,
-          className: "border-amber-200 bg-amber-50 text-amber-900",
-          iconClassName: "text-amber-700",
+          className: "border-amber-200 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-200",
+          iconClassName: "text-amber-700 dark:text-amber-400",
         }
       : {
-          label: "Auto-eligible",
+          label: "Auto-send candidates",
           Icon: ShieldCheck,
-          className: "border-slate-200 bg-slate-100 text-slate-800",
-          iconClassName: "text-slate-500",
+          className: "border-sky-200 bg-sky-50 text-sky-900 dark:bg-sky-950/40 dark:border-sky-800 dark:text-sky-200",
+          iconClassName: "text-sky-600 dark:text-sky-400",
         };
   const GovIcon = gov.Icon;
 
   const tierStyleMap: Record<string, string> = {
-    high: "text-emerald-800 border-emerald-200 bg-emerald-50",
-    medium: "text-blue-800 border-blue-200 bg-blue-50",
+    high: "text-emerald-800 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300",
+    medium: "text-blue-800 border-blue-200 bg-blue-50 dark:bg-blue-950/40 dark:border-blue-800 dark:text-blue-300",
   };
-  const tierStyles = tierStyleMap[job.confidence.tier] ?? "text-zinc-600 border-zinc-200 bg-zinc-100";
-  const signalLabel = job.confidence.tier === "high" ? "Strong relevance" : job.confidence.tier === "medium" ? "Moderate relevance" : "Weak relevance";
+  const tierStyles = tierStyleMap[job.confidence.tier] ?? "text-muted-foreground border-border bg-muted";
+  const signalLabel = job.confidence.tier === "high" ? "Strong Relevance" : job.confidence.tier === "medium" ? "Moderate Relevance" : "Weak Relevance";
   const reviewMetadata = (
     <div className="flex flex-wrap items-center gap-3">
       <div className="flex items-center gap-2">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500/70">Routing</span>
-        <span className="inline-flex items-center gap-1">
-          <GovIcon size={13} className={job.governance === "review_required" ? "text-amber-700" : "text-slate-500"} aria-hidden />
-          <span className="text-[11px] text-zinc-600">{gov.label}</span>
-        </span>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500/70">Signal</span>
+        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Routing</span>
         <Tooltip>
           <TooltipTrigger
             render={
               <button
                 type="button"
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded border px-1.5 py-0.5 text-[11px] font-mono font-medium transition-opacity hover:opacity-80",
+                  "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] font-medium transition-opacity hover:opacity-80",
+                  gov.className
+                )}
+              >
+                <GovIcon size={12} className={gov.iconClassName} aria-hidden />
+                {gov.label}
+              </button>
+            }
+          />
+          <TooltipContent side="bottom" className="max-w-xs text-left">
+            {job.governance === "review_required"
+              ? "Human review required before sending. Enterprise accounts or low-signal leads always require a review pass."
+              : "Eligible for automated sending based on signal strength and account size. Still benefits from a quick review."}
+          </TooltipContent>
+        </Tooltip>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Signal</span>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <button
+                type="button"
+                className={cn(
+                  "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] font-medium transition-opacity hover:opacity-80",
                   tierStyles
                 )}
               >
@@ -414,9 +442,9 @@ export default function DetailPanel({
             }
           />
           <TooltipContent side="bottom" className="max-w-sm text-left leading-snug">
-            <p className="font-medium text-background mb-1.5">{job.confidence.summary}</p>
+            <p className="mb-1.5 font-medium text-background">{job.confidence.summary}</p>
             {job.confidence.reasons && job.confidence.reasons.length > 0 && (
-              <ul className="list-disc pl-4 space-y-1 text-[11px] opacity-95">
+              <ul className="list-disc space-y-1 pl-4 text-[11px] opacity-95">
                 {job.confidence.reasons.map((r, i) => (
                   <li key={i}>{r}</li>
                 ))}
@@ -427,8 +455,15 @@ export default function DetailPanel({
       </div>
 
       <div className="flex items-center gap-2">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500/70">Source</span>
-        <span className="text-[11px] font-mono text-zinc-500">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Account</span>
+        <span className="inline-flex items-center rounded border border-border bg-card px-1.5 py-0.5 text-[11px] font-medium text-foreground/80">
+          {formatCompanySize(job.companySize)}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Source</span>
+        <span className="inline-flex items-center rounded border border-border bg-muted px-1.5 py-0.5 text-[11px] font-medium capitalize text-muted-foreground">
           {formatLeadSource(job.play.leadSource)}
         </span>
       </div>
@@ -438,7 +473,6 @@ export default function DetailPanel({
   return (
     <>
       <div className="flex-1 flex flex-col min-w-0 bg-background min-h-0 overflow-hidden">
-        {/* Header — recommendation context + primary decision */}
         <div className="z-20 shrink-0 border-b border-border bg-card px-4 py-4 sm:px-6">
           {onBackToQueue && (
             <div className="mb-3 flex md:hidden">
@@ -456,13 +490,17 @@ export default function DetailPanel({
           )}
           <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
             <div className="min-w-0">
-              <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                {job.status === "reviewed" ? "Skipped lead" : job.status === "pending_review" ? "Draft under review" : "Reviewed lead"}
+              <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                {job.status === "reviewed"
+                  ? "Skipped lead"
+                  : job.status === "pending_review"
+                    ? "Draft under review"
+                    : "Sent lead"}
               </p>
-              <h1 className="text-lg font-semibold text-zinc-900 tracking-tight truncate">{job.lead.name}</h1>
-              <p className="text-[13px] text-zinc-500 mt-1">
-                <span className="text-zinc-800">{job.company}</span>
-                <span className="text-zinc-300 mx-2">·</span>
+              <h2 className="text-lg font-semibold text-foreground tracking-tight truncate">{job.lead.name}</h2>
+              <p className="text-[13px] text-muted-foreground mt-1">
+                <span className="text-foreground/80">{job.company}</span>
+                <span className="text-muted-foreground/30 mx-2">·</span>
                 {job.lead.title}
               </p>
 
@@ -475,76 +513,51 @@ export default function DetailPanel({
 
             <div className="flex flex-col gap-3 lg:items-end">
               {!isDone && (
-                <div className="rounded-lg border border-border/70 bg-card px-3 py-2 lg:max-w-[30rem]">
+                <div className="rounded-lg border border-border/70 bg-muted/30 px-3 py-2 lg:max-w-[34rem]">
                   {reviewMetadata}
                 </div>
               )}
-              <div className="flex flex-wrap items-center gap-2 shrink-0 sm:pt-0.5">
-              {isDone ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[12px] font-medium",
-                      job.status === "approved" || job.status === "sent_stub"
-                        ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                        : "bg-zinc-100 border-zinc-200 text-zinc-600"
-                    )}
-                  >
-                    {job.status === "approved" && <><CheckCircle size={12} aria-hidden /> Approved</>}
-                    {job.status === "reviewed" && <><SkipForward size={12} aria-hidden /> Skipped</>}
-                    {job.status === "sent_stub" && <><Send size={12} aria-hidden /> Sent</>}
-                  </span>
-                  {job.status === "approved" && hasStructuredFeedback && (
-                    <span className="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">
-                      {feedbackCaptured ? "Edits logged" : "Feedback noted"}
-                    </span>
+              {isDone && (
+                <div className="flex flex-wrap items-center gap-2 shrink-0 sm:pt-0.5">
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[12px] font-medium",
+                    job.status === "sent_stub"
+                      ? "bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300"
+                      : "bg-muted border-border text-muted-foreground"
                   )}
+                >
+                  {job.status === "reviewed" && <><SkipForward size={12} aria-hidden /> Skipped</>}
+                  {job.status === "sent_stub" && <><Send size={12} aria-hidden /> Sent</>}
+                </span>
+                {job.status === "sent_stub" && hasStructuredFeedback && (
+                  <span className="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-200">
+                    {feedbackCaptured ? "Edits logged" : "Feedback noted"}
+                  </span>
+                )}
                 </div>
-              ) : null}
-              </div>
+              )}
             </div>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto min-h-0 bg-zinc-50/80">
+        <div className="flex-1 overflow-y-auto min-h-0 bg-muted/40">
           <div className="mx-auto w-full max-w-[1380px] space-y-8 px-4 py-6 pb-4 sm:px-6">
-            {job.status === "approved" && (
-              <div
-                className={cn(
-                  "rounded-lg border px-4 py-3 flex items-start gap-3 text-sm",
-                  hasStructuredFeedback ? "bg-amber-50 border-amber-200" : "bg-emerald-50 border-emerald-200"
-                )}
-              >
-                <CheckCircle size={16} className={cn("mt-0.5 shrink-0", hasStructuredFeedback ? "text-amber-700" : "text-emerald-600")} />
-                <div>
-                  <p className={cn("font-medium", hasStructuredFeedback ? "text-amber-900" : "text-emerald-900")}>
-                    {hasStructuredFeedback ? "Draft approved — feedback captured for tuning." : "Draft approved — ready for send workflow."}
-                  </p>
-                  <p className="text-zinc-600 text-xs mt-0.5">
-                    {feedbackCaptured
-                      ? "Edits are logged for future prompt tuning on this play."
-                      : job.feedback?.editorNote
-                        ? "Regenerate note and draft snapshot are retained for analytics (stub)."
-                        : "The draft is approved here; sending remains a downstream step in production."}
-                  </p>
-                </div>
-              </div>
-            )}
             {job.status === "reviewed" && (
-              <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 flex items-start gap-3">
-                <SkipForward size={16} className="mt-0.5 shrink-0 text-zinc-500" aria-hidden />
+              <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground flex items-start gap-3">
+                <SkipForward size={16} className="mt-0.5 shrink-0 text-muted-foreground" aria-hidden />
                 <div>
-                  <p className="font-medium text-zinc-900">Skipped — not approved for send</p>
-                  <p className="text-xs mt-0.5 text-zinc-600">Skipped in active triage. Angle and evidence stay visible for audit.</p>
+                  <p className="font-medium text-foreground">Skipped — not approved for send</p>
+                  <p className="text-xs mt-0.5 text-muted-foreground">Skipped in active triage. Angle and evidence stay visible for audit.</p>
                 </div>
               </div>
             )}
             {job.status === "sent_stub" && (
-              <div className="rounded-lg border border-teal-200 bg-teal-50/80 px-4 py-3 text-sm text-teal-950 flex items-start gap-3">
+              <div className="rounded-lg border border-teal-200 bg-teal-50/80 px-4 py-3 text-sm text-teal-950 flex items-start gap-3 dark:bg-teal-950/40 dark:border-teal-800 dark:text-teal-200">
                 <Send size={16} className="mt-0.5 shrink-0 text-teal-700" aria-hidden />
                 <div>
-                  <p className="font-medium">Sent (stub) — first touch logged</p>
-                  <p className="text-xs mt-0.5 text-teal-900/90">
+                  <p className="font-medium">Sent — first touch logged</p>
+                  <p className="text-xs mt-0.5 text-teal-900/90 dark:text-teal-300">
                     {job.outcome == null
                       ? "Connect email or CRM sync to populate reply and meeting outcomes for Insights."
                       : [
@@ -575,12 +588,6 @@ export default function DetailPanel({
                     <h2 className="text-[14px] font-semibold text-foreground tracking-tight">
                       Generated draft
                     </h2>
-                    {!isDone && !isEditing && (
-                      <span className="inline-flex items-center gap-1 rounded-md border border-border bg-background/80 px-2 py-0.5 text-[11px] text-muted-foreground">
-                        <PencilLine size={12} aria-hidden />
-                        Click draft to edit
-                      </span>
-                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <span
@@ -599,6 +606,7 @@ export default function DetailPanel({
                     )}
                   </div>
                 </div>
+
                 {!isDone && (
                   <div className="flex flex-wrap items-center gap-2 shrink-0">
                     <Button
@@ -713,7 +721,7 @@ export default function DetailPanel({
                             Preview
                           </p>
                           {regenPreview && !previewMatchesRequest && (
-                            <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-800">
+                            <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-800 dark:border-amber-800/80 dark:bg-amber-950/40 dark:text-amber-300">
                               Preview is outdated
                             </span>
                           )}
@@ -758,7 +766,7 @@ export default function DetailPanel({
               )}
 
               {draftHasEdits && !isDone && (
-                <p className="text-[11px] text-teal-800 bg-teal-50 border border-teal-200/80 rounded-md px-2 py-1.5 w-fit">
+                <p className="text-[11px] text-teal-800 bg-teal-50 border border-teal-200/80 rounded-md px-2 py-1.5 w-fit dark:text-teal-300 dark:bg-teal-950/40 dark:border-teal-800/80">
                   Draft edited — approving keeps these changes.
                 </p>
               )}
@@ -802,7 +810,7 @@ export default function DetailPanel({
 
                   <div
                     className={cn(
-                      "flex max-h-[min(640px,70vh)] min-h-[200px] flex-col overflow-hidden rounded-xl border transition-shadow md:max-h-[min(640px,64vh)] md:min-h-[340px]",
+                      "flex max-h-[min(640px,70vh)] min-h-[200px] flex-col overflow-hidden rounded-xl border transition-shadow focus-within:ring-2 focus-within:ring-ring/50 md:max-h-[min(640px,64vh)] md:min-h-[340px]",
                       isEditing
                         ? "border-teal-300 ring-1 ring-teal-200/70 bg-card"
                         : "border-border bg-card hover:border-border/80",
@@ -812,7 +820,7 @@ export default function DetailPanel({
                     {isEditing ? (
                       <textarea
                         ref={bodyRef}
-                        className="min-h-[200px] w-full flex-1 resize-none bg-transparent p-5 text-[15px] leading-relaxed text-foreground focus:outline-none md:min-h-[320px]"
+                        className="min-h-[200px] w-full flex-1 resize-none bg-transparent p-5 text-[15px] leading-relaxed text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card md:min-h-[320px]"
                         value={job.draft.body}
                         onChange={(e) =>
                           onDraftUpdate(job.id, { ...job.draft, body: e.target.value, highlightedSpan: undefined })
@@ -847,7 +855,7 @@ export default function DetailPanel({
                     </Button>
                   )}
                   {regenerateNote && !isDone && (
-                    <p className="text-[12px] text-muted-foreground border-l-2 border-border pl-3 py-1">
+                    <p className="text-[12px] text-muted-foreground bg-muted/60 rounded-md px-3 py-2">
                       <span className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground/80">Regenerate note</span>
                       <span className="block mt-0.5 text-foreground/90">{regenerateNote}</span>
                     </p>
@@ -893,9 +901,9 @@ export default function DetailPanel({
                       {job.angle}
                     </p>
                     {run.uncertainty && (
-                      <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2">
-                        <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-700" aria-hidden />
-                        <p className="text-[12px] leading-5 text-amber-950/85">
+                      <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2 dark:border-amber-800/70 dark:bg-amber-950/30">
+                        <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden />
+                        <p className="text-[12px] leading-5 text-amber-900 dark:text-amber-200">
                           {run.uncertainty}
                         </p>
                       </div>
@@ -929,7 +937,7 @@ export default function DetailPanel({
                                     {sig.strength} · {sig.source.replace(/_/g, " ")}
                                   </span>
                                 </div>
-                                <p className="mt-1 max-w-[62ch] text-[12px] leading-5 text-zinc-700">
+                                <p className="mt-1 max-w-[62ch] text-[12px] leading-5 text-muted-foreground">
                                   {sig.value}
                                 </p>
                               </div>
@@ -938,7 +946,7 @@ export default function DetailPanel({
                                   href={sig.evidenceUrl}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="mt-0.5 inline-flex shrink-0 items-center justify-center rounded-md p-1.5 text-zinc-500 transition-colors hover:text-zinc-900"
+                                  className="mt-0.5 inline-flex shrink-0 items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground"
                                   aria-label={`Open evidence for ${sig.label}`}
                                 >
                                   <ExternalLink size={14} />
@@ -1035,7 +1043,7 @@ export default function DetailPanel({
                                   {sig.strength} · {sig.source.replace(/_/g, " ")}
                                 </span>
                               </div>
-                              <p className="mt-1 text-[12px] leading-5 text-zinc-700">
+                              <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
                                 {sig.value}
                               </p>
                             </div>
@@ -1044,7 +1052,7 @@ export default function DetailPanel({
                                 href={sig.evidenceUrl}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="mt-0.5 inline-flex shrink-0 items-center justify-center rounded-md p-1.5 text-zinc-500 transition-colors hover:text-zinc-900"
+                                className="mt-0.5 inline-flex shrink-0 items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground"
                                 aria-label={`Open evidence for ${sig.label}`}
                               >
                                 <ExternalLink size={14} />
@@ -1067,6 +1075,7 @@ export default function DetailPanel({
                     <button
                       type="button"
                       onClick={() => setShowResearch((v) => !v)}
+                      aria-expanded={showResearch}
                       className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors"
                     >
                       <ChevronRight size={13} className={cn("transition-transform duration-150", showResearch && "rotate-90")} />
@@ -1075,17 +1084,17 @@ export default function DetailPanel({
                     {showResearch && (
                       <div className="mt-3 space-y-3">
                         <div className="px-1">
-                          <p className="max-w-[65ch] text-[12px] leading-5 text-zinc-600">
+                          <p className="max-w-[65ch] text-[12px] leading-5 text-muted-foreground">
                             The orchestrator delegated topic-specific research threads, summarized the coverage, then handed a narrowed packet into signal extraction and drafting.
                           </p>
                         </div>
 
                         {shouldShowThreadSummaries && (
-                          <div className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
-                            <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">Thread summaries</p>
+                          <div className="rounded-lg border border-border bg-card px-3 py-3">
+                            <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground">Thread summaries</p>
                             <ul className="mt-2 space-y-2">
                               {run.threadSummaries.map((summary, index) => (
-                                <li key={`${summary}-${index}`} className="text-[12px] leading-relaxed text-zinc-700">
+                                <li key={`${summary}-${index}`} className="text-[12px] leading-relaxed text-foreground/80">
                                   {summary}
                                 </li>
                               ))}
@@ -1095,21 +1104,21 @@ export default function DetailPanel({
 
                         <div className="grid gap-2 sm:grid-cols-2">
                           {run.reports.map((report) => (
-                            <div key={report.topic} className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
-                              <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">{report.topic}</p>
-                              <p className="mt-2 text-[12px] font-medium text-zinc-900">{report.summary}</p>
+                            <div key={report.topic} className="rounded-lg border border-border bg-card px-3 py-3">
+                              <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground">{report.topic}</p>
+                              <p className="mt-2 text-[12px] font-medium text-foreground">{report.summary}</p>
                               {report.findings.length > 0 && (
                                 <ul className="mt-2 space-y-2">
                                   {report.findings.slice(0, 2).map((finding, index) => (
-                                    <li key={`${report.topic}-${index}`} className="text-[11px] leading-relaxed text-zinc-600">
-                                      <span className="font-medium text-zinc-800">{finding.text}</span>
+                                    <li key={`${report.topic}-${index}`} className="text-[11px] leading-relaxed text-muted-foreground">
+                                      <span className="font-medium text-foreground/80">{finding.text}</span>
                                       {finding.date ? ` · ${finding.date}` : ""}
                                     </li>
                                   ))}
                                 </ul>
                               )}
                               {report.gaps.length > 0 && (
-                                <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
+                                <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
                                   Gaps: {report.gaps.join("; ")}
                                 </p>
                               )}
@@ -1117,22 +1126,22 @@ export default function DetailPanel({
                           ))}
                         </div>
 
-                        <div className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
-                          <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">Lead source</p>
-                          <p className="mt-2 text-[12px] font-medium text-zinc-900">{formatLeadSource(job.play.leadSource)}</p>
-                          <p className="mt-1 text-[12px] leading-relaxed text-zinc-600">
+                        <div className="rounded-lg border border-border bg-card px-3 py-3">
+                          <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground">Lead source</p>
+                          <p className="mt-2 text-[12px] font-medium text-foreground">{formatLeadSource(job.play.leadSource)}</p>
+                          <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
                             This lead already existed upstream. The agent enriched it, narrowed to one angle, and generated a first-touch draft.
                           </p>
                         </div>
 
                         {job.discardedSignals && job.discardedSignals.length > 0 && (
-                          <div className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
-                            <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">Not leading with</p>
+                          <div className="rounded-lg border border-border bg-card px-3 py-3">
+                            <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground">Not leading with</p>
                             <ul className="mt-2 space-y-2">
                               {job.discardedSignals.map((ds, i) => (
-                                <li key={i} className="text-[12px] text-zinc-700">
-                                  <span className="font-medium text-zinc-900">{ds.label}</span>
-                                  <p className="mt-1 leading-relaxed text-zinc-600">{ds.reason}</p>
+                                <li key={i} className="text-[12px] text-foreground/80">
+                                  <span className="font-medium text-foreground">{ds.label}</span>
+                                  <p className="mt-1 leading-relaxed text-muted-foreground">{ds.reason}</p>
                                 </li>
                               ))}
                             </ul>
@@ -1149,7 +1158,7 @@ export default function DetailPanel({
         </div>
 
         {!isDone && (
-          <div className="shrink-0 z-20 border-t border-border bg-card/95 backdrop-blur-sm px-4 py-2.5">
+          <div className="shrink-0 z-20 border-t border-border bg-card/95 backdrop-blur-sm px-4 py-2.5 [will-change:backdrop-filter]">
             <div
               className={cn(
                 "mx-auto flex w-full max-w-[1380px] items-center gap-3",
@@ -1158,24 +1167,36 @@ export default function DetailPanel({
             >
               <div className="flex items-center gap-2 min-w-0">
                 {draftHasEdits && (
-                  <span className="text-[11px] text-teal-700 bg-teal-50 border border-teal-200 rounded-md px-2 py-1 shrink-0">
+                  <span className="text-[11px] text-teal-700 bg-teal-50 border border-teal-200 rounded-md px-2 py-1 shrink-0 dark:text-teal-300 dark:bg-teal-950/40 dark:border-teal-800">
                     Draft edited
                   </span>
                 )}
                 {isEditing && !draftHasEdits && (
-                  <span className="text-[11px] text-zinc-500 font-mono">Editing…</span>
+                  <span className="text-[11px] text-muted-foreground font-mono">Editing…</span>
                 )}
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <Button type="button" size="sm" onClick={handleApprove} className="gap-1.5 shadow-sm hover:shadow-md">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "h-8 gap-1.5 rounded-md px-2.5 text-xs font-medium",
+                    "text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-200",
+                  )}
+                  onClick={handleApprove}
+                >
                   <CheckCircle size={13} />
                   {draftHasEdits ? "Approve with edits" : "Approve draft"}
                 </Button>
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  className="gap-1.5 text-zinc-600"
+                  className={cn(
+                    "h-8 gap-1.5 rounded-md px-2.5 text-xs font-medium",
+                    "text-muted-foreground hover:text-foreground hover:bg-muted",
+                  )}
                   onClick={() => onArchive(job.id)}
                 >
                   <SkipForward size={13} />

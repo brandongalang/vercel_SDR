@@ -4,9 +4,12 @@ import {
   getTraceErrorMessage,
   nowIso,
   type PipelineTraceEmitter,
+  type PipelineTraceToolInputMap,
+  type PipelineTraceToolNode,
   type PipelineTraceToolName,
+  type PipelineTraceToolOutputMap,
 } from "@/lib/pipeline/live-trace";
-import type { LeadInput, SubAgentReport } from "@/lib/types";
+import type { LeadInput } from "@/lib/types";
 import { PROMPT_VERSIONS } from "@/lib/pipeline/prompts";
 import {
   crmLookupInputSchema,
@@ -71,7 +74,9 @@ Make the summary compact and concrete because it will be shown to a parent orche
 `;
 }
 
-function trimWebSearchForTrace(output: Awaited<ReturnType<typeof searchWeb>>) {
+function trimWebSearchForTrace(
+  output: Awaited<ReturnType<typeof searchWeb>>,
+): PipelineTraceToolOutputMap["web_search"] {
   return {
     query: output.query,
     provider: output.provider,
@@ -86,19 +91,22 @@ function trimWebSearchForTrace(output: Awaited<ReturnType<typeof searchWeb>>) {
   };
 }
 
-async function executeTracedResearchTool<TInput, TOutput>(config: {
+async function executeTracedResearchTool<
+  TToolName extends PipelineTraceToolName,
+  TResult,
+>(config: {
   trace?: PipelineTraceEmitter;
   parentId: string;
   traceId: string;
   title: string;
-  toolName: PipelineTraceToolName;
-  input: TInput;
-  execute: () => Promise<TOutput>;
-  formatOutput?: (output: TOutput) => unknown;
-}): Promise<TOutput> {
+  toolName: TToolName;
+  input: PipelineTraceToolInputMap[TToolName];
+  execute: () => Promise<TResult>;
+  formatOutput: (output: TResult) => PipelineTraceToolOutputMap[TToolName];
+}): Promise<TResult> {
   const startedAt = nowIso();
 
-  config.trace?.({
+  const runningNode: Omit<PipelineTraceToolNode<TToolName>, "order"> = {
     kind: "tool-call",
     id: config.traceId,
     parentId: config.parentId,
@@ -108,13 +116,15 @@ async function executeTracedResearchTool<TInput, TOutput>(config: {
     status: "running",
     startedAt,
     input: config.input,
-  });
+  };
+
+  config.trace?.(runningNode);
   await yieldStreamFlush();
 
   try {
     const output = await config.execute();
 
-    config.trace?.({
+    const completedNode: Omit<PipelineTraceToolNode<TToolName>, "order"> = {
       kind: "tool-call",
       id: config.traceId,
       parentId: config.parentId,
@@ -125,13 +135,15 @@ async function executeTracedResearchTool<TInput, TOutput>(config: {
       startedAt,
       completedAt: nowIso(),
       input: config.input,
-      output: config.formatOutput ? config.formatOutput(output) : output,
-    });
+      output: config.formatOutput(output),
+    };
+
+    config.trace?.(completedNode);
     await yieldStreamFlush();
 
     return output;
   } catch (error) {
-    config.trace?.({
+    const errorNode: Omit<PipelineTraceToolNode<TToolName>, "order"> = {
       kind: "tool-call",
       id: config.traceId,
       parentId: config.parentId,
@@ -143,7 +155,9 @@ async function executeTracedResearchTool<TInput, TOutput>(config: {
       completedAt: nowIso(),
       input: config.input,
       error: getTraceErrorMessage(error),
-    });
+    };
+
+    config.trace?.(errorNode);
     await yieldStreamFlush();
 
     throw error;
@@ -211,6 +225,7 @@ End with a concise, high-signal summary that can be handed back to a parent orch
             toolName: "crm_lookup",
             input: args,
             execute: async () => lookupMockCrm(args),
+            formatOutput: (output) => output,
           }),
       }),
       product_signals: tool({
@@ -225,6 +240,7 @@ End with a concise, high-signal summary that can be handed back to a parent orch
             toolName: "product_signals",
             input: args,
             execute: async () => getMockProductSignals(args),
+            formatOutput: (output) => output,
           }),
       }),
     },
@@ -246,7 +262,7 @@ End with a concise, high-signal summary that can be handed back to a parent orch
   });
 
   return {
-    report: result.output as SubAgentReport,
+    report: subAgentReportSchema.parse(result.output),
     steps: result.steps,
   };
 }

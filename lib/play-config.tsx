@@ -1,8 +1,8 @@
 import { Calendar, MousePointerClick, Code2, Globe, Zap, Users, Megaphone } from "lucide-react";
-import React from "react";
+import type { ReactNode } from "react";
 import type { Play, PlayType } from "@/lib/types";
 
-export const PLAY_CONFIG: Record<PlayType, { label: string; icon: React.ReactNode; color: string }> = {
+const PLAY_CONFIG: Record<PlayType, { label: string; icon: ReactNode; color: string }> = {
   event: {
     label: "Event",
     icon: <Calendar size={12} className="opacity-70" />,
@@ -40,18 +40,6 @@ export const PLAY_CONFIG: Record<PlayType, { label: string; icon: React.ReactNod
   },
 };
 
-export const getPlayConfig = (play: Play | string) => {
-  if (typeof play === "string") {
-    // Legacy string fallback for seeded data
-    return {
-      label: play,
-      icon: <Globe size={12} className="opacity-70" />,
-      color: "text-zinc-600 bg-zinc-100 border-zinc-200",
-    };
-  }
-  return PLAY_CONFIG[play.type] ?? {
-    label: play.label,
-    icon: <Globe size={12} className="opacity-70" />,
-    color: "text-zinc-600 bg-zinc-100 border-zinc-200",
-  };
-};
+export function getPlayConfig(play: Play) {
+  return PLAY_CONFIG[play.type];
+}

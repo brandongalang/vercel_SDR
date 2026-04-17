@@ -152,7 +152,7 @@
   "promptVersionBefore": "2026-02-17.draft-generator.v2",
   "promptVersionAfter": "2026-04-11.draft-generator.v3",
   "objective": {
-    "label": "0.2 clean-accept proxy + 0.8 workable-reply proxy",
+    "label": "0.2 approved-as-is proxy + 0.8 positive-reply proxy",
     "weights": {
       "cleanAccept": 0.2,
       "workableReply": 0.8

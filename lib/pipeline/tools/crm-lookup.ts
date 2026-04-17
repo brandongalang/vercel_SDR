@@ -1,6 +1,3 @@
-import { tool } from "ai";
-import { crmLookupInputSchema } from "@/lib/pipeline/schemas";
-
 function hashValue(value: string) {
   return Array.from(value).reduce((sum, character) => sum + character.charCodeAt(0), 0);
 }
@@ -46,12 +43,4 @@ export function lookupMockCrm(input: {
   };
 }
 
-export function createCrmLookupTool() {
-  return tool({
-    description: "Look up mocked CRM context for the account and lead.",
-    inputSchema: crmLookupInputSchema,
-    execute: async ({ company, leadName, leadTitle, playType, leadSource }) => {
-      return lookupMockCrm({ company, leadName, leadTitle, playType, leadSource });
-    },
-  });
-}
+export type MockCrmLookupResult = ReturnType<typeof lookupMockCrm>;

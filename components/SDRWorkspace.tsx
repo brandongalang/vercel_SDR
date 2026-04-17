@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { startTransition, useCallback, useEffect, useMemo, useState } from "react";
 import {
   AnalyticsDateRange,
-  AnalyticsSnapshot,
   OutboundJob,
 } from "@/lib/types";
 import { db } from "@/lib/instant-db";
@@ -11,16 +10,14 @@ import { fromInstantJobRecord } from "@/lib/jobs/instant-job-codec";
 import {
   createDefaultAnalyticsDateRange,
   formatAnalyticsDateRangeLabel,
-  getNearestAnalyticsSnapshot,
+  getAnalyticsDateRangeSpanDays,
+  getAnalyticsSnapshotFromJobs,
   MOCK_DSPY_COMPILE_RUNS,
 } from "@/lib/analytics-mock";
 import QueueList from "./QueueList";
 import DetailPanel from "./DetailPanel";
 import AnalyticsPage from "./AnalyticsPage";
-import DspyPage, {
-  INITIAL_DSPY_OPTIMIZATION_STATE,
-  type DspyOptimizationState,
-} from "./DspyPage";
+import DspyPage from "./DspyPage";
 import LiveAgentDemo from "./LiveAgentDemo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -28,15 +25,34 @@ import { RotateCcw } from "lucide-react";
 import { useMediaQuery } from "@/lib/use-media-query";
 import { useViewContext } from "@/lib/view-context";
 
-interface SDRWorkspaceProps {
-  analyticsMap: Record<string, AnalyticsSnapshot>;
-}
+const QUEUE_VIEW_KEY = "sdr-review-queue-view";
+const HISTORY_FILTER_KEY = "sdr-review-history-filter";
 
 type BaselineDraft = { subject: string; body: string; highlightedSpan?: string };
 type ReviewWorkspaceState = "loading" | "error" | "empty" | "complete" | "idle" | "ready";
+type QueueView = "queue" | "history";
+type HistoryFilter = "all" | "sent_today" | "skipped";
 
 function getTimestamp() {
   return Date.now();
+}
+
+function readStoredPreference(key: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredPreference(key: string, value: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Preference persistence is optional; keep the current in-memory view when storage is unavailable.
+  }
 }
 
 function selectNextPendingId(ordered: OutboundJob[], afterJobId: string): string | null {
@@ -54,7 +70,7 @@ function selectNextPendingId(ordered: OutboundJob[], afterJobId: string): string
   return null;
 }
 
-export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
+export default function SDRWorkspace() {
   const { isLoading, error, data } = db.useQuery({ jobs: {} });
   const jobs: OutboundJob[] = useMemo(
     () =>
@@ -74,13 +90,29 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
   const [isResettingDemo, setIsResettingDemo] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
   const [workspaceResetVersion, setWorkspaceResetVersion] = useState(0);
-  const [dspyOptimizationState, setDspyOptimizationState] = useState<DspyOptimizationState>(
-    INITIAL_DSPY_OPTIMIZATION_STATE,
-  );
   /** Below `md`, review uses full-screen queue ↔ full-screen detail so the draft and actions are usable. */
   const isDesktopReviewLayout = useMediaQuery("(min-width: 768px)");
   const [mobileReviewPane, setMobileReviewPane] = useState<"queue" | "detail">("detail");
   const [isLoadingSlow, setIsLoadingSlow] = useState(false);
+  const [queueView, setQueueView] = useState<QueueView>("queue");
+  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("all");
+
+  useEffect(() => {
+    const savedView = readStoredPreference(QUEUE_VIEW_KEY);
+    if (savedView === "queue" || savedView === "history") {
+      setQueueView(savedView);
+    }
+
+    const savedFilter = readStoredPreference(HISTORY_FILTER_KEY);
+    if (savedFilter === "all" || savedFilter === "sent_today" || savedFilter === "skipped") {
+      setHistoryFilter(savedFilter);
+    }
+  }, []);
+
+  useEffect(() => {
+    writeStoredPreference(QUEUE_VIEW_KEY, queueView);
+    writeStoredPreference(HISTORY_FILTER_KEY, historyFilter);
+  }, [queueView, historyFilter]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -96,19 +128,68 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
     return () => window.clearTimeout(timer);
   }, [isLoading]);
   const selectedAnalytics = useMemo(
-    () => getNearestAnalyticsSnapshot(analyticsDateRange, analyticsMap),
-    [analyticsDateRange, analyticsMap]
+    () => getAnalyticsSnapshotFromJobs(jobs, analyticsDateRange),
+    [jobs, analyticsDateRange]
   );
   const analyticsWindowLabel = useMemo(
     () => formatAnalyticsDateRangeLabel(analyticsDateRange),
     [analyticsDateRange]
   );
+  const analyticsRangeDays = useMemo(
+    () => getAnalyticsDateRangeSpanDays(analyticsDateRange),
+    [analyticsDateRange]
+  );
+  const todayStart = (() => {
+    const next = new Date();
+    next.setHours(0, 0, 0, 0);
+    return next.getTime();
+  })();
+  const pendingCount = jobs.filter((j) => j.status === "pending_review").length;
+  const visibleSelectionIds = useMemo(() => {
+    if (queueView === "queue") {
+      return jobs.filter((job) => job.status === "pending_review").map((job) => job.id);
+    }
+
+    const historyJobs = jobs
+      .filter((job) => job.status !== "pending_review")
+      .sort((a, b) => {
+        const aMs = Date.parse(a.timestamps.updated) || 0;
+        const bMs = Date.parse(b.timestamps.updated) || 0;
+        return bMs - aMs;
+      });
+
+    if (historyFilter === "skipped") {
+      return historyJobs.filter((job) => job.status === "reviewed").map((job) => job.id);
+    }
+
+    if (historyFilter === "sent_today") {
+      return historyJobs
+        .filter((job) => job.status === "sent_stub")
+        .filter((job) => {
+          const sentAt = job.timestamps.sentAt ? Date.parse(job.timestamps.sentAt) : NaN;
+          return Number.isNaN(sentAt) || sentAt >= todayStart;
+        })
+        .map((job) => job.id);
+    }
+
+    return historyJobs.map((job) => job.id);
+  }, [jobs, queueView, historyFilter, todayStart]);
   const resolvedSelectedJobId =
-    (selectedJobId && jobs.some((job) => job.id === selectedJobId) ? selectedJobId : null) ??
-    jobs.find((job) => job.status === "pending_review")?.id ??
+    (selectedJobId && visibleSelectionIds.includes(selectedJobId) ? selectedJobId : null) ??
+    visibleSelectionIds[0] ??
     null;
   const selectedJob = resolvedSelectedJobId ? jobs.find((j) => j.id === resolvedSelectedJobId) || null : null;
-  const pendingCount = jobs.filter((j) => j.status === "pending_review").length;
+  const queueStatusCounts = useMemo(() => {
+    let pending = 0;
+    let sent = 0;
+    let skipped = 0;
+    for (const j of jobs) {
+      if (j.status === "pending_review") pending += 1;
+      else if (j.status === "sent_stub") sent += 1;
+      else if (j.status === "reviewed") skipped += 1;
+    }
+    return { pending, sent, skipped };
+  }, [jobs]);
   const queueListState: "error" | "loading" | "empty" | "ready" =
     error ? "error" : isLoading ? "loading" : jobs.length === 0 ? "empty" : "ready";
 
@@ -116,7 +197,7 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
     if (error) return "error";
     if (isLoading) return "loading";
     if (jobs.length === 0) return "empty";
-    if (pendingCount === 0 && !selectedJob) return "complete";
+    if (queueView === "queue" && pendingCount === 0 && !selectedJob) return "complete";
     if (selectedJob) return "ready";
     return "idle";
   }
@@ -124,15 +205,19 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
 
   const handleApprove = (jobId: string, payload: { subject: string; body: string; edited: boolean; editorNote?: string }) => {
     const now = getTimestamp();
+    // Production: enqueue ESP/sequencer here; on success webhook, set sentAt + status.
+    // Stub: mark sent immediately so the job leaves triage and analytics stay consistent.
     db.transact(
       db.tx.jobs[jobId].update({
-        status: "approved",
+        status: "sent_stub",
         draftSubject: payload.subject,
         draftBody: payload.body,
         highlightedSpan: null,
         feedback: { edited: payload.edited, editorNote: payload.editorNote ?? null },
         approvedAt: now,
+        sentAt: now,
         updatedAt: now,
+        outcome: { replied: false, positive: false },
       })
     );
     setRegenerateNotes((prev) => {
@@ -268,7 +353,7 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
         method: "POST",
         headers,
       });
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      const payload = (await response.json()) as { error?: string } | null;
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -288,7 +373,6 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
       setRegenerateNotes({});
       setBaselineDrafts({});
       setAnalyticsDateRange(createDefaultAnalyticsDateRange());
-      setDspyOptimizationState(INITIAL_DSPY_OPTIMIZATION_STATE);
       setActiveView("review");
       setWorkspaceResetVersion((value) => value + 1);
     } catch (error) {
@@ -309,13 +393,14 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
     if (jobs.length === 0) {
       return { overline, title: "Queue is empty", subtitle: "No AI-generated drafts are waiting in review yet." };
     }
+    const figures = `${queueStatusCounts.pending} pending · ${queueStatusCounts.sent} sent · ${queueStatusCounts.skipped} skipped`;
     if (pendingCount === 0) {
-      return { overline, title: "All caught up", subtitle: "No drafts are currently waiting for SDR review." };
+      return { overline, title: "All caught up", subtitle: figures };
     }
     return {
       overline,
       title: `${pendingCount} lead${pendingCount !== 1 ? "s" : ""} pending review`,
-      subtitle: "Approve or skip each AI-generated first-touch draft.",
+      subtitle: figures,
     };
   }
   const reviewHeader = getReviewHeader();
@@ -325,13 +410,13 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
     },
     analytics: {
       overline: "Analytics",
-      title: "Performance benchmarks",
-      subtitle: "Compare AI-personalized sends against the static sequence baseline.",
+      title: "Benchmark board",
+      subtitle: "Benchmark reporting for AI-generated outbound and the current review queue.",
     },
     dspy: {
-      overline: "DSPy compiler",
-      title: "Prompt optimization history",
-      subtitle: "Review compile runs and trace-backed improvements to the drafting program.",
+      overline: "Learning loop",
+      title: "How the system learns",
+      subtitle: "See how rep judgment and lead replies shape the next checkpoint.",
     },
     debugger: {
       overline: "Live agent",
@@ -347,15 +432,24 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
     : false;
 
   const handleAnalyticsRangeStart = (start: string) => {
-    setAnalyticsDateRange({
-      start,
-      end: start > analyticsDateRange.end ? start : analyticsDateRange.end,
+    startTransition(() => {
+      setAnalyticsDateRange({
+        start,
+        end: start > analyticsDateRange.end ? start : analyticsDateRange.end,
+      });
     });
   };
   const handleAnalyticsRangeEnd = (end: string) => {
-    setAnalyticsDateRange({
-      start: end < analyticsDateRange.start ? end : analyticsDateRange.start,
-      end,
+    startTransition(() => {
+      setAnalyticsDateRange({
+        start: end < analyticsDateRange.start ? end : analyticsDateRange.start,
+        end,
+      });
+    });
+  };
+  const handleAnalyticsQuickRange = (days: number) => {
+    startTransition(() => {
+      setAnalyticsDateRange(createDefaultAnalyticsDateRange(new Date(), days));
     });
   };
   const handleOpenReviewJob = (jobId: string) => {
@@ -363,6 +457,31 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
     setActiveView("review");
     setMobileReviewPane("detail");
   };
+
+  useEffect(() => {
+    if (activeView !== "review") return;
+    const job = selectedJob;
+    if (!job || job.status !== "pending_review") return;
+    function handleKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
+      if ((e.key === "a" || e.key === "A") && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        handleApproveFromDetail(job!.id, {
+          subject: job!.draft.subject,
+          body: job!.draft.body,
+          edited: draftHasEdits,
+          editorNote: regenerateNotes[job!.id],
+        });
+      } else if ((e.key === "s" || e.key === "S") && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        handleArchiveFromDetail(job!.id);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeView, selectedJob?.id, selectedJob?.status]);
 
   const handleSelectReviewJob = (jobId: string) => {
     setSelectedJobId(jobId);
@@ -405,54 +524,57 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
           </div>
 
           <div className="flex flex-col gap-2 lg:items-end">
-            <div className="-mx-1 flex max-w-full overflow-x-auto rounded-xl border border-border bg-muted p-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:inline-flex sm:w-fit [&::-webkit-scrollbar]:hidden">
-                {[
-                  {
-                    id: "review" as const,
-                    label: "Lead review",
-                    sub:
-                      queueListState === "loading"
-                        ? "Loading…"
-                        : queueListState === "error"
-                          ? "Unavailable"
-                          : queueListState === "empty"
-                            ? "No leads"
-                            : `${pendingCount} pending`,
-                  },
-                  {
-                    id: "analytics" as const,
-                    label: "Analytics",
-                    sub: "Benchmarks",
-                  },
-                  {
-                    id: "dspy" as const,
-                    label: "DSPy",
-                    sub: "Compile history",
-                  },
-                  {
-                    id: "debugger" as const,
-                    label: "Live Agent",
-                    sub: "Live pipeline",
-                  },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setActiveView(tab.id)}
-                    className={cn(
-                      "shrink-0 rounded-lg px-3 py-2.5 text-left transition-colors sm:px-4",
-                      activeView === tab.id
-                        ? "bg-card shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                    aria-pressed={activeView === tab.id}
-                  >
-                    <p className="text-[12px] font-medium text-current">{tab.label}</p>
-                    <p className="text-[11px] text-muted-foreground leading-none">
-                      {tab.sub}
-                    </p>
-                  </button>
-                ))}
+            <div role="tablist" className="-mx-1 flex max-w-full overflow-x-auto rounded-xl border border-border bg-muted p-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:inline-flex sm:w-fit [&::-webkit-scrollbar]:hidden">
+              {[
+                {
+                  id: "review" as const,
+                  label: "Lead review",
+                  sub:
+                    queueListState === "loading"
+                      ? "Loading…"
+                      : queueListState === "error"
+                        ? "Unavailable"
+                        : queueListState === "empty"
+                          ? "No leads"
+                          : `${queueStatusCounts.pending} pending · ${queueStatusCounts.sent} sent · ${queueStatusCounts.skipped} skipped`,
+                },
+                {
+                  id: "analytics" as const,
+                  label: "Analytics",
+                  sub: "Benchmarks",
+                },
+                {
+                  id: "dspy" as const,
+                  label: "Learning Loop",
+                  sub: "How it learns",
+                },
+                {
+                  id: "debugger" as const,
+                  label: "Live Agent",
+                  sub: "Live pipeline",
+                },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  id={`tab-${tab.id}`}
+                  type="button"
+                  role="tab"
+                  aria-controls={`tabpanel-${tab.id}`}
+                  onClick={() => setActiveView(tab.id)}
+                  className={cn(
+                    "shrink-0 rounded-lg px-3 py-2.5 text-left transition-colors sm:px-4",
+                    activeView === tab.id
+                      ? "bg-card shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  aria-selected={activeView === tab.id}
+                >
+                  <p className="text-[12px] font-medium text-current">{tab.label}</p>
+                  <p className="text-[11px] text-muted-foreground leading-none">
+                    {tab.sub}
+                  </p>
+                </button>
+              ))}
             </div>
 
             {resetError && (
@@ -462,79 +584,113 @@ export default function SDRWorkspace({ analyticsMap }: SDRWorkspaceProps) {
         </div>
       </div>
 
-      {activeView === "review" ? (
+      <div
+        role="tabpanel"
+        id="tabpanel-review"
+        aria-labelledby="tab-review"
+        aria-hidden={activeView !== "review"}
+        hidden={activeView !== "review"}
+        key={`review-${workspaceResetVersion}`}
+        className={cn(
+          "min-h-0 flex-1 flex-col overflow-hidden md:flex-row",
+          activeView === "review" ? "flex" : "hidden",
+        )}
+      >
         <div
-          key={`review-${workspaceResetVersion}`}
-          className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row"
+          className={cn(
+            "min-h-0 flex-col overflow-hidden md:w-[min(100%,380px)] md:shrink-0 md:border-r md:border-border",
+            isDesktopReviewLayout || mobileReviewPane === "queue"
+              ? "flex flex-1 md:flex md:flex-none"
+              : "hidden md:flex md:flex-none",
+          )}
         >
-          <div
-            className={cn(
-              "min-h-0 flex-col overflow-hidden md:w-[min(100%,380px)] md:shrink-0 md:border-r md:border-border",
-              isDesktopReviewLayout || mobileReviewPane === "queue"
-                ? "flex flex-1 md:flex md:flex-none"
-                : "hidden md:flex md:flex-none",
-            )}
-          >
-            <QueueList
-              jobs={jobs}
-              selectedJobId={resolvedSelectedJobId}
-              onSelectJob={handleSelectReviewJob}
-              onArchiveJob={handleArchiveFromQueue}
-              onApproveJob={handleApproveFromQueue}
-              state={queueListState}
-              errorMessage={error?.message}
-            />
-          </div>
-          <div
-            className={cn(
-              "min-h-0 flex-col overflow-hidden",
-              isDesktopReviewLayout || mobileReviewPane === "detail"
-                ? "flex min-h-0 flex-1"
-                : "hidden md:flex md:min-h-0 md:flex-1",
-            )}
-          >
-            <DetailPanel
-              key={selectedJob?.id ?? reviewWorkspaceState}
-              job={selectedJob}
-              onApprove={handleApproveFromDetail}
-              onArchive={handleArchiveFromDetail}
-              onDraftUpdate={handleDraftUpdate}
-              onResetDraft={handleResetDraft}
-              onRegenerateNote={handleRegenerateNote}
-              draftHasEdits={Boolean(draftHasEdits)}
-              regenerateNote={selectedJob ? regenerateNotes[selectedJob.id] : undefined}
-              state={reviewWorkspaceState}
-              errorMessage={error?.message}
-              isLoadingSlow={isLoadingSlow}
-              onBackToQueue={
-                isDesktopReviewLayout ? undefined : () => setMobileReviewPane("queue")
-              }
-            />
-          </div>
+	          <QueueList
+            jobs={jobs}
+            selectedJobId={resolvedSelectedJobId}
+            onSelectJob={handleSelectReviewJob}
+            onArchiveJob={handleArchiveFromQueue}
+            onApproveJob={handleApproveFromQueue}
+            state={queueListState}
+            errorMessage={error?.message}
+            queueView={queueView}
+            onQueueViewChange={setQueueView}
+            historyFilter={historyFilter}
+            onHistoryFilterChange={setHistoryFilter}
+          />
         </div>
-      ) : activeView === "analytics" ? (
+        <div
+          className={cn(
+            "min-h-0 flex-col overflow-hidden",
+            isDesktopReviewLayout || mobileReviewPane === "detail"
+              ? "flex min-h-0 flex-1"
+              : "hidden md:flex md:min-h-0 md:flex-1",
+          )}
+        >
+          <DetailPanel
+            key={selectedJob?.id ?? reviewWorkspaceState}
+            job={selectedJob}
+            onApprove={handleApproveFromDetail}
+            onArchive={handleArchiveFromDetail}
+            onDraftUpdate={handleDraftUpdate}
+            onResetDraft={handleResetDraft}
+            onRegenerateNote={handleRegenerateNote}
+            draftHasEdits={Boolean(draftHasEdits)}
+            regenerateNote={selectedJob ? regenerateNotes[selectedJob.id] : undefined}
+            state={reviewWorkspaceState}
+            errorMessage={error?.message}
+            isLoadingSlow={isLoadingSlow}
+            onBackToQueue={
+              isDesktopReviewLayout ? undefined : () => setMobileReviewPane("queue")
+            }
+          />
+        </div>
+      </div>
+      <div
+        role="tabpanel"
+        id="tabpanel-analytics"
+        aria-labelledby="tab-analytics"
+        aria-hidden={activeView !== "analytics"}
+        hidden={activeView !== "analytics"}
+        className={cn("min-h-0 flex-1 flex-col", activeView === "analytics" ? "flex" : "hidden")}
+      >
         <AnalyticsPage
           analytics={selectedAnalytics.snapshot}
           analyticsWindowLabel={analyticsWindowLabel}
           baselineWindowDays={selectedAnalytics.snapshotDays}
           dateRange={analyticsDateRange}
+          rangeDays={analyticsRangeDays}
           jobs={jobs}
           onDateRangeStart={handleAnalyticsRangeStart}
           onDateRangeEnd={handleAnalyticsRangeEnd}
+          onQuickRange={handleAnalyticsQuickRange}
         />
-      ) : activeView === "dspy" ? (
+      </div>
+      <div
+        role="tabpanel"
+        id="tabpanel-dspy"
+        aria-labelledby="tab-dspy"
+        aria-hidden={activeView !== "dspy"}
+        hidden={activeView !== "dspy"}
+        className={cn("min-h-0 flex-1 flex-col", activeView === "dspy" ? "flex" : "hidden")}
+      >
         <DspyPage
           key={`dspy-${workspaceResetVersion}`}
           compileRuns={MOCK_DSPY_COMPILE_RUNS}
-          optimizationState={dspyOptimizationState}
-          setOptimizationState={setDspyOptimizationState}
         />
-      ) : (
+      </div>
+      <div
+        role="tabpanel"
+        id="tabpanel-debugger"
+        aria-labelledby="tab-debugger"
+        aria-hidden={activeView !== "debugger"}
+        hidden={activeView !== "debugger"}
+        className={cn("min-h-0 flex-1 flex-col", activeView === "debugger" ? "flex" : "hidden")}
+      >
         <LiveAgentDemo
           key={`debugger-${workspaceResetVersion}`}
           onOpenReviewJob={handleOpenReviewJob}
         />
-      )}
+      </div>
     </div>
   );
 }

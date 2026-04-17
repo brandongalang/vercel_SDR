@@ -1,21 +1,10 @@
 import { PROMPT_VERSIONS } from "@/lib/pipeline/prompts";
+import type { DraftPromptArtifact } from "@/lib/pipeline/prompt-artifacts";
 import type { AnglePlan, LeadInput, OutboundJob, ScoredSignal } from "@/lib/types";
 import {
   getRegenerationPreset,
   type RegenerationPreset,
 } from "@/lib/regeneration-presets";
-
-interface DraftPromptArtifact {
-  instruction: string;
-  demos: Array<{
-    leadContext: string;
-    topSignal: {
-      label: string;
-      value: string;
-    };
-    draft: OutboundJob["draft"];
-  }>;
-}
 
 function formatFewShotExamples(
   artifact: DraftPromptArtifact,
@@ -102,11 +91,10 @@ Requirements:
 - Paragraph shape: paragraph 1 should be one concrete trigger sentence; paragraph 2 should be one or two short sentences translating the implication; paragraph 3 should be one short CTA sentence. No paragraph should run long.
 - Use at most 2 allowed signals in the draft body. Do not restate the whole dossier.
 - Prefer exact nouns and phrasing from the signal set over invented abstractions like "architecture", "infrastructure", or "interfaces" unless the signal itself uses that language.
-- When the Vercel connection is indirect, anchor the implication in a simple shipping, preview, release, or iteration workflow instead of heavyweight infrastructure language.
-- Prefer low-friction offers like sharing a short example, pattern, benchmark, or checklist before asking for time.
-- If a current draft is provided, treat this as a rewrite, not a fresh strategy reset.
-- Preserve the chosen angle and the same underlying signal set unless the SDR note explicitly asks for a reframing.
-- Return highlightedSpan as an exact substring from the body when possible.
+- Match the tone and value proposition to the companySize (Account Size):
+  - Enterprise: Focus on "governance", "reliability at scale", "preview environment parity", and "security guardrails". Use a more professional, formal tone.
+  - Startup / SMB: Focus on "velocity", "iteration speed", "shipping faster", and "getting out of the way". Use a high-energy, plainspoken tone.
+- Total body: under 100 words.
 - End with a single CTA.
 - When the angle plan includes outreach.personAngleStrength "strong", prefer opening with the person-level hook rather than a company-level observation. Keep it professional and non-invasive.
 `;

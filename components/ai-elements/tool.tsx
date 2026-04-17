@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { AlertTriangle, CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
+import type { PipelineTraceValue } from "@/lib/pipeline/live-trace";
 import { cn } from "@/lib/utils";
 
 export type ToolState =
@@ -37,40 +38,40 @@ function useToolContext() {
   return context;
 }
 
-export function getStatusBadge(state: ToolState) {
+function getStatusBadge(state: ToolState) {
   switch (state) {
     case "input-streaming":
       return {
         label: "Streaming",
-        className: "border-amber-200 bg-amber-50 text-amber-700",
+        className: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
         icon: Loader2,
         iconClassName: "animate-spin",
       };
     case "input-available":
       return {
         label: "Running",
-        className: "border-amber-200 bg-amber-50 text-amber-700",
+        className: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
         icon: Loader2,
         iconClassName: "animate-spin",
       };
     case "output-available":
       return {
         label: "Done",
-        className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+        className: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
         icon: CheckCircle2,
         iconClassName: "",
       };
     case "output-error":
       return {
         label: "Error",
-        className: "border-red-200 bg-red-50 text-red-700",
+        className: "border-destructive/30 bg-destructive/10 text-destructive dark:border-destructive/40 dark:bg-destructive/15",
         icon: AlertTriangle,
         iconClassName: "",
       };
     default:
       return {
         label: "Idle",
-        className: "border-zinc-200 bg-zinc-50 text-zinc-500",
+        className: "border-border bg-muted/50 text-muted-foreground",
         icon: ChevronDown,
         iconClassName: "",
       };
@@ -104,7 +105,7 @@ function Tool({
       <div
         data-slot="tool"
         className={cn(
-          "overflow-hidden rounded-lg border border-zinc-200/80 bg-white/90 shadow-none backdrop-blur-sm",
+          "overflow-hidden rounded-lg border border-border/70 bg-card/95 shadow-none backdrop-blur-sm",
           className,
         )}
         {...props}
@@ -144,20 +145,20 @@ function ToolHeader({
       aria-controls={contentId}
       aria-expanded={open}
       className={cn(
-        "flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-zinc-50/80",
+        "flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-muted/40",
         className,
       )}
       onClick={() => setOpen(!open)}
     >
       {icon ? (
-        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-zinc-600">
+        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-muted/50 text-muted-foreground">
           {icon}
         </span>
       ) : null}
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-[12px] font-medium text-zinc-950">{title ?? type}</p>
+          <p className="text-[12px] font-medium text-foreground">{title ?? type}</p>
           <span
             className={cn(
               "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-wide",
@@ -171,13 +172,13 @@ function ToolHeader({
         </div>
 
         {description ? (
-          <div className="mt-1 text-[11px] leading-relaxed text-zinc-500">{description}</div>
+          <div className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{description}</div>
         ) : null}
       </div>
 
       <ChevronDown
         className={cn(
-          "mt-0.5 h-4 w-4 shrink-0 text-zinc-400 transition-transform",
+          "mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/60 transition-transform",
           open && "rotate-180",
         )}
       />
@@ -200,7 +201,7 @@ function ToolContent({
     <div
       id={contentId}
       data-slot="tool-content"
-      className={cn("border-t border-zinc-100 px-3 pb-3 pt-2.5", className)}
+      className={cn("border-t border-border/60 px-3 pb-3 pt-2.5", className)}
       {...props}
     >
       {children}
@@ -208,7 +209,9 @@ function ToolContent({
   );
 }
 
-function renderValue(value: unknown) {
+type ToolRenderableValue = PipelineTraceValue | ReactNode;
+
+function renderValue(value: ToolRenderableValue) {
   if (isValidElement(value)) {
     return value;
   }
@@ -219,7 +222,7 @@ function renderValue(value: unknown) {
     typeof value === "boolean"
   ) {
     return (
-      <div className="whitespace-pre-wrap break-words text-[12px] leading-relaxed text-zinc-700">
+      <div className="whitespace-pre-wrap break-words text-[12px] leading-relaxed text-foreground/80">
         {String(value)}
       </div>
     );
@@ -230,7 +233,7 @@ function renderValue(value: unknown) {
   }
 
   return (
-    <pre className="overflow-x-auto whitespace-pre-wrap break-words text-[11px] leading-relaxed text-zinc-700">
+    <pre className="overflow-x-auto whitespace-pre-wrap break-words text-[11px] leading-relaxed text-foreground/80">
       {JSON.stringify(value, null, 2)}
     </pre>
   );
@@ -252,15 +255,15 @@ function ToolSection({
       className={cn(
         "rounded-md border px-3 py-2",
         tone === "error"
-          ? "border-red-200 bg-red-50"
-          : "border-zinc-200 bg-zinc-50",
+          ? "border-destructive/30 bg-destructive/10 dark:border-destructive/40 dark:bg-destructive/15"
+          : "border-border bg-muted/40",
         className,
       )}
     >
       <p
         className={cn(
           "text-[10px] font-mono font-semibold uppercase tracking-[0.12em]",
-          tone === "error" ? "text-red-700" : "text-zinc-500",
+          tone === "error" ? "text-destructive" : "text-muted-foreground",
         )}
       >
         {title}
@@ -275,7 +278,7 @@ function ToolInput({
   title = "Input",
   className,
 }: {
-  input: unknown;
+  input: PipelineTraceValue;
   title?: string;
   className?: string;
 }) {
@@ -296,7 +299,7 @@ function ToolOutput({
   title,
   className,
 }: {
-  output?: unknown;
+  output?: ToolRenderableValue;
   errorText?: string;
   title?: string;
   className?: string;
@@ -304,7 +307,7 @@ function ToolOutput({
   if (errorText) {
     return (
       <ToolSection title={title ?? "Error"} tone="error" className={className}>
-        <div className="text-[12px] leading-relaxed text-red-900">{errorText}</div>
+        <div className="text-[12px] leading-relaxed text-destructive">{errorText}</div>
       </ToolSection>
     );
   }

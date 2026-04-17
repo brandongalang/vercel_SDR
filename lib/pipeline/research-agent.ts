@@ -19,6 +19,11 @@ import {
 import { runResearchThread } from "@/lib/pipeline/spawn-researcher";
 import { yieldStreamFlush } from "@/lib/pipeline/yield-stream-flush";
 
+type ResearchThreadTrace = {
+  topic: string;
+  steps: Awaited<ReturnType<typeof runResearchThread>>["steps"];
+};
+
 function getFreeformContextBlock(freeformContext?: string) {
   const trimmed = freeformContext?.trim();
 
@@ -55,7 +60,7 @@ Your job:
 2. Spawn 2 to 4 targeted sub-researchers.
 3. Read only their summaries in your own context.
 4. If coverage is still weak, spawn one gap-filling thread.
-5. Return thread summaries, an orchestrator summary, and an uncertainty note.
+5. Return thread summaries, an orchestrator summary, an uncertainty note, and estimate the companySize.
 
 Guidance:
 - First verify the exact person/company match. If the company name is generic or shared by multiple businesses, use the company domain and the lead's role to reject same-name entities before broader research.
@@ -211,7 +216,7 @@ export async function runResearchAgent(input: {
   trace?: PipelineTraceEmitter;
 }) {
   const reports: SubAgentReport[] = [];
-  const stepTraces: unknown[] = [];
+  const stepTraces: ResearchThreadTrace[] = [];
   const orchestratorNodeId = "research-orchestrator";
   const orchestratorStartedAt = nowIso();
   let threadCount = 0;
@@ -368,7 +373,7 @@ export async function runResearchAgent(input: {
       );
     }
 
-    const output = result.output;
+    const output = researchPacketModelOutputSchema.parse(result.output);
     const packet: ResearchPacket = {
       leadInput: input.leadInput,
       reports,
@@ -379,6 +384,7 @@ export async function runResearchAgent(input: {
       orchestratorSummary:
         output.orchestratorSummary ||
         "Used fallback research planning after the orchestrator returned without spawning any research threads.",
+      companySize: output.companySize,
       uncertainty: output.uncertainty,
     };
 

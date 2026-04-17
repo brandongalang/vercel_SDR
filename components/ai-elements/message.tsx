@@ -32,7 +32,7 @@ function MessageContent({
       data-slot="message-content"
       className={cn(
         "flex w-full max-w-full flex-col gap-2",
-        "group-data-[from=user]:max-w-[min(560px,92%)] group-data-[from=user]:rounded-2xl group-data-[from=user]:border group-data-[from=user]:border-zinc-200 group-data-[from=user]:bg-zinc-100/80 group-data-[from=user]:px-4 group-data-[from=user]:py-3",
+        "group-data-[from=user]:max-w-[min(560px,92%)] group-data-[from=user]:rounded-2xl group-data-[from=user]:border group-data-[from=user]:border-border group-data-[from=user]:bg-muted/80 group-data-[from=user]:px-4 group-data-[from=user]:py-3",
         className,
       )}
       {...props}
@@ -52,7 +52,7 @@ function MessageResponse({
     <div
       data-slot="message-response"
       className={cn(
-        "whitespace-pre-wrap break-words text-[13px] leading-relaxed text-zinc-700",
+        "whitespace-pre-wrap break-words text-[13px] leading-relaxed text-foreground",
         className,
       )}
       {...props}

@@ -1,5 +1,3 @@
-import { tool } from "ai";
-import { webSearchInputSchema } from "@/lib/pipeline/schemas";
 import { googleSearch } from "@/lib/pipeline/tools/google-search";
 import type { WebSearchOutput } from "@/lib/pipeline/tools/search-types";
 
@@ -16,7 +14,7 @@ type ExaSearchResponse = {
   results?: ExaSearchResult[];
 };
 
-export async function exaSearch(input: {
+async function exaSearch(input: {
   query: string;
   includeDomains?: string[];
   numResults?: number;
@@ -97,14 +95,4 @@ export async function searchWeb(input: {
     results: [],
     warnings,
   };
-}
-
-export function createWebSearchTool() {
-  return tool({
-    description: "Search the public web for recent company, person, hiring, social, and product signals.",
-    inputSchema: webSearchInputSchema,
-    execute: async ({ query, includeDomains, numResults }) => {
-      return searchWeb({ query, includeDomains, numResults });
-    },
-  });
 }

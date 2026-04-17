@@ -1,4 +1,5 @@
 import { determineGovernance } from "@/lib/pipeline/governance";
+import { nowIso } from "@/lib/time";
 import type {
   AnglePlan,
   DiscardedSignal,
@@ -8,11 +9,7 @@ import type {
   ScoredSignal,
 } from "@/lib/types";
 
-function getTimestamp(): string {
-  return new Date().toISOString();
-}
-
-export function buildResearchRun(packet: ResearchPacket): OutboundJob["researchRun"] {
+function buildResearchRun(packet: ResearchPacket): OutboundJob["researchRun"] {
   return {
     orchestratorSummary: packet.orchestratorSummary,
     threadSummaries: packet.threadSummaries,
@@ -43,8 +40,9 @@ export function buildGeneratedJob(input: {
   const governance = determineGovernance({
     confidenceTier: input.anglePlan.confidence.tier,
     leadSource: input.leadInput.play.leadSource,
+    companySize: input.researchPacket.companySize,
   });
-  const timestamp = input.createdAt ?? getTimestamp();
+  const timestamp = input.createdAt ?? nowIso();
 
   return {
     lead: {
@@ -52,6 +50,7 @@ export function buildGeneratedJob(input: {
       title: input.leadInput.leadTitle,
     },
     company: input.leadInput.company,
+    companySize: input.researchPacket.companySize,
     play: input.leadInput.play,
     whyNow: input.anglePlan.whyNow,
     researchRun: buildResearchRun(input.researchPacket),

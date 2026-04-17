@@ -1,72 +1,35 @@
 "use client";
 
-import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
-import {
-  BookOpen,
-  CheckCircle2,
-  Loader2,
-  Lock,
-  Sparkles,
-} from "lucide-react";
-import { CompileRunCard } from "@/components/dspy/compile-run-card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { fmtPct, shortVersion } from "@/components/dspy/shared";
+import { useMemo } from "react";
+import { ArrowRight } from "lucide-react";
+import { MermaidDiagram } from "@/components/mermaid-diagram";
 import optimizedArtifactData from "@/data/ax-optimized-v3.json";
-import { computeDspyVersionMetrics } from "@/lib/metrics";
-import {
-  DRAFT_GENERATOR_V2_ARTIFACT,
-  type DraftGeneratorPromptDemo,
-} from "@/lib/pipeline/prompt-artifacts";
-import {
-  getSyntheticDspyJobs,
-  getSyntheticPromptSnapshots,
-  SYNTHETIC_DSPY_VERSION_V1,
-  SYNTHETIC_DSPY_VERSION_V2,
-  type SyntheticPromptSnapshot,
-} from "@/lib/synthetic-data";
-import type { DspyCompileRun, DspyVersionRow } from "@/lib/types";
+import { getSyntheticPromptSnapshots } from "@/lib/synthetic-data";
+import type { DspyCompileRun } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const OPTIMIZATION_TARGET_VERSION = "2026-04-11.draft-generator.v3";
 
-const RUN_STEPS = [
-  "Loading v2 training corpus",
-  "Scoring drafts against the 0.2 / 0.8 objective",
-  "Selecting the highest-signal few-shot demos",
-  "Compiling the v3 prompt artifact",
-] as const;
-
-type OptimizationStatus = "idle" | "running" | "complete";
-type CompareMode = "v2-v3" | "v1-v2";
-
-export type DspyOptimizationState = {
-  optimizationStatus: OptimizationStatus;
-  activeStepIndex: number | null;
-  completedStepCount: number;
-  runError: string | null;
-};
-
-export const INITIAL_DSPY_OPTIMIZATION_STATE: DspyOptimizationState = {
-  optimizationStatus: "idle",
-  activeStepIndex: null,
-  completedStepCount: 0,
-  runError: null,
-};
+const TEAM_VIEW = {
+  label: "Illustrative 30-day team outcomes",
+  drafts: 2400,
+  live: {
+    accepted: 1440,
+    edited: 960,
+    positiveReplies: 216,
+  },
+  candidate: {
+    accepted: 1680,
+    edited: 720,
+    positiveReplies: 252,
+  },
+} as const;
 
 interface OptimizationArtifact {
   instruction: string;
-  demos: DraftGeneratorPromptDemo[];
   compiledAt: string;
   optimizer: string;
-  mode?: string;
+  demos: Array<{ id: string }>;
   promptVersionBefore: string;
   promptVersionAfter: string;
   objective: {
@@ -76,740 +39,379 @@ interface OptimizationArtifact {
       workableReply: number;
     };
   };
-  evaluation: {
-    kind: string;
-    basis: string;
-    baselineVersionRow: DspyVersionRow;
-    projectedVersionRow: DspyVersionRow;
-    deltas: {
-      cleanAcceptRate?: number;
-      editRate?: number;
-      replyRate?: number;
-      positiveRate?: number;
-    };
-  };
+}
+
+interface CheckpointCard {
+  id: string;
+  label: string;
+  dateLabel: string;
+  eyebrow: string;
+  shift: string;
+  evidence: string;
+  tone?: "baseline" | "live" | "candidate" | "future";
 }
 
 const OPTIMIZATION_ARTIFACT = optimizedArtifactData as OptimizationArtifact;
 
-/** Full runtime prompt as one markdown document (instruction + summary + few-shots), for display as plain text. */
-function buildDraftGeneratorPromptMarkdown(input: {
-  label: string;
-  releaseDate: string;
-  packageLabel: string;
-  summary: string;
-  instruction: string;
-  demos: DraftGeneratorPromptDemo[];
-}): string {
-  const lines: string[] = [];
-  lines.push(`# ${input.label}`);
-  lines.push("");
-  lines.push(`_${input.releaseDate} · ${input.packageLabel}_`);
-  lines.push("");
-  if (input.summary.trim()) {
-    lines.push(`> ${input.summary.trim().replace(/\n/g, "\n> ")}`);
-    lines.push("");
-  }
-  lines.push(`## Instruction`);
-  lines.push("");
-  lines.push(input.instruction.trim());
-  lines.push("");
-  lines.push(`## Few-shot examples`);
-  lines.push("");
-  if (input.demos.length === 0) {
-    lines.push(`*(none — the model receives the instruction and live lead context only.)*`);
-  } else {
-    for (let i = 0; i < input.demos.length; i++) {
-      const demo = input.demos[i];
-      lines.push(`### Example ${i + 1}`);
-      lines.push("");
-      lines.push(`**Signal:** ${demo.topSignal.label}`);
-      lines.push("");
-      lines.push(`**Lead context:** ${demo.leadContext}`);
-      lines.push("");
-      lines.push(`**Subject:** ${demo.draft.subject}`);
-      lines.push("");
-      lines.push(demo.draft.body.trim());
-      lines.push("");
-    }
-  }
-  return lines.join("\n").trimEnd();
+const SIGNAL_SUMMARY = [
+  {
+    id: "accepted",
+    label: "Accepted as-is",
+    live: TEAM_VIEW.live.accepted,
+    candidate: TEAM_VIEW.candidate.accepted,
+    toneClassName: "text-teal-700 dark:text-teal-300",
+  },
+  {
+    id: "edited",
+    label: "Edited into final draft",
+    live: TEAM_VIEW.live.edited,
+    candidate: TEAM_VIEW.candidate.edited,
+    toneClassName: "text-amber-700 dark:text-amber-300",
+  },
+  {
+    id: "positive",
+    label: "Positive replies",
+    live: TEAM_VIEW.live.positiveReplies,
+    candidate: TEAM_VIEW.candidate.positiveReplies,
+    toneClassName: "text-rose-700 dark:text-rose-300",
+  },
+] as const;
+
+function formatCount(value: number) {
+  return new Intl.NumberFormat("en-US").format(value);
 }
 
-function delay(ms: number) {
-  return new Promise<void>((resolve) => {
-    globalThis.setTimeout(resolve, ms);
-  });
+function formatDateLabel(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
-function compositeScore(
-  cleanAcceptRate: number | null,
-  workableReplyRate: number | null,
-): number | null {
-  if (cleanAcceptRate == null || workableReplyRate == null) return null;
-  return Math.round((0.2 * cleanAcceptRate + 0.8 * workableReplyRate) * 10) / 10;
+function buildMermaidChart(): string {
+  return [
+    "flowchart LR",
+    '    subgraph top[" "]',
+    "      direction LR",
+    '      A["Live<br/>checkpoint"] ~~~ B["Rep<br/>review"] ~~~ F["Positive lead<br/>response"]',
+    "    end",
+    '    subgraph bottom[" "]',
+    "      direction LR",
+    '      C["Full<br/>accept"] ~~~ D["Edited final<br/>draft"] ~~~ E["Compile<br/>dataset"]',
+    "    end",
+    '    A --> B',
+    '    B -->|accept as-is| C',
+    '    B -->|edit before send| D',
+    '    C --> E',
+    '    D --> E',
+    '    C -. can earn .-> F',
+    '    D -. can earn .-> F',
+    '    F -->|extra weight| E',
+    '    E -. next cycle .-> A',
+    "    style top fill:transparent,stroke:transparent",
+    "    style bottom fill:transparent,stroke:transparent",
+    "    classDef observed fill:#f5f5f4,stroke:#d6d3d1,stroke-width:1.2,color:#292524,rx:6",
+    "    classDef sdr fill:#fef7e6,stroke:#facc15,stroke-width:1.2,color:#854d0e,rx:6",
+    "    classDef accepted fill:#effcf6,stroke:#34d399,stroke-width:1.45,color:#166534,rx:6",
+    "    classDef edited fill:#fff7ed,stroke:#fb923c,stroke-width:1.45,color:#9a3412,rx:6",
+    "    classDef reply fill:#fff1f2,stroke:#fb7185,stroke-width:1.45,color:#9f1239,rx:6",
+    "    classDef compile fill:#f4f4f5,stroke:#a1a1aa,stroke-width:1.35,color:#27272a,rx:6",
+    "    class A observed",
+    "    class B sdr",
+    "    class C accepted",
+    "    class D edited",
+    "    class E compile",
+    "    class F reply",
+  ].join("\n");
 }
 
-function CompileFact({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3">
-      <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-zinc-400">{label}</p>
-      <p className="mt-1.5 text-[13px] font-medium leading-relaxed text-zinc-900">{value}</p>
-    </div>
-  );
-}
-
-function VersionTable({
-  rows,
-  candidateUnlocked,
-}: {
-  rows: DspyVersionRow[];
-  candidateUnlocked: boolean;
-}) {
-  return (
-    <div className="-mx-1 overflow-x-auto sm:mx-0">
-    <Table className="min-w-[680px]">
-      <TableHeader>
-        <TableRow className="hover:bg-transparent">
-          <TableHead className="w-[22%] text-zinc-600">Version</TableHead>
-          <TableHead className="text-right text-zinc-600">Jobs</TableHead>
-          <TableHead className="text-right text-zinc-600">Clean accept</TableHead>
-          <TableHead className="text-right text-zinc-600">Workable reply</TableHead>
-          <TableHead className="text-right text-zinc-600">
-            Composite
-            <span className="ml-1 font-mono text-[9px] font-normal text-zinc-400">
-              (0.2×C + 0.8×W)
-            </span>
-          </TableHead>
-          <TableHead className="text-right text-zinc-600">Status</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {rows.map((row) => {
-          const isLive = row.draftPromptVersion === SYNTHETIC_DSPY_VERSION_V2;
-          const score = compositeScore(row.cleanAcceptRate, row.positiveRate);
-
-          return (
-            <TableRow
-              key={row.draftPromptVersion}
-              className={isLive ? "bg-teal-50/50" : undefined}
-            >
-              <TableCell className="font-mono text-[11px] text-zinc-700">
-                <span className="flex items-center gap-2">
-                  {shortVersion(row.draftPromptVersion)}
-                  {isLive && (
-                    <span className="inline-flex items-center gap-1 rounded-md border border-teal-200 bg-teal-50 px-1.5 py-0.5 text-[9px] font-mono font-semibold uppercase tracking-wider text-teal-700">
-                      <span className="h-1.5 w-1.5 rounded-full bg-teal-500" />
-                      Live
-                    </span>
-                  )}
-                </span>
-              </TableCell>
-              <TableCell className="text-right tabular-nums text-zinc-700">{row.jobCount}</TableCell>
-              <TableCell className="text-right tabular-nums text-zinc-700">
-                {row.withFeedback > 0
-                  ? `${fmtPct(row.cleanAcceptRate)} (${row.cleanAccept}/${row.withFeedback})`
-                  : "—"}
-              </TableCell>
-              <TableCell className="text-right tabular-nums text-zinc-700">
-                {row.sentWithOutcome > 0
-                  ? `${fmtPct(row.positiveRate)} (${row.positive}/${row.sentWithOutcome})`
-                  : "—"}
-              </TableCell>
-              <TableCell className="text-right tabular-nums font-medium text-zinc-700">
-                {score != null ? `${score}%` : "—"}
-              </TableCell>
-              <TableCell className="text-right">
-                {isLive ? (
-                  <span className="text-[11px] font-medium text-teal-700">Deployed</span>
-                ) : (
-                  <span className="text-[11px] text-zinc-400">Historical</span>
-                )}
-              </TableCell>
-            </TableRow>
-          );
-        })}
-        <TableRow className={candidateUnlocked ? "bg-violet-50/60" : "bg-zinc-50/80 opacity-60"}>
-          <TableCell className={cn("font-mono text-[11px]", candidateUnlocked ? "text-zinc-700" : "text-zinc-500")}>
-            <span className="flex items-center gap-2">
-              v3 (Apr 11)
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[9px] font-mono font-semibold uppercase tracking-wider",
-                  candidateUnlocked
-                    ? "border-violet-200 bg-violet-50 text-violet-700"
-                    : "border-zinc-200 bg-zinc-100 text-zinc-500",
-                )}
-              >
-                {candidateUnlocked ? <Sparkles size={9} /> : <Lock size={9} />}
-                {candidateUnlocked ? "Artifact revealed" : "Pending"}
-              </span>
-            </span>
-          </TableCell>
-          <TableCell className="text-right tabular-nums text-zinc-400">—</TableCell>
-          <TableCell className="text-right text-zinc-400">—</TableCell>
-          <TableCell className="text-right text-zinc-400">—</TableCell>
-          <TableCell className="text-right text-zinc-400">—</TableCell>
-          <TableCell className="text-right">
-            <span
-              className={cn(
-                "text-[11px]",
-                candidateUnlocked ? "font-medium text-violet-700" : "text-zinc-400",
-              )}
-            >
-              {candidateUnlocked ? "Compile artifact only" : "Run optimization to inspect"}
-            </span>
-          </TableCell>
-        </TableRow>
-      </TableBody>
-    </Table>
-    </div>
-  );
-}
-
-function PromptSnapshotCard({
-  snapshot,
-  columnLabel,
-  role,
-}: {
-  snapshot: SyntheticPromptSnapshot & {
-    demos: DraftGeneratorPromptDemo[];
-    optimizer?: string;
-    packageLabel: string;
-  };
-  columnLabel: string;
-  role: "baseline" | "live" | "optimization-target";
-}) {
-  const config = {
-    baseline: {
-      border: "border-zinc-200",
-      bg: "bg-white",
-      badge: null as string | null,
-      badgeClass: "",
+function buildCheckpointCards(input: {
+  v1DateLabel: string;
+  v2DateLabel: string;
+  v3DateLabel: string;
+}): CheckpointCard[] {
+  return [
+    {
+      id: "v1",
+      label: "v1",
+      dateLabel: input.v1DateLabel,
+      eyebrow: "Baseline",
+      shift: "Generic professional outreach with a meeting CTA.",
+      evidence: "Reps often rewrote the opener because the policy did not anchor strongly on the signal.",
+      tone: "baseline",
     },
-    live: {
-      border: "border-teal-200",
-      bg: "bg-teal-50/30",
-      badge: "Current live",
-      badgeClass: "border-teal-200 bg-teal-50 text-teal-700",
+    {
+      id: "v2",
+      label: "v2",
+      dateLabel: input.v2DateLabel,
+      eyebrow: "Live",
+      shift: "Lead with one strong signal and end with a lower-friction ask.",
+      evidence: "This reflected what the team was already trusting: concrete openings and cleaner asks.",
+      tone: "live",
     },
-    "optimization-target": {
-      border: "border-violet-200",
-      bg: "bg-violet-50/30",
-      badge: "Compile artifact",
-      badgeClass: "border-violet-200 bg-violet-50 text-violet-700",
+    {
+      id: "v3",
+      label: "v3",
+      dateLabel: input.v3DateLabel,
+      eyebrow: "Candidate",
+      shift: "Adjust framing by account size and replace generic meeting asks with follow-up assets.",
+      evidence: "This is the next frozen checkpoint produced by the compile, not a prompt being edited live.",
+      tone: "candidate",
     },
-  }[role];
+    {
+      id: "future",
+      label: "Future",
+      dateLabel: "Next compile",
+      eyebrow: "Next",
+      shift: "The cycle repeats as new accepted drafts, edited finals, and positive replies accumulate.",
+      evidence: "Each future checkpoint absorbs more team behavior and more market response without manual retuning.",
+      tone: "future",
+    },
+  ];
+}
+
+function CheckpointCardView({ card }: { card: CheckpointCard }) {
+  const toneClassName =
+    card.tone === "candidate"
+      ? "border-sky-200 bg-sky-50/70 dark:border-sky-900 dark:bg-sky-950/25"
+      : card.tone === "live"
+        ? "border-teal-200 bg-teal-50/70 dark:border-teal-900 dark:bg-teal-950/20"
+        : card.tone === "future"
+          ? "border-dashed border-border/80 bg-muted/15"
+      : "border-border bg-card/80";
 
   return (
-    <div className={cn("rounded-xl border px-5 py-4", config.border, config.bg)}>
-      <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+    <div className={cn("min-w-0 flex-1 rounded-[24px] border px-4 py-4", toneClassName)}>
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-zinc-400">
-            {columnLabel}
+          <p className="text-[12px] font-medium text-muted-foreground">
+            {card.eyebrow}
           </p>
-          <p className="text-[13px] font-semibold text-zinc-900">{snapshot.label}</p>
-          <p className="font-mono text-[11px] text-zinc-500">
-            {snapshot.releaseDate} · {snapshot.packageLabel}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {config.badge && (
-            <span
-              className={cn(
-                "inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-[0.14em]",
-                config.badgeClass,
-              )}
-            >
-              {config.badge}
-            </span>
-          )}
-          {snapshot.badgeText && (
-            <span className="inline-flex items-center rounded-md border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-violet-700">
-              {snapshot.badgeText}
-            </span>
-          )}
-          {snapshot.optimizer && (
-            <span className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-mono text-zinc-500">
-              {snapshot.optimizer}
-            </span>
-          )}
-          <span className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-mono text-zinc-500">
-            {snapshot.fewShotDemos} few-shot demo{snapshot.fewShotDemos !== 1 ? "s" : ""}
-          </span>
+          <h3 className="mt-2 text-[16px] font-semibold tracking-tight text-foreground">
+            {card.label}
+          </h3>
+          <p className="mt-0.5 text-[12px] text-muted-foreground">{card.dateLabel}</p>
         </div>
       </div>
-
-      <div className="max-h-[min(520px,60vh)] overflow-y-auto rounded-lg border border-zinc-200 bg-white px-4 py-3">
-        <pre className="whitespace-pre-wrap break-words font-mono text-[11.5px] leading-relaxed text-zinc-800">
-          {buildDraftGeneratorPromptMarkdown({
-            label: snapshot.label,
-            releaseDate: snapshot.releaseDate,
-            packageLabel: snapshot.packageLabel,
-            summary: snapshot.summary,
-            instruction: snapshot.instruction,
-            demos: snapshot.demos,
-          })}
-        </pre>
-      </div>
+      <p className="mt-4 text-[14px] font-medium leading-relaxed text-foreground">{card.shift}</p>
+      <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">{card.evidence}</p>
     </div>
   );
 }
 
-function LockedSnapshotCard() {
-  return (
-    <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/80 px-5 py-4">
-      <div className="mb-3 flex items-start justify-between gap-2">
-        <div>
-          <p className="text-[13px] font-semibold text-zinc-700">v3</p>
-          <p className="font-mono text-[11px] text-zinc-400">Candidate prompt artifact</p>
-        </div>
-        <span className="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-zinc-500">
-          <Lock size={10} />
-          Locked
-        </span>
-      </div>
-      <div className="rounded-lg border border-zinc-200 bg-white px-3 py-3">
-        <p className="text-[12px] leading-relaxed text-zinc-500">
-          Run optimization to reveal the full v3 prompt markdown (instruction + few-shots) and
-          projected candidate metrics.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function PromptSnapshotViewer({
-  hasOptimized,
-  optimizedSnapshot,
-}: {
-  hasOptimized: boolean;
-  optimizedSnapshot: SyntheticPromptSnapshot | null;
-}) {
-  const snapshots = useMemo(() => getSyntheticPromptSnapshots(), []);
-  const [compareMode, setCompareMode] = useState<CompareMode>(() =>
-    hasOptimized ? "v2-v3" : "v1-v2",
-  );
-
-  const v1 = snapshots.find((snapshot) => snapshot.version === SYNTHETIC_DSPY_VERSION_V1);
-  const v2 = snapshots.find((snapshot) => snapshot.version === SYNTHETIC_DSPY_VERSION_V2);
-
-  const v1Package = v1
-    ? {
-        ...v1,
-        demos: [] as DraftGeneratorPromptDemo[],
-        packageLabel: "Instruction only",
-      }
-    : null;
-  const v2Package = v2
-    ? {
-        ...v2,
-        demos: DRAFT_GENERATOR_V2_ARTIFACT.demos,
-        optimizer: DRAFT_GENERATOR_V2_ARTIFACT.optimizer,
-        packageLabel: "Instruction + selected examples",
-      }
-    : null;
-  const v3Package = optimizedSnapshot
-    ? {
-        ...optimizedSnapshot,
-        demos: OPTIMIZATION_ARTIFACT.demos,
-        optimizer: OPTIMIZATION_ARTIFACT.optimizer,
-        packageLabel: "Rewritten instruction + selected examples",
-      }
-    : null;
-
-  const leftSnapshot = compareMode === "v1-v2" ? v1Package : v2Package;
-  const rightSnapshot = compareMode === "v1-v2" ? v2Package : v3Package;
-  const leftColumnLabel = compareMode === "v1-v2" ? "Before" : "Current live";
-  const rightColumnLabel = compareMode === "v1-v2" ? "After" : "Compile artifact";
-
-  return (
-    <div>
-      <div className="mb-5 flex flex-wrap items-center gap-3">
-        <p className="text-[12px] font-medium text-zinc-600">Comparing:</p>
-        <div className="inline-flex rounded-lg border border-zinc-200 bg-zinc-50 p-0.5">
-          {(
-            [
-              { id: "v1-v2" as CompareMode, label: "v1 → v2", sub: "Baseline → Deployed" },
-              {
-                id: "v2-v3" as CompareMode,
-                label: "v2 → v3",
-                sub: hasOptimized ? "Live → Compile artifact" : "Run optimization to unlock",
-              },
-            ] as const
-          ).map((option) => {
-            const disabled = option.id === "v2-v3" && !hasOptimized;
-            return (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => {
-                  if (!disabled) {
-                    setCompareMode(option.id);
-                  }
-                }}
-                disabled={disabled}
-                className={cn(
-                  "rounded-md px-3 py-1.5 text-left transition-colors",
-                  compareMode === option.id
-                    ? "bg-white shadow-sm"
-                    : "text-zinc-500 hover:text-zinc-700 disabled:text-zinc-400",
-                )}
-              >
-                <p className="flex items-center gap-1 text-[12px] font-medium text-current">
-                  {option.label}
-                  {disabled && <Lock size={11} />}
-                </p>
-                <p className="text-[10px] font-mono text-zinc-400">{option.sub}</p>
-              </button>
-            );
-          })}
-        </div>
-        <p className="text-[12px] leading-relaxed text-zinc-500">
-          Each column shows the full runtime prompt as one markdown document (summary, instruction,
-          and few-shot examples).
-        </p>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        {leftSnapshot && (
-          <PromptSnapshotCard
-            snapshot={leftSnapshot}
-            columnLabel={leftColumnLabel}
-            role={compareMode === "v2-v3" ? "live" : "baseline"}
-          />
-        )}
-        {compareMode === "v2-v3" ? (
-          rightSnapshot ? (
-            <PromptSnapshotCard
-              snapshot={rightSnapshot}
-              columnLabel={rightColumnLabel}
-              role="optimization-target"
-            />
-          ) : (
-            <LockedSnapshotCard />
-          )
-        ) : (
-          rightSnapshot && (
-            <PromptSnapshotCard
-              snapshot={rightSnapshot}
-              columnLabel={rightColumnLabel}
-              role="live"
-            />
-          )
-        )}
-      </div>
-    </div>
-  );
-}
-
-export default function DspyPage({
-  compileRuns,
-  optimizationState,
-  setOptimizationState,
-}: {
-  compileRuns: DspyCompileRun[];
-  optimizationState: DspyOptimizationState;
-  setOptimizationState: Dispatch<SetStateAction<DspyOptimizationState>>;
-}) {
+export default function DspyPage(props: { compileRuns: DspyCompileRun[] }) {
   const sortedRuns = useMemo(
     () =>
-      [...compileRuns].sort(
+      [...props.compileRuns].sort(
         (a, b) => new Date(b.compiledAt).getTime() - new Date(a.compiledAt).getTime(),
       ),
-    [compileRuns],
+    [props.compileRuns],
   );
-  const syntheticJobs = useMemo(() => getSyntheticDspyJobs(), []);
-  const versionRows = useMemo(
-    () => computeDspyVersionMetrics(syntheticJobs, null),
-    [syntheticJobs],
-  );
-  const { optimizationStatus, activeStepIndex, completedStepCount, runError } =
-    optimizationState;
-  const hasOptimized = optimizationStatus === "complete";
   const candidateRun = useMemo(
     () =>
       sortedRuns.find((run) => run.promptVersionAfter === OPTIMIZATION_TARGET_VERSION) ?? null,
     [sortedRuns],
   );
-  const candidateSnapshotBase = useMemo(
-    () =>
-      getSyntheticPromptSnapshots().find(
-        (snapshot) => snapshot.version === OPTIMIZATION_TARGET_VERSION,
-      ) ?? null,
-    [],
+  const promptSnapshots = useMemo(() => getSyntheticPromptSnapshots(), []);
+  const v1Snapshot = useMemo(
+    () => promptSnapshots.find((snapshot) => snapshot.label === "v1") ?? null,
+    [promptSnapshots],
   );
-  const optimizedSnapshot = useMemo(() => {
-    if (!candidateSnapshotBase || !hasOptimized) {
-      return null;
-    }
+  const v2Snapshot = useMemo(
+    () => promptSnapshots.find((snapshot) => snapshot.label === "v2") ?? null,
+    [promptSnapshots],
+  );
 
-    return {
-      ...candidateSnapshotBase,
-      instruction: OPTIMIZATION_ARTIFACT.instruction,
-      fewShotDemos: OPTIMIZATION_ARTIFACT.demos.length,
-    } satisfies SyntheticPromptSnapshot;
-  }, [candidateSnapshotBase, hasOptimized]);
+  const mermaidChart = useMemo(() => buildMermaidChart(), []);
+  const checkpointCards = useMemo(
+    () =>
+      buildCheckpointCards({
+        v1DateLabel: v1Snapshot ? formatDateLabel(v1Snapshot.releaseDate) : "Jan 20, 2026",
+        v2DateLabel: v2Snapshot ? formatDateLabel(v2Snapshot.releaseDate) : "Feb 17, 2026",
+        v3DateLabel: formatDateLabel(OPTIMIZATION_ARTIFACT.compiledAt),
+      }),
+    [v1Snapshot, v2Snapshot],
+  );
 
-  const handleRunOptimization = async () => {
-    if (optimizationStatus !== "idle") return;
-
-    setOptimizationState({
-      optimizationStatus: "running",
-      activeStepIndex: 0,
-      completedStepCount: 0,
-      runError: null,
-    });
-
-    try {
-      for (let index = 0; index < RUN_STEPS.length; index++) {
-        setOptimizationState((prev) => ({
-          ...prev,
-          activeStepIndex: index,
-          completedStepCount: index,
-        }));
-        await delay(index === RUN_STEPS.length - 1 ? 1200 : 950);
-      }
-
-      setOptimizationState((prev) => ({
-        ...prev,
-        completedStepCount: RUN_STEPS.length,
-        activeStepIndex: null,
-        optimizationStatus: "complete",
-      }));
-    } catch (error) {
-      setOptimizationState((prev) => ({
-        ...prev,
-        activeStepIndex: null,
-        completedStepCount: 0,
-        optimizationStatus: "idle",
-        runError: error instanceof Error ? error.message : "Optimization failed",
-      }));
-    }
-  };
+  const acceptedDelta = TEAM_VIEW.candidate.accepted - TEAM_VIEW.live.accepted;
+  const editedDelta = TEAM_VIEW.live.edited - TEAM_VIEW.candidate.edited;
+  const positiveDelta = TEAM_VIEW.candidate.positiveReplies - TEAM_VIEW.live.positiveReplies;
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto bg-zinc-50/80">
-      <div className="mx-auto w-full max-w-[1100px] space-y-8 px-4 py-6 pb-20 sm:px-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.16em] text-zinc-400">
-              Prompt optimization · DSPy
-            </p>
-            <h2 className="mt-1 text-[20px] font-semibold tracking-tight text-zinc-950">
-              Three compile generations. Measurable improvement at each step.
-            </h2>
-            <p className="mt-1 max-w-2xl text-[13px] text-zinc-500">
-              v1 and v2 are corpus actuals from the synthetic eval set. v3 is a MIPROv2 compile
-              candidate — reveal the frozen artifact below to inspect what changed without implying
-              forward-looking live outcomes.
-            </p>
-          </div>
-          <Button
-            type="button"
-            onClick={handleRunOptimization}
-            disabled={optimizationStatus !== "idle"}
-            className={cn("min-w-[190px]", optimizationStatus === "idle" && "bg-violet-600 text-white hover:bg-violet-700")}
-          >
-            {optimizationStatus === "running" ? (
-              <>
-                <Loader2 className="animate-spin" />
-                Running optimization…
-              </>
-            ) : optimizationStatus === "complete" ? (
-              <>
-                <CheckCircle2 />
-                Candidate revealed
-              </>
-            ) : (
-              <>
-                <Sparkles />
-                Run Optimization
-              </>
-            )}
-          </Button>
-        </div>
-
-        <section className="rounded-2xl border border-zinc-200 bg-white px-6 py-5 shadow-sm">
-          <div className="mb-5">
-            <h2 className="text-[15px] font-semibold text-zinc-950">Version performance</h2>
-            <p className="mt-0.5 text-[12px] text-zinc-500">
-              v1 and v2 are measured corpus actuals computed from the static evaluation set.
-              Candidate v3 stays artifact-only here until it is deployed and measured.
-            </p>
-          </div>
-          <VersionTable rows={versionRows} candidateUnlocked={hasOptimized} />
-          <p className="mt-4 text-[12px] leading-relaxed text-zinc-500">
-            The locked v3 row intentionally omits outcome metrics. Revealing the candidate below
-            loads the compiled prompt package and optimizer facts only.
-          </p>
-        </section>
-
-        <section className="rounded-2xl border border-zinc-200 bg-white px-6 py-5 shadow-sm">
-          <div className="mb-5">
-            <h2 className="text-[15px] font-semibold text-zinc-950">Compile history</h2>
-            <p className="mt-0.5 text-[12px] text-zinc-500">
-              Each compile event produces a frozen prompt artifact. Deployed runs can show corpus
-              deltas; candidate compiles stay artifact-only until they collect live outcomes.
-            </p>
-          </div>
-          <div className="space-y-3">
-            {sortedRuns.map((run) => {
-              const isCandidateRun = run.promptVersionAfter === OPTIMIZATION_TARGET_VERSION;
-              const isLiveRun = run.promptVersionAfter === SYNTHETIC_DSPY_VERSION_V2;
-
-              return (
-                <CompileRunCard
-                  key={run.id}
-                  run={run}
-                  badge={
-                    isCandidateRun
-                      ? {
-                          label: "Candidate",
-                          className: "border-violet-200 bg-violet-100 text-violet-700",
-                        }
-                      : isLiveRun
-                        ? {
-                            label: "Current live",
-                            className: "border-teal-200 bg-teal-100 text-teal-700",
-                          }
-                        : null
-                  }
-                  containerClassName={
-                    isCandidateRun
-                      ? "border-violet-200 bg-violet-50/40"
-                      : isLiveRun
-                        ? "border-teal-200 bg-teal-50/30"
-                        : undefined
-                  }
-                  positiveMetricLabel="Workable reply"
-                  showDeltas={!isCandidateRun}
-                  note={
-                    isCandidateRun
-                      ? "Compiled candidate only. Inspect the rewritten instruction and larger demo package below; deploy it to measure live outcomes."
-                      : undefined
-                  }
-                />
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="rounded-2xl border border-zinc-200 bg-white px-6 py-5 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="text-[15px] font-semibold text-zinc-950">Run optimization</h2>
-              <p className="mt-0.5 text-[12px] text-zinc-500">
-                Replays the committed MIPROv2 compile — loads the v2 training corpus, scores
-                against the{" "}
-                <code className="font-mono text-[11px]">0.2 clean accept + 0.8 workable reply</code>{" "}
-                objective, and reveals the frozen v3 artifact.
+    <div className="min-h-0 flex-1 overflow-y-auto bg-muted/40">
+      <div className="mx-auto w-full max-w-[1220px] space-y-6 px-4 py-6 pb-20 sm:px-6">
+        <section className="rounded-[32px] border border-border bg-card shadow-sm">
+          <div className="px-6 py-5 sm:px-8 sm:py-6">
+            <div className="max-w-4xl">
+              <p className="text-[12px] font-medium uppercase tracking-[0.14em] text-muted-foreground/80">
+                MIPRO feedback loop
+              </p>
+              <h2 className="mt-3 max-w-3xl font-heading text-[28px] font-semibold tracking-tight text-foreground sm:text-[34px]">
+                Every send sharpens the checkpoint.
+              </h2>
+              <p className="mt-2 max-w-[60ch] text-[15px] leading-relaxed text-muted-foreground">
+                Reps accept or rewrite the draft, positive replies add market signal, and the next
+                frozen checkpoint is rebuilt offline from final sent drafts.
               </p>
             </div>
-            {hasOptimized && (
-              <span className="inline-flex items-center gap-1 rounded-md border border-violet-200 bg-violet-50 px-2 py-1 text-[10px] font-mono font-semibold uppercase tracking-[0.14em] text-violet-700">
-                <CheckCircle2 size={12} />
-                v3 candidate ready
-              </span>
-            )}
-          </div>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-2">
-            {RUN_STEPS.map((step, index) => {
-              const isCompleted = completedStepCount > index || hasOptimized;
-              const isActive = optimizationStatus === "running" && activeStepIndex === index;
+            <div className="mt-5 rounded-[28px] border border-border/70 bg-muted/20 px-4 py-3.5 sm:px-5">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div className="max-w-[52ch]">
+                  <p className="text-[13px] font-medium text-foreground">Illustrative team outcomes</p>
+                  <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                    Team-scale production behavior before the smaller finalized-draft compile slice.
+                  </p>
+                </div>
+                <p className="text-[24px] font-semibold tracking-tight text-foreground">
+                  {formatCount(TEAM_VIEW.drafts)} drafts
+                </p>
+              </div>
 
-              return (
-                <div
-                  key={step}
-                  className={cn(
-                    "rounded-xl border px-4 py-3",
-                    isCompleted
-                      ? "border-emerald-200 bg-emerald-50/60"
-                      : isActive
-                        ? "border-violet-200 bg-violet-50/60"
-                        : "border-zinc-200 bg-zinc-50/80",
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    {isCompleted ? (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                    ) : isActive ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-violet-600" />
-                    ) : (
-                      <Lock className="h-4 w-4 text-zinc-400" />
-                    )}
-                    <p className="text-[12px] font-medium text-zinc-800">{step}</p>
+              <div className="mt-3 grid gap-3 border-t border-border/70 pt-3 sm:grid-cols-3">
+                {SIGNAL_SUMMARY.map((signal) => (
+                  <div
+                    key={signal.id}
+                    className="min-w-0 sm:border-l sm:border-border/60 sm:pl-4 first:sm:border-l-0 first:sm:pl-0"
+                  >
+                    <p className="text-[12px] text-muted-foreground">{signal.label}</p>
+                    <p className="mt-1.5 text-[24px] font-semibold tracking-tight text-foreground">
+                      {formatCount(signal.live)}
+                      <span className="mx-2 text-muted-foreground/40">→</span>
+                      <span className={signal.toneClassName}>{formatCount(signal.candidate)}</span>
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <div>
+                <h3 className="text-[19px] font-semibold tracking-tight text-foreground">
+                  How the loop works
+                </h3>
+                <p className="mt-1.5 max-w-[60ch] text-[14px] leading-relaxed text-muted-foreground">
+                  Accepts show where the model already matched rep judgment. Edits show what the
+                  draft needed to become. Replies show what the market rewarded.
+                </p>
+              </div>
+
+              <MermaidDiagram
+                chart={mermaidChart}
+                className="mt-4"
+              />
+            </div>
+
+            <div className="mt-6 rounded-[28px] border border-border/70 bg-muted/20 px-4 py-4 sm:px-5">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div className="max-w-[60ch]">
+                  <h3 className="text-[16px] font-semibold tracking-tight text-foreground">
+                    What actually enters the compile
+                  </h3>
+                  <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
+                    The optimizer does not train on the full illustrative team volume above. It
+                    learns from a recent finalized-draft window, where edited drafts are replaced
+                    by what the rep actually sent and positive replies carry extra weight.
+                  </p>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-3 lg:max-w-[620px]">
+                  <div>
+                    <p className="text-[13px] text-muted-foreground">Compile window</p>
+                    <p className="mt-1 text-[22px] font-semibold tracking-tight text-foreground">
+                      {candidateRun
+                        ? `${formatCount(candidateRun.jobsUsed)} finalized drafts`
+                        : "Recent finalized drafts"}
+                    </p>
+                    <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                      {candidateRun
+                        ? `${candidateRun.trainWindowDays}-day lookback`
+                        : "Recent finalized-draft slice"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[13px] text-muted-foreground">Target output</p>
+                    <p className="mt-1 text-[18px] font-semibold tracking-tight text-foreground">
+                      Final sent draft
+                    </p>
+                    <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                      The system learns from what was actually sent, not the original draft alone.
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[13px] text-muted-foreground">What MIPRO changes</p>
+                    <p className="mt-1 text-[18px] font-semibold tracking-tight text-foreground">
+                      Instructions + examples
+                    </p>
+                    <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                      The checkpoint policy evolves as a whole, not just the few-shot count.
+                    </p>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-
-          {hasOptimized && (
-            <div className="mt-5 rounded-xl border border-violet-200 bg-violet-50/50 px-4 py-4">
-              <p className="text-[11px] font-mono uppercase tracking-[0.14em] text-violet-600">
-                Compile facts
-              </p>
-              <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                <CompileFact label="Optimizer" value={OPTIMIZATION_ARTIFACT.optimizer} />
-                <CompileFact
-                  label="Compiled"
-                  value={new Intl.DateTimeFormat("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  }).format(new Date(OPTIMIZATION_ARTIFACT.compiledAt))}
-                />
-                <CompileFact
-                  label="Training corpus"
-                  value={
-                    candidateRun
-                      ? `${candidateRun.jobsUsed} examples · ${candidateRun.trainWindowDays}-day window`
-                      : "Committed compile artifact"
-                  }
-                />
-                <CompileFact label="Objective" value={OPTIMIZATION_ARTIFACT.objective.label} />
-                <CompileFact
-                  label="Prompt package"
-                  value={`${DRAFT_GENERATOR_V2_ARTIFACT.demos.length} demos → ${OPTIMIZATION_ARTIFACT.demos.length} demos`}
-                />
               </div>
-              <p className="mt-3 text-[12px] leading-relaxed text-zinc-600">
-                {candidateSnapshotBase?.summary ??
-                  "v3 is a compiled candidate artifact. Deploy it to collect real outcome data."}
+
+              <p className="mt-4 max-w-[64ch] text-[13px] leading-relaxed text-muted-foreground">
+                Scoring favors positive replies, with rep trust as the early quality signal. This
+                candidate was compiled on {formatDateLabel(OPTIMIZATION_ARTIFACT.compiledAt)} with{" "}
+                {OPTIMIZATION_ARTIFACT.optimizer}.
               </p>
             </div>
-          )}
-
-          {runError && (
-            <p className="mt-4 text-[12px] text-destructive">
-              Failed to reveal optimization artifact: {runError}
-            </p>
-          )}
+          </div>
         </section>
 
-        <section className="rounded-2xl border border-zinc-200 bg-white px-6 py-5 shadow-sm">
-          <div className="mb-1 flex items-center gap-2">
-            <BookOpen className="h-4 w-4 text-zinc-400" />
-            <h2 className="text-[15px] font-semibold text-zinc-950">Prompt packages</h2>
+        <section className="rounded-[32px] border border-border bg-card px-6 py-6 shadow-sm sm:px-8 sm:py-7">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <h2 className="font-heading text-[22px] font-semibold tracking-tight text-foreground">
+                How the checkpoint policy evolved
+              </h2>
+              <p className="mt-2 max-w-[58ch] text-[14px] leading-relaxed text-muted-foreground">
+                This is the presentation version of the story: what each checkpoint emphasized and
+                why the system moved in that direction.
+              </p>
+            </div>
+            <p className="max-w-sm text-[13px] leading-relaxed text-muted-foreground lg:text-right">
+              The faint final card keeps the page focused on an ongoing loop, not one isolated
+              upgrade.
+            </p>
           </div>
-          <p className="mb-5 text-[12px] text-zinc-500">
-            Each version is shown as plain markdown text: the same document the model sees (instruction
-            plus few-shots). Before the run, compare historical v1 → v2. After the run, unlock live
-            v2 → compiled v3 artifact.
-          </p>
-          <PromptSnapshotViewer
-            key={hasOptimized ? "optimized" : "historical"}
-            hasOptimized={hasOptimized}
-            optimizedSnapshot={optimizedSnapshot}
-          />
+
+          <div className="mt-6 flex flex-col gap-3 xl:flex-row xl:items-stretch">
+            {checkpointCards.map((card, index) => (
+              <div key={card.id} className="flex min-w-0 flex-1 items-stretch gap-3">
+                <CheckpointCardView card={card} />
+                {index < checkpointCards.length - 1 ? (
+                  <div className="hidden items-center justify-center text-muted-foreground/35 xl:flex">
+                    <ArrowRight className="h-4 w-4" />
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 rounded-[24px] border border-border/70 bg-muted/20 px-4 py-4">
+            <p className="text-[12px] font-medium text-muted-foreground">
+              Why the candidate is stronger
+            </p>
+            <p className="mt-3 max-w-[72ch] text-[14px] leading-relaxed text-foreground/90">
+              Across {formatCount(TEAM_VIEW.drafts)} illustrative drafts, the candidate checkpoint
+              moves{" "}
+              <span className="font-semibold text-teal-700 dark:text-teal-300">
+                +{formatCount(acceptedDelta)} more accepts
+              </span>
+              ,{" "}
+              <span className="font-semibold text-amber-700 dark:text-amber-300">
+                {formatCount(editedDelta)} fewer edits
+              </span>
+              , and{" "}
+              <span className="font-semibold text-rose-700 dark:text-rose-300">
+                +{formatCount(positiveDelta)} additional positive replies
+              </span>
+              . In plain terms: reps rewrote less, the market responded more, and the next checkpoint
+              absorbed those patterns into a stronger policy.
+            </p>
+          </div>
         </section>
       </div>
     </div>

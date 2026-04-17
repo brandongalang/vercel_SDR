@@ -35,11 +35,11 @@ export const VERTEX_MODEL_IDS = {
 
 export const VERTEX_PROJECT = project;
 export const VERTEX_LOCATION = location;
-export const VERTEX_BASE_URL = `https://aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google`;
+const VERTEX_BASE_URL = `https://aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google`;
 
 const googleAuthOptions = loadGoogleAuthOptions();
 
-export const vertex = createVertex({
+const vertex = createVertex({
   project,
   location,
   ...(vertexApiKey

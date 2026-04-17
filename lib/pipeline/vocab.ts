@@ -1,6 +1,6 @@
 export const CONFIDENCE_TIER_VALUES = ["high", "medium", "low"] as const;
 export const GOVERNANCE_RULE_VALUES = ["review_required", "auto_eligible"] as const;
-export const JOB_STATUS_VALUES = ["pending_review", "approved", "reviewed", "sent_stub"] as const;
+export const JOB_STATUS_VALUES = ["pending_review", "reviewed", "sent_stub"] as const;
 export const PIPELINE_STATUS_VALUES = ["running", "completed", "failed"] as const;
 export const PIPELINE_PHASE_VALUES = [
   "ingest",
@@ -71,4 +71,11 @@ export const INSIGHT_SOURCE_TYPE_VALUES = [
   "job_posting",
   "product_data",
   "news",
+] as const;
+
+export const COMPANY_SIZE_VALUES = [
+  "enterprise",
+  "mid_market",
+  "smb",
+  "startup",
 ] as const;

@@ -7,6 +7,7 @@ import {
 import { runResearchAgent } from "@/lib/pipeline/research-agent";
 import { runSignalExtractor } from "@/lib/pipeline/signal-extractor";
 import type { PipelineTraceEmitter } from "@/lib/pipeline/live-trace";
+import type { PipelineTraces } from "@/lib/pipeline/pipeline-traces";
 import type {
   AnglePlan,
   DiscardedSignal,
@@ -23,13 +24,6 @@ export interface PipelineExecutionState {
   discardedSignals: DiscardedSignal[] | null;
   anglePlan: AnglePlan | null;
   draft: OutboundJob["draft"] | null;
-}
-
-interface MutablePipelineTraces {
-  research?: {
-    orchestratorSteps: unknown[];
-    threadTraces: unknown[];
-  };
 }
 
 const TRANSIENT_RESEARCH_ERROR_PATTERNS = [
@@ -131,7 +125,7 @@ export async function runResearchWithRetry(
 export async function runResearchStage(input: {
   leadInput: LeadInput;
   state: PipelineExecutionState;
-  traces: MutablePipelineTraces;
+  traces: PipelineTraces;
   abortSignal?: AbortSignal;
   trace?: PipelineTraceEmitter;
 }): Promise<ResearchStageResult> {

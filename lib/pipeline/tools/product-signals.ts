@@ -1,6 +1,3 @@
-import { tool } from "ai";
-import { productSignalsInputSchema } from "@/lib/pipeline/schemas";
-
 function isoDaysAgo(daysAgo: number) {
   return new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString();
 }
@@ -65,12 +62,4 @@ export function getMockProductSignals(input: {
   };
 }
 
-export function createProductSignalsTool() {
-  return tool({
-    description: "Return mocked first-party product or event signals based on the lead source and play.",
-    inputSchema: productSignalsInputSchema,
-    execute: async ({ leadName, company, play }) => {
-      return getMockProductSignals({ leadName, company, play });
-    },
-  });
-}
+export type MockProductSignalsResult = ReturnType<typeof getMockProductSignals>;

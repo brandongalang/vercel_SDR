@@ -1,9 +1,6 @@
 import { generateText } from "ai";
-import { vertex } from "@/lib/ai/vertex";
 import type { WebSearchOutput } from "@/lib/pipeline/tools/search-types";
 
-// Import the vertex provider instance to access its built-in tools.
-// At runtime this is `createVertex(...)` — the same object exported from vertex.ts.
 import { createVertex } from "@ai-sdk/google-vertex";
 import type { GoogleAuthOptions } from "google-auth-library";
 

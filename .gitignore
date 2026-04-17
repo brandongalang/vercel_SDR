@@ -47,3 +47,7 @@ next-env.d.ts
 # local tooling
 .claude/
 scripts/__pycache__/
+
+# interview prep docs (local only)
+docs/SYSTEM_ARCHITECTURE.md
+docs/INTERVIEW_PLAYBOOK.md

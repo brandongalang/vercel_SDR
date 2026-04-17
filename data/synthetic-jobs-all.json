@@ -39,7 +39,7 @@
     "angleType": "trial_activation",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "high",
       "summary": "Strong product-qualified activity."
@@ -77,7 +77,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "enterprise"
   },
   {
     "id": "v1-002",
@@ -119,7 +120,7 @@
     "angleType": "hiring_signal",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "high",
       "summary": "Clear public hiring cue."
@@ -159,7 +160,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-003",
@@ -201,7 +203,7 @@
     "angleType": "tech_migration",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "high",
       "summary": "Concrete migration activity."
@@ -240,7 +242,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "smb"
   },
   {
     "id": "v1-004",
@@ -321,7 +324,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-005",
@@ -363,7 +367,7 @@
     "angleType": "web_intent",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "medium",
       "summary": "Useful intent, partial attribution."
@@ -400,7 +404,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-006",
@@ -481,7 +486,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-007",
@@ -561,7 +567,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-008",
@@ -603,7 +610,7 @@
     "angleType": "hiring_signal",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "medium",
       "summary": "Strong role signal, moderate certainty."
@@ -641,7 +648,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-009",
@@ -683,7 +691,7 @@
     "angleType": "tech_migration",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "high",
       "summary": "Migration proof points are clear."
@@ -722,7 +730,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-010",
@@ -764,7 +773,7 @@
     "angleType": "event_signal",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "medium",
       "summary": "Warm context with technical specificity."
@@ -803,7 +812,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-011",
@@ -883,7 +893,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-012",
@@ -964,7 +975,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "startup"
   },
   {
     "id": "v1-013",
@@ -1043,7 +1055,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-014",
@@ -1085,7 +1098,7 @@
     "angleType": "hiring_signal",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "high",
       "summary": "Role and need are clearly aligned."
@@ -1124,7 +1137,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-015",
@@ -1166,7 +1180,7 @@
     "angleType": "tech_migration",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "high",
       "summary": "Migration deadline provides urgency."
@@ -1204,7 +1218,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-016",
@@ -1246,7 +1261,7 @@
     "angleType": "event_signal",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "medium",
       "summary": "Good engagement but limited account context."
@@ -1284,7 +1299,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-017",
@@ -1326,7 +1342,7 @@
     "angleType": "web_intent",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "medium",
       "summary": "Targeted intent with partial attribution."
@@ -1364,7 +1380,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-018",
@@ -1445,7 +1462,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-019",
@@ -1487,7 +1505,7 @@
     "angleType": "trial_activation",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "medium",
       "summary": "Mixed but still relevant product signal."
@@ -1525,7 +1543,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-020",
@@ -1606,7 +1625,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-021",
@@ -1648,7 +1668,7 @@
     "angleType": "tech_migration",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "high",
       "summary": "Cross-service migration activity."
@@ -1687,7 +1707,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-022",
@@ -1729,7 +1750,7 @@
     "angleType": "event_signal",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "medium",
       "summary": "Relevant event and initiative overlap."
@@ -1766,7 +1787,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-023",
@@ -1846,7 +1868,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-024",
@@ -1888,7 +1911,7 @@
     "angleType": "social_post",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "high",
       "summary": "Strong first-party signal with operating context."
@@ -1926,7 +1949,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-025",
@@ -1968,7 +1992,7 @@
     "angleType": "trial_activation",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "high",
       "summary": "Strong activity and actionable gap."
@@ -2006,7 +2030,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-026",
@@ -2048,7 +2073,7 @@
     "angleType": "hiring_signal",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "high",
       "summary": "Strong hiring and strategic alignment."
@@ -2087,7 +2112,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-027",
@@ -2129,7 +2155,7 @@
     "angleType": "tech_migration",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "high",
       "summary": "Concrete architecture transition signal."
@@ -2168,7 +2194,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-028",
@@ -2210,7 +2237,7 @@
     "angleType": "event_signal",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "medium",
       "summary": "Useful event context plus initiative timing."
@@ -2248,7 +2275,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-029",
@@ -2328,7 +2356,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v1-030",
@@ -2408,7 +2437,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-01-20.draft-generator.v1"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-001",
@@ -2450,7 +2480,7 @@
     "angleType": "trial_activation",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "high",
       "summary": "Strong product-qualified activity."
@@ -2487,7 +2517,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "enterprise"
   },
   {
     "id": "v2-002",
@@ -2529,7 +2560,7 @@
     "angleType": "hiring_signal",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "high",
       "summary": "Clear public hiring cue."
@@ -2568,7 +2599,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-003",
@@ -2610,7 +2642,7 @@
     "angleType": "tech_migration",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "high",
       "summary": "Concrete migration activity."
@@ -2649,7 +2681,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "smb"
   },
   {
     "id": "v2-004",
@@ -2729,7 +2762,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-005",
@@ -2771,7 +2805,7 @@
     "angleType": "web_intent",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "medium",
       "summary": "Useful intent, partial attribution."
@@ -2808,7 +2842,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-006",
@@ -2888,7 +2923,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-007",
@@ -2967,7 +3003,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-008",
@@ -3009,7 +3046,7 @@
     "angleType": "hiring_signal",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "medium",
       "summary": "Strong role signal, moderate certainty."
@@ -3047,7 +3084,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-009",
@@ -3089,7 +3127,7 @@
     "angleType": "tech_migration",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "high",
       "summary": "Migration proof points are clear."
@@ -3127,7 +3165,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-010",
@@ -3169,7 +3208,7 @@
     "angleType": "event_signal",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "medium",
       "summary": "Warm context with technical specificity."
@@ -3207,7 +3246,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-011",
@@ -3287,7 +3327,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-012",
@@ -3368,7 +3409,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "startup"
   },
   {
     "id": "v2-013",
@@ -3447,7 +3489,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-014",
@@ -3489,7 +3532,7 @@
     "angleType": "hiring_signal",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "high",
       "summary": "Role and need are clearly aligned."
@@ -3528,7 +3571,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-015",
@@ -3570,7 +3614,7 @@
     "angleType": "tech_migration",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "high",
       "summary": "Migration deadline provides urgency."
@@ -3608,7 +3652,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-016",
@@ -3650,7 +3695,7 @@
     "angleType": "event_signal",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "medium",
       "summary": "Good engagement but limited account context."
@@ -3688,7 +3733,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-017",
@@ -3730,7 +3776,7 @@
     "angleType": "web_intent",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "medium",
       "summary": "Targeted intent with partial attribution."
@@ -3768,7 +3814,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-018",
@@ -3849,7 +3896,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-019",
@@ -3891,7 +3939,7 @@
     "angleType": "trial_activation",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "medium",
       "summary": "Mixed but still relevant product signal."
@@ -3929,7 +3977,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-020",
@@ -4010,7 +4059,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-021",
@@ -4052,7 +4102,7 @@
     "angleType": "tech_migration",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "high",
       "summary": "Cross-service migration activity."
@@ -4091,7 +4141,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-022",
@@ -4133,7 +4184,7 @@
     "angleType": "event_signal",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "medium",
       "summary": "Relevant event and initiative overlap."
@@ -4170,7 +4221,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-023",
@@ -4250,7 +4302,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-024",
@@ -4292,7 +4345,7 @@
     "angleType": "social_post",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "high",
       "summary": "Strong first-party signal with operating context."
@@ -4330,7 +4383,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-025",
@@ -4372,7 +4426,7 @@
     "angleType": "trial_activation",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "high",
       "summary": "Strong activity and actionable gap."
@@ -4410,7 +4464,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-026",
@@ -4452,7 +4507,7 @@
     "angleType": "hiring_signal",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "high",
       "summary": "Strong hiring and strategic alignment."
@@ -4491,7 +4546,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-027",
@@ -4533,7 +4589,7 @@
     "angleType": "tech_migration",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "high",
       "summary": "Concrete architecture transition signal."
@@ -4572,7 +4628,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-028",
@@ -4614,7 +4671,7 @@
     "angleType": "event_signal",
     "status": "sent_stub",
     "pipelineStage": "done",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "medium",
       "summary": "Useful event context plus initiative timing."
@@ -4652,7 +4709,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-029",
@@ -4732,7 +4790,8 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-030",
@@ -4812,6 +4871,7 @@
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
-    }
+    },
+    "companySize": "mid_market"
   }
 ]

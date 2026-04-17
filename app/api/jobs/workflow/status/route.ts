@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     }
 
     return Response.json({ status });
-  } catch (err) {
+  } catch {
     return Response.json({ error: "Failed to fetch run status" }, { status: 500 });
   }
 }

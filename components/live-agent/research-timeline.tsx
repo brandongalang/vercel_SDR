@@ -46,35 +46,27 @@ function traceStatusToThoughtStatus(
 
 function ResearchToolOutput({ node }: { node: ResearchToolNode }) {
   if (node.toolName === "web_search" && node.output) {
-    const output = node.output as {
-      query: string;
-      results: Array<{
-        title: string;
-        url: string;
-        publishedDate?: string;
-        summary?: string;
-        highlights?: string[];
-      }>;
-    };
+    const output = node.output;
 
     return (
       <div className="space-y-2">
-        <p className="text-[12px] font-medium text-zinc-900">
+        <p className="text-[12px] font-medium text-foreground">
           {output.results.length} result{output.results.length === 1 ? "" : "s"} for {output.query}
         </p>
         <div className="space-y-2">
           {output.results.slice(0, 4).map((result) => (
-            <div key={`${result.url}-${result.title}`} className="rounded-md border border-zinc-200 bg-white px-3 py-2">
+            <div key={`${result.url}-${result.title}`} className="rounded-md border border-border bg-card/80 px-3 py-2">
               <a
                 href={result.url}
                 target="_blank"
                 rel="noreferrer"
-                className="text-[12px] font-medium text-zinc-900 hover:underline"
+                className="text-[12px] font-medium text-foreground hover:underline"
+                aria-label={`Open search result: ${result.title}`}
               >
                 {result.title}
               </a>
               {result.publishedDate ? (
-                <p className="mt-1 text-[11px] text-zinc-500">{result.publishedDate}</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">{result.publishedDate}</p>
               ) : null}
             </div>
           ))}
@@ -84,14 +76,7 @@ function ResearchToolOutput({ node }: { node: ResearchToolNode }) {
   }
 
   if (node.toolName === "crm_lookup" && node.output) {
-    const output = node.output as {
-      lifecycleStage: string;
-      owner: string;
-      segment: string;
-      accountPriority: string;
-      notes: string[];
-      pseudoSourceUrl: string;
-    };
+    const output = node.output;
 
     return (
       <div className="space-y-2">
@@ -99,14 +84,14 @@ function ResearchToolOutput({ node }: { node: ResearchToolNode }) {
           {[output.lifecycleStage, output.segment, output.accountPriority].map((value) => (
             <span
               key={value}
-              className="inline-flex rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-zinc-600"
+              className="inline-flex rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-muted-foreground"
             >
               {value.replace(/_/g, " ")}
             </span>
           ))}
         </div>
-        <p className="text-[12px] text-zinc-600">Owner: {output.owner}</p>
-        <ul className="space-y-1 text-[12px] leading-relaxed text-zinc-600">
+        <p className="text-[12px] text-foreground/80">Owner: {output.owner}</p>
+        <ul className="space-y-1 text-[12px] leading-relaxed text-foreground/80">
           {output.notes.map((note) => (
             <li key={note}>• {note}</li>
           ))}
@@ -116,27 +101,18 @@ function ResearchToolOutput({ node }: { node: ResearchToolNode }) {
   }
 
   if (node.toolName === "product_signals" && node.output) {
-    const output = node.output as {
-      signalSource: string;
-      summary: string;
-      items: Array<{
-        label: string;
-        detail: string;
-        observedAt?: string;
-        pseudoSourceUrl?: string;
-      }>;
-    };
+    const output = node.output;
 
     return (
       <div className="space-y-2">
-        <p className="text-[12px] leading-relaxed text-zinc-600">{output.summary}</p>
+        <p className="text-[12px] leading-relaxed text-foreground/80">{output.summary}</p>
         <div className="space-y-2">
           {output.items.map((item) => (
-            <div key={`${item.label}-${item.observedAt ?? "na"}`} className="rounded-lg border border-zinc-200 bg-white px-3 py-2">
-              <p className="text-[12px] font-medium text-zinc-900">{item.label}</p>
-              <p className="mt-1 text-[12px] leading-relaxed text-zinc-600">{item.detail}</p>
+            <div key={`${item.label}-${item.observedAt ?? "na"}`} className="rounded-lg border border-border bg-card/80 px-3 py-2">
+              <p className="text-[12px] font-medium text-foreground">{item.label}</p>
+              <p className="mt-1 text-[12px] leading-relaxed text-foreground/80">{item.detail}</p>
               {item.observedAt ? (
-                <p className="mt-1 text-[11px] text-zinc-500">{item.observedAt}</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">{item.observedAt}</p>
               ) : null}
             </div>
           ))}
@@ -155,9 +131,8 @@ function getResearchToolSummary(node: ResearchToolNode) {
 
   if (node.status === "completed" && node.output) {
     if (node.toolName === "web_search") {
-      const output = node.output as { results?: Array<unknown>; query?: string };
-      return output.results?.length
-        ? `${output.results.length} result${output.results.length === 1 ? "" : "s"} for ${output.query ?? "query"}`
+      return node.output.results.length
+        ? `${node.output.results.length} result${node.output.results.length === 1 ? "" : "s"} for ${node.output.query}`
         : "Search finished.";
     }
     return formatCompactValue(node.output) ?? "Output captured.";
@@ -183,7 +158,7 @@ function ResearchToolCallCard({ node }: { node: ResearchToolNode }) {
         <PayloadDisclosure label="Raw payload" value={node.output} />
       </div>
     ) : node.status === "running" ? (
-      <MessageResponse className="text-amber-800">
+      <MessageResponse className="text-amber-800 dark:text-amber-300">
         Tool call is running with live payload capture.
       </MessageResponse>
     ) : null;
@@ -194,7 +169,7 @@ function ResearchToolCallCard({ node }: { node: ResearchToolNode }) {
       title={node.title}
       state={state}
       icon={icon}
-      className="rounded-md border-zinc-200/70 bg-white/90 shadow-none"
+      className="rounded-md border-border/70 bg-card/90 shadow-none"
       contentClassName="space-y-3"
       defaultOpen={false}
       description={
@@ -243,18 +218,18 @@ function ResearchSubagentStep({
     <ChainOfThoughtStep
       icon={Globe}
       status={thoughtStatus}
-      className={node.status === "error" ? "text-red-700" : undefined}
+      className={node.status === "error" ? "text-destructive" : undefined}
       label={
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-medium text-zinc-900">{node.topic ?? node.title}</span>
-          <span className="inline-flex rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-zinc-500">
+          <span className="font-medium text-foreground">{node.topic ?? node.title}</span>
+          <span className="inline-flex rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-muted-foreground">
             {toolNodes.length} tool{toolNodes.length === 1 ? "" : "s"}
           </span>
           {startedAt ? (
-            <span className="text-[11px] text-zinc-500">started {startedAt}</span>
+            <span className="text-[11px] text-muted-foreground">started {startedAt}</span>
           ) : null}
           {completedAt ? (
-            <span className="text-[11px] text-zinc-500">finished {completedAt}</span>
+            <span className="text-[11px] text-muted-foreground">finished {completedAt}</span>
           ) : null}
         </div>
       }
@@ -271,8 +246,8 @@ function ResearchSubagentStep({
       ) : null}
 
       {toolNodes.length > 0 ? (
-        <details className="rounded-md border border-zinc-200 bg-white px-3 py-2">
-          <summary className="cursor-pointer text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-zinc-500">
+        <details className="rounded-md border border-border bg-muted/30 px-3 py-2">
+          <summary className="cursor-pointer text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             Raw tool activity ({toolNodes.length})
           </summary>
           <div className="mt-2 space-y-2">
@@ -282,7 +257,7 @@ function ResearchSubagentStep({
           </div>
         </details>
       ) : node.status === "running" ? (
-        <MessageResponse className="text-amber-800">
+        <MessageResponse className="text-amber-800 dark:text-amber-300">
           Waiting on the first tool call from this sub-agent…
         </MessageResponse>
       ) : null}
@@ -299,27 +274,27 @@ function ResearchSubagentStep({
       />
 
       {node.summary ? (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
-          <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-emerald-700">
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 dark:border-emerald-800 dark:bg-emerald-950/40">
+          <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-emerald-700 dark:text-emerald-300">
             Summary
           </p>
-          <MessageResponse className="mt-1 text-emerald-950">{node.summary}</MessageResponse>
+          <MessageResponse className="mt-1 text-emerald-950 dark:text-emerald-100">{node.summary}</MessageResponse>
         </div>
       ) : null}
 
       {node.findings?.length ? (
-        <details className="rounded-md border border-zinc-200 bg-white px-3 py-2">
-          <summary className="cursor-pointer text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-zinc-500">
+        <details className="rounded-md border border-border bg-muted/30 px-3 py-2">
+          <summary className="cursor-pointer text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             Key findings ({node.findings.length})
           </summary>
           <div className="mt-2 space-y-2">
             {node.findings.map((finding) => (
               <div
                 key={`${finding.sourceUrl}-${finding.text}`}
-                className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2"
+                className="rounded-md border border-border bg-muted/40 px-3 py-2"
               >
-                <MessageResponse className="text-zinc-800">{finding.text}</MessageResponse>
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
+                <MessageResponse className="text-foreground/90">{finding.text}</MessageResponse>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                   <span className="font-mono uppercase tracking-wide">
                     {finding.confidence} confidence
                   </span>
@@ -329,12 +304,13 @@ function ResearchSubagentStep({
                     target="_blank"
                     rel="noreferrer"
                     className="hover:underline"
+                    aria-label={`Open source for finding: ${finding.text}`}
                   >
-                    Source
+                    Open source
                   </a>
                 </div>
                 {finding.rawQuote ? (
-                  <MessageResponse className="mt-2 border-l-2 border-zinc-200 pl-3 italic text-zinc-600">
+                  <MessageResponse className="mt-2 rounded-md border border-border bg-background/70 px-3 py-2 italic text-muted-foreground">
                     {finding.rawQuote}
                   </MessageResponse>
                 ) : null}
@@ -345,11 +321,11 @@ function ResearchSubagentStep({
       ) : null}
 
       {node.gaps?.length ? (
-        <details className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
-          <summary className="cursor-pointer text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-amber-700">
+        <details className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-950/40">
+          <summary className="cursor-pointer text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300">
             Gaps ({node.gaps.length})
           </summary>
-          <ul className="mt-2 space-y-1 text-[12px] leading-relaxed text-amber-900">
+          <ul className="mt-2 space-y-1 text-[12px] leading-relaxed text-amber-900 dark:text-amber-100">
             {node.gaps.map((gap) => (
               <li key={gap}>• {gap}</li>
             ))}
@@ -357,7 +333,7 @@ function ResearchSubagentStep({
         </details>
       ) : null}
 
-      {node.error ? <MessageResponse className="text-red-900">{node.error}</MessageResponse> : null}
+      {node.error ? <MessageResponse className="text-destructive">{node.error}</MessageResponse> : null}
     </ChainOfThoughtStep>
   );
 }
@@ -397,18 +373,18 @@ export function ResearchTimeline({ nodes }: { nodes: TraceNode[] }) {
               status={traceStatusToThoughtStatus(orchestrator.status)}
               label={
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium text-zinc-900">{workflowTitle}</span>
-                  <span className="inline-flex rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-zinc-500">
+                  <span className="font-medium text-foreground">{workflowTitle}</span>
+                  <span className="inline-flex rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-muted-foreground">
                     {orchestrator.model}
                   </span>
-                  <span className="inline-flex rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-zinc-500">
+                  <span className="inline-flex rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-muted-foreground">
                     {threads.length} thread{threads.length === 1 ? "" : "s"}
                   </span>
-                  <span className="inline-flex rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-zinc-500">
+                  <span className="inline-flex rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-muted-foreground">
                     {completedTools}/{toolNodes.length} tool call{toolNodes.length === 1 ? "" : "s"}
                   </span>
                   {orchestrator.startedAt ? (
-                    <span className="text-[11px] text-zinc-500">
+                    <span className="text-[11px] text-muted-foreground">
                       {formatTimestampLabel(orchestrator.startedAt)}
                     </span>
                   ) : null}
@@ -430,13 +406,13 @@ export function ResearchTimeline({ nodes }: { nodes: TraceNode[] }) {
                   ))}
                 </ChainOfThoughtSearchResults>
               ) : null}
-          {orchestrator.uncertainty ? (
-            <MessageResponse className="text-amber-900">
-              Remaining uncertainty: {orchestrator.uncertainty}
-            </MessageResponse>
-          ) : null}
+              {orchestrator.uncertainty ? (
+                <MessageResponse className="text-amber-900 dark:text-amber-100">
+                  Remaining uncertainty: {orchestrator.uncertainty}
+                </MessageResponse>
+              ) : null}
               {orchestrator.error ? (
-                <MessageResponse className="text-red-900">{orchestrator.error}</MessageResponse>
+                <MessageResponse className="text-destructive">{orchestrator.error}</MessageResponse>
               ) : null}
             </ChainOfThoughtStep>
           ) : null}
@@ -456,8 +432,8 @@ export function ResearchTimeline({ nodes }: { nodes: TraceNode[] }) {
               label="Direct tool activity"
               description="These tool calls were emitted outside a tracked sub-agent thread."
             >
-              <details className="rounded-md border border-zinc-200 bg-white px-3 py-2">
-                <summary className="cursor-pointer text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-zinc-500">
+              <details className="rounded-md border border-border bg-muted/30 px-3 py-2">
+                <summary className="cursor-pointer text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   Raw tool activity ({orphanTools.length})
                 </summary>
                 <div className="mt-2 space-y-2">

@@ -14,6 +14,7 @@ import {
   SIGNAL_SCOPE_VALUES,
   PERSON_ANGLE_STRENGTH_VALUES,
   INSIGHT_SOURCE_TYPE_VALUES,
+  COMPANY_SIZE_VALUES,
 } from "@/lib/pipeline/vocab";
 
 // ─── Core enums ──────────────────────────────────────────────────────────────
@@ -40,6 +41,8 @@ export type LeadSource =
 export type SignalScope = (typeof SIGNAL_SCOPE_VALUES)[number];
 export type PersonAngleStrength = (typeof PERSON_ANGLE_STRENGTH_VALUES)[number];
 export type InsightSourceType = (typeof INSIGHT_SOURCE_TYPE_VALUES)[number];
+export type CompanySize = (typeof COMPANY_SIZE_VALUES)[number];
+
 
 // ─── Pipeline input ───────────────────────────────────────────────────────────
 
@@ -86,6 +89,7 @@ export interface ResearchPacket {
   reports: SubAgentReport[];
   threadSummaries: string[];
   orchestratorSummary: string;
+  companySize?: CompanySize;
   uncertainty?: string;
 }
 
@@ -167,6 +171,7 @@ export interface OutboundJob {
   id: string;
   lead: { name: string; title: string };
   company: string;
+  companySize?: CompanySize;
   play: Play;
   whyNow: string;
   researchRun: ResearchRun;
@@ -200,14 +205,12 @@ export interface OutboundJob {
   promptVersions?: Record<string, string>;
 }
 
-export interface WeeklyResponsePoint {
+export interface AnalyticsTrendPoint {
   label: string;
-  cleanAcceptResponseRate: number;
-  editedAcceptResponseRate: number;
-  staticTemplateResponseRate: number;
-  cleanAcceptSent: number;
-  editedAcceptSent: number;
-  staticTemplateSent: number;
+  responseLift: number;
+  cleanAcceptRate: number;
+  generatedSent: number;
+  medianReviewSeconds: number;
 }
 
 export interface PlaybookRow {
@@ -228,30 +231,32 @@ export interface AnalyticsDateRange {
 
 export interface AnalyticsSnapshot {
   windowLabel: string;
+  comparisonWindowLabel: string;
   generatedSent: number;
-  staticBaselineSent: number;
+  comparisonSent: number;
   
   cleanAcceptRate: number;
   editedAcceptRate: number;
   archiveRate: number;
-  avgReviewSeconds: number;
+  medianReviewSeconds: number;
   
   overallResponseRate: number;
   positiveReplyRate: number;
-  staticTemplateResponseRate: number;
+  comparisonResponseRate: number;
   responseLift: number;
 
   trends?: {
+    generatedSent?: number;
     cleanAccept?: number;
     editedAccept?: number;
     archive?: number;
-    avgReviewSeconds?: number;
+    medianReviewSeconds?: number;
     overallResponse?: number;
     positiveReply?: number;
     responseLift?: number;
   };
 
-  weeklyResponse: WeeklyResponsePoint[];
+  trendSeries: AnalyticsTrendPoint[];
   topPlays: PlaybookRow[];
   frictionPlays: PlaybookRow[];
 }

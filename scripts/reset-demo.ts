@@ -1,11 +1,13 @@
 /**
- * Seed script — pushes demo-snapshot.json to InstantDB.
+ * Seed script — pushes demo-snapshot.json + benchmark history jobs to InstantDB.
  * Reads credentials from .env.local via tsx --env-file flag.
  * Usage: npx tsx --env-file .env.local scripts/reset-demo.ts
  */
 import { createHash } from "crypto";
 import { init_experimental } from "@instantdb/admin";
+import { buildBenchmarkHistoryJobsForSeed } from "@/lib/analytics-mock";
 import demoSnapshotData from "@/data/demo-snapshot.json";
+import { buildSkippedJobsForSeed } from "@/lib/skipped-seed-jobs";
 import { toInstantJobRecord } from "@/lib/jobs/instant-job-codec";
 import type { OutboundJob } from "@/lib/types";
 
@@ -35,10 +37,14 @@ function stableUUID(shortId: string): string {
 }
 
 const db = init_experimental({ appId, adminToken });
-const snapshotJobs = demoSnapshotData as OutboundJob[];
+const snapshotJobs: OutboundJob[] = [
+  ...(demoSnapshotData as OutboundJob[]),
+  ...(buildBenchmarkHistoryJobsForSeed(new Date()) as OutboundJob[]),
+  ...buildSkippedJobsForSeed(new Date()),
+];
 
 async function main() {
-  console.log(`Seeding ${snapshotJobs.length} jobs…`);
+  console.log(`Seeding ${snapshotJobs.length} jobs (demo + benchmark history + skipped)…`);
 
   const existing = await db.query({ jobs: {}, pipelineRuns: {} });
 

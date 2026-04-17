@@ -7,9 +7,10 @@ export default i.schema({
       leadName: i.string(),
       leadTitle: i.string(),
       company: i.string(),
+      companySize: i.any(),
       play: i.json(),
       whyNow: i.string(),
-      pipelineStatus: i.string(),
+      pipelineStatus: i.any(),
       // Pipeline state
       angleType: i.string(),
       status: i.string(),

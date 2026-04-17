@@ -13,9 +13,11 @@ import {
   SIGNAL_SCOPE_VALUES,
   PERSON_ANGLE_STRENGTH_VALUES,
   INSIGHT_SOURCE_TYPE_VALUES,
+  COMPANY_SIZE_VALUES,
 } from "@/lib/pipeline/vocab";
 import { REGENERATION_PRESETS } from "@/lib/regeneration-presets";
 
+export const companySizeSchema = z.enum(COMPANY_SIZE_VALUES);
 export const confidenceTierSchema = z.enum(CONFIDENCE_TIER_VALUES);
 export const governanceRuleSchema = z.enum(GOVERNANCE_RULE_VALUES);
 export const jobStatusSchema = z.enum(JOB_STATUS_VALUES);
@@ -77,12 +79,14 @@ export const researchPacketSchema = z.object({
   reports: z.array(subAgentReportSchema),
   threadSummaries: z.array(z.string()),
   orchestratorSummary: z.string().min(1),
+  companySize: companySizeSchema.optional(),
   uncertainty: z.string().optional(),
 });
 
 export const researchPacketModelOutputSchema = z.object({
   threadSummaries: z.array(z.string()),
   orchestratorSummary: z.string().min(1),
+  companySize: companySizeSchema.optional().describe("Estimate the size of the company based on the web signals you traversed (e.g. employee count, funding stage)."),
   uncertainty: z.string().optional(),
 });
 

@@ -4,9 +4,15 @@ import {
   GOVERNANCE_RULE_VALUES,
   JOB_STATUS_VALUES,
   LEAD_SOURCE_VALUES,
+  COMPANY_SIZE_VALUES,
   PIPELINE_STATUS_VALUES,
   PLAY_TYPE_VALUES,
 } from "@/lib/pipeline/vocab";
+import {
+  discardedSignalSchema,
+  outreachContextSchema,
+  scoredSignalSchema,
+} from "@/lib/pipeline/schemas";
 import type {
   ConfidenceTier,
   GovernanceRule,
@@ -24,6 +30,7 @@ export interface InstantJobRecord {
   leadName: string;
   leadTitle: string;
   company: string;
+  companySize?: string;
   play: OutboundJob["play"];
   whyNow: string;
   pipelineStatus: PipelineStatus;
@@ -59,7 +66,9 @@ type LegacySourceSummary = {
   note?: string;
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+type JsonRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null;
 }
 
@@ -87,6 +96,14 @@ function isResearchRun(value: unknown): value is ResearchRun {
     Array.isArray(value.threadSummaries) &&
     typeof value.orchestratorSummary === "string"
   );
+}
+
+function normalizeJobStatus(value: unknown): JobStatus {
+  if (value === "approved") {
+    return "sent_stub";
+  }
+
+  return isStringEnumValue(JOB_STATUS_VALUES, value) ? value : "pending_review";
 }
 
 function normalizeLeadSource(raw: unknown): LeadSource {
@@ -239,6 +256,79 @@ function getStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
 
+function parseOutreach(value: unknown): OutboundJob["outreach"] | undefined {
+  const parsed = outreachContextSchema.safeParse(value);
+  return parsed.success ? parsed.data : undefined;
+}
+
+function parseSignals(value: unknown): OutboundJob["signals"] {
+  const parsed = Array.isArray(value)
+    ? value
+        .map((item) => scoredSignalSchema.safeParse(item))
+        .filter((result): result is Extract<typeof result, { success: true }> => result.success)
+        .map((result) => result.data)
+    : [];
+
+  return parsed;
+}
+
+function parseDiscardedSignals(value: unknown): OutboundJob["discardedSignals"] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => discardedSignalSchema.safeParse(item))
+    .filter((result): result is Extract<typeof result, { success: true }> => result.success)
+    .map((result) => result.data);
+}
+
+function parseFeedback(value: unknown): OutboundJob["feedback"] | undefined {
+  if (!isRecord(value) || typeof value.edited !== "boolean") {
+    return undefined;
+  }
+
+  return {
+    edited: value.edited,
+    editorNote: typeof value.editorNote === "string" ? value.editorNote : undefined,
+    positiveReply:
+      typeof value.positiveReply === "boolean" || value.positiveReply === null
+        ? value.positiveReply
+        : undefined,
+  };
+}
+
+function parseOutcome(value: unknown): OutboundJob["outcome"] | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const replied = typeof value.replied === "boolean" ? value.replied : undefined;
+  const positive = typeof value.positive === "boolean" ? value.positive : undefined;
+
+  if (replied == null && positive == null) {
+    return undefined;
+  }
+
+  return {
+    replied,
+    positive,
+  };
+}
+
+function parsePromptVersions(value: unknown): OutboundJob["promptVersions"] | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const entries = Object.entries(value).filter((entry): entry is [string, string] => {
+    const [, version] = entry;
+    return typeof version === "string";
+  });
+
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+}
+
 export function fromInstantJobRecord(record: Record<string, unknown>): OutboundJob {
   const play = normalizePlay(record.play, record.researchRun);
   const whyNow =
@@ -255,14 +345,13 @@ export function fromInstantJobRecord(record: Record<string, unknown>): OutboundJ
       title: typeof record.leadTitle === "string" ? record.leadTitle : "",
     },
     company: typeof record.company === "string" ? record.company : "",
+    companySize: isStringEnumValue(COMPANY_SIZE_VALUES, record.companySize) ? record.companySize : undefined,
     play,
     whyNow,
     angleType: isStringEnumValue(ANGLE_TYPE_VALUES, record.angleType)
       ? record.angleType
       : "generic",
-    status: isStringEnumValue(JOB_STATUS_VALUES, record.status)
-      ? record.status
-      : "pending_review",
+    status: normalizeJobStatus(record.status),
     pipelineStage: typeof record.pipelineStage === "string" ? record.pipelineStage : "complete",
     pipelineStatus: isStringEnumValue(PIPELINE_STATUS_VALUES, record.pipelineStatus)
       ? record.pipelineStatus
@@ -278,11 +367,9 @@ export function fromInstantJobRecord(record: Record<string, unknown>): OutboundJ
       reasons: getStringArray(record.confidenceReasons),
     },
     angle: typeof record.angle === "string" ? record.angle : "",
-    outreach: isRecord(record.outreach) ? (record.outreach as unknown as OutboundJob["outreach"]) : undefined,
-    signals: Array.isArray(record.signals) ? (record.signals as OutboundJob["signals"]) : [],
-    discardedSignals: Array.isArray(record.discardedSignals)
-      ? (record.discardedSignals as OutboundJob["discardedSignals"])
-      : [],
+    outreach: parseOutreach(record.outreach),
+    signals: parseSignals(record.signals),
+    discardedSignals: parseDiscardedSignals(record.discardedSignals),
     researchRun: normalizeResearchRun(record.researchRun),
     draft: {
       subject: typeof record.draftSubject === "string" ? record.draftSubject : "",
@@ -290,8 +377,8 @@ export function fromInstantJobRecord(record: Record<string, unknown>): OutboundJ
       highlightedSpan:
         typeof record.highlightedSpan === "string" ? record.highlightedSpan : undefined,
     },
-    feedback: isRecord(record.feedback) ? (record.feedback as OutboundJob["feedback"]) : undefined,
-    outcome: isRecord(record.outcome) ? (record.outcome as OutboundJob["outcome"]) : undefined,
+    feedback: parseFeedback(record.feedback),
+    outcome: parseOutcome(record.outcome),
     timestamps: {
       created:
         toIsoTimestamp(getRawTimestamp(record, "createdAt", "created")) ??
@@ -304,10 +391,7 @@ export function fromInstantJobRecord(record: Record<string, unknown>): OutboundJ
       sentAt: toIsoTimestamp(getRawTimestamp(record, "sentAt", "sentAt")),
       respondedAt: toIsoTimestamp(getRawTimestamp(record, "respondedAt", "respondedAt")),
     },
-    promptVersions:
-      isRecord(record.promptVersions)
-        ? (record.promptVersions as OutboundJob["promptVersions"])
-        : undefined,
+    promptVersions: parsePromptVersions(record.promptVersions),
   };
 }
 
@@ -316,6 +400,7 @@ export function toInstantJobRecord(job: OutboundJob): InstantJobRecord {
     leadName: job.lead.name,
     leadTitle: job.lead.title,
     company: job.company,
+    companySize: job.companySize,
     play: job.play,
     whyNow: job.whyNow,
     pipelineStatus: job.pipelineStatus ?? "completed",

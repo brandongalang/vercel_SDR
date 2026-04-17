@@ -33,7 +33,8 @@ Requirements:
 - Prefer plain workflow language like shipping, preview, release, iteration, review, or launch over heavyweight abstractions.
 - If the Vercel connection is indirect, keep the angle modest and practical instead of forcing a heavy technical diagnosis.
 - Explain timing in whyNow using one concrete sentence about the observable trigger or recent shift, not an asserted bottleneck you cannot prove.
-- Even low-confidence leads should still get a usable but modest plan.
+- Signal Strength: Categorize the overall plan as "high" (Strong Relevance), "medium" (Moderate Relevance), or "low" (Weak Relevance) based on signal density and specificity. Surface this in the confidence schema.
+- Even weak-relevance leads should still get a usable but modest plan.
 - Do not select signal IDs that are not present.
 - Prefer specificity over breadth.
 - Generate an outreach object containing SDR-facing context (separate from the agent-to-agent angle and whyNow fields):

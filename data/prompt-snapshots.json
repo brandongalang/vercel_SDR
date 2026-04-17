@@ -5,7 +5,7 @@
     "releaseDate": "2026-01-20",
     "instruction": "You are an SDR assistant. Write a personalized cold outreach email for a B2B SaaS sales rep. The email should be short and professional. Use the prospect's name, company, and job title. Include relevant business context. Mention Vercel's platform capabilities where appropriate. End with a call to action to schedule a meeting. Keep the email under 150 words. Be conversational but professional.",
     "fewShotDemos": 0,
-    "summary": "Rough baseline. Generic instruction with no few-shot examples. No guidance on signal prioritization, value framing, or CTA specificity. High edit rate from SDRs who had to rewrite openers and tighten focus."
+    "summary": "Baseline prompt. It gave the model very little guidance on which signal mattered, how to frame value, or how to end with a clear ask, so SDRs often had to rewrite the opener."
   },
   {
     "version": "2026-02-17.draft-generator.v2",
@@ -13,15 +13,15 @@
     "releaseDate": "2026-02-17",
     "instruction": "Write a first-touch outbound email for Vercel using the strongest credible signal. Open with the trigger itself, then connect it to one practical Vercel outcome the buyer would care about. End with one low-friction CTA. Keep the body between 70 and 120 words, plainspoken, and specific. Use the selected examples as the style bar for how concrete the opener, implication, and CTA should feel. Avoid generic pleasantries, hype, and multi-ask endings.",
     "fewShotDemos": 4,
-    "summary": "BootstrapFewShot-style deployed package. The instruction got somewhat better, but the main upgrade was adding four selected historical demos that taught the model how to open on one real signal, translate it into an operational implication, and land on a low-friction CTA."
+    "summary": "Shipped package. The big step forward was adding four real example drafts that taught the model to open on one signal, tie it to a Vercel outcome, and land on a low-friction ask."
   },
   {
-    "version": "2026-04-11.draft-generator.v3",
+    "version": "2026-04-15.draft-generator.v3",
     "label": "v3",
-    "releaseDate": "2026-04-11",
-    "instruction": "Lead with the signal. Open with the exact trigger—hiring data, a public post, product usage, or a tech stack indicator—in the first sentence. In one sentence, connect that signal to a concrete outcome Vercel enables: faster iteration, reliability at scale, or developer velocity. Skip pleasantries and filler phrases. The CTA must be a single frictionless ask: offer a specific artifact (benchmark, case study, or 15-min scoped call) rather than a generic meeting request. Total body: under 100 words. Subject line: seven words or fewer, signal-specific, no questions.",
+    "releaseDate": "2026-04-15",
+    "instruction": "Lead with the Signal Strength. Open with the exact trigger—hiring data, a public post, product usage, or a tech stack indicator—in the first sentence. Connect that signal to a core Vercel outcome, explicitly mapping your tone to the Account Size: if Enterprise, emphasize governance and reliability at scale; if Startup/SMB, emphasize velocity. Skip pleasantries and filler phrases. The CTA must be a single frictionless artifact (benchmark, case study) rather than a generic meeting request. Total body: under 100 words.",
     "fewShotDemos": 6,
-    "summary": "MIPROv2 candidate. Starting from the v2 prompt package, the optimizer rewrote the instruction to be shorter and more prescriptive while keeping a larger six-demo few-shot scaffold. The point of v3 is not just more examples, but a tighter rule set layered on top of them.",
-    "badgeText": "MIPROv2 Optimized"
+    "summary": "Candidate package. It tightens the rules by account size and replaces generic meeting asks with more specific follow-up assets.",
+    "badgeText": "Optimized candidate"
   }
 ]

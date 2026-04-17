@@ -8,6 +8,7 @@ import {
   type PipelineRunAudit,
 } from "@/lib/pipeline/run-job";
 import { getRequiredServerEnv } from "@/lib/server/env";
+import { nowIso, parseTimestamp } from "@/lib/time";
 import type { OutboundJob } from "@/lib/types";
 
 const INSTANT_APP_ID = getRequiredServerEnv("NEXT_PUBLIC_INSTANT_APP_ID");
@@ -22,7 +23,7 @@ function getAdminDb() {
 }
 
 function toEpochMilliseconds(value?: string): number | null {
-  return value ? new Date(value).getTime() : null;
+  return parseTimestamp(value);
 }
 
 function finalizeSuccessfulAudit(audit: PipelineRunAudit, jobId: string): PipelineRunAudit {
@@ -57,7 +58,7 @@ function finalizeFailedAudit(audit: PipelineRunAudit): PipelineRunAudit {
   const finalAudit = clonePipelineRunAudit(audit);
 
   if (!finalAudit.completedAt) {
-    finalAudit.completedAt = new Date().toISOString();
+    finalAudit.completedAt = nowIso();
   }
 
   finalAudit.status = "failed";

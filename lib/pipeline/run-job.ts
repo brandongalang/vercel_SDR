@@ -12,6 +12,8 @@ import {
   runSignalExtractionStage,
 } from "@/lib/pipeline/execution-core";
 import { PROMPT_VERSIONS } from "@/lib/pipeline/prompts";
+import type { PipelineTraces } from "@/lib/pipeline/pipeline-traces";
+import { diffTimestampsMs, nowIso } from "@/lib/time";
 import type {
   DiscardedSignal,
   LeadInput,
@@ -22,6 +24,8 @@ import type {
   ScoredSignal,
 } from "@/lib/types";
 
+export type { PipelineTraces } from "@/lib/pipeline/pipeline-traces";
+
 export type PipelinePhaseRecord<P extends PipelinePhase = PipelinePhase> = {
   id: P;
   label: string;
@@ -30,13 +34,6 @@ export type PipelinePhaseRecord<P extends PipelinePhase = PipelinePhase> = {
   completedAt?: string;
   durationMs?: number;
 };
-
-export interface PipelineTraces {
-  research?: {
-    orchestratorSteps: unknown[];
-    threadTraces: unknown[];
-  };
-}
 
 export interface PipelineRunAudit {
   leadInput: LeadInput;
@@ -148,10 +145,6 @@ export async function runPipelinePhase<T>(
   }
 }
 
-function getTimestamp(): string {
-  return new Date().toISOString();
-}
-
 function clonePhaseRecord<P extends PipelinePhase>(phase: PipelinePhaseRecord<P>) {
   return { ...phase };
 }
@@ -183,7 +176,7 @@ export function getPipelinePhase<P extends PipelinePhase>(
 export function createPipelineRunAudit(leadInput: LeadInput): PipelineRunAudit {
   return {
     leadInput,
-    startedAt: getTimestamp(),
+    startedAt: nowIso(),
     currentPhase: "ingest",
     status: "running",
     phases: PIPELINE_PHASE_DEFINITIONS.map((phase) => ({
@@ -205,7 +198,7 @@ export function startPipelineAuditPhase<P extends PipelinePhase>(
   phaseId: P,
 ) {
   const phase = getPipelinePhase(audit, phaseId);
-  const startedAt = phase.startedAt ?? getTimestamp();
+  const startedAt = phase.startedAt ?? nowIso();
 
   phase.status = "running";
   phase.startedAt = startedAt;
@@ -223,13 +216,13 @@ export function completePipelineAuditPhase<P extends PipelinePhase>(
   phaseId: P,
 ) {
   const phase = getPipelinePhase(audit, phaseId);
-  const completedAt = getTimestamp();
+  const completedAt = nowIso();
   const startedAt = phase.startedAt ?? completedAt;
 
   phase.status = "completed";
   phase.startedAt = startedAt;
   phase.completedAt = completedAt;
-  phase.durationMs = new Date(completedAt).getTime() - new Date(startedAt).getTime();
+  phase.durationMs = diffTimestampsMs(startedAt, completedAt);
 
   audit.currentPhase = phaseId;
 
@@ -242,13 +235,13 @@ export function failPipelineAuditPhase<P extends PipelinePhase>(
   message: string,
 ) {
   const phase = getPipelinePhase(audit, phaseId);
-  const completedAt = getTimestamp();
+  const completedAt = nowIso();
   const startedAt = phase.startedAt ?? completedAt;
 
   phase.status = "failed";
   phase.startedAt = startedAt;
   phase.completedAt = completedAt;
-  phase.durationMs = new Date(completedAt).getTime() - new Date(startedAt).getTime();
+  phase.durationMs = diffTimestampsMs(startedAt, completedAt);
 
   audit.currentPhase = phaseId;
   audit.status = "failed";
@@ -422,7 +415,7 @@ export async function runOutboundJobPipeline(input: {
     const job: Omit<OutboundJob, "id"> = buildPipelineJob({
       leadInput: input.leadInput,
       state,
-      createdAt: getTimestamp(),
+      createdAt: nowIso(),
     });
 
     return {

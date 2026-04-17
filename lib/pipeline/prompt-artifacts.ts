@@ -37,7 +37,9 @@ export interface DraftGeneratorPromptArtifact {
   promptVersionAfter: string;
 }
 
-export const DRAFT_GENERATOR_V2_ARTIFACT =
+export type DraftPromptArtifact = Pick<DraftGeneratorPromptArtifact, "instruction" | "demos">;
+
+const DRAFT_GENERATOR_V2_ARTIFACT =
   draftGeneratorV2ArtifactData as DraftGeneratorPromptArtifact;
 
 export const LIVE_DRAFT_GENERATOR_ARTIFACT = DRAFT_GENERATOR_V2_ARTIFACT;

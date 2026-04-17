@@ -1,0 +1,23 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "project": [
+    "app/**/*.{js,ts,tsx}",
+    "components/**/*.{ts,tsx}",
+    "lib/**/*.{ts,tsx}",
+    "scripts/**/*.{js,mjs,ts}",
+    "workflows/**/*.ts"
+  ],
+  "ignoreFiles": [
+    "scripts/check-cycles.mjs",
+    "scripts/export-dspy-dataset.ts",
+    "scripts/patch-snapshot.ts",
+    "scripts/patch-synthetic-jobs.ts",
+    "scripts/reset-demo.ts"
+  ],
+  "ignoreDependencies": [
+    "postcss",
+    "shadcn",
+    "tailwindcss",
+    "tw-animate-css"
+  ]
+}

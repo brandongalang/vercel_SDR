@@ -10,7 +10,7 @@
 
 ## 1. Summary
 
-Build a **prototype** that raises the **quality floor** of **first-touch outbound** emails by combining **intent signals** (internal + external) into **one credible angle**, with **explicit governance** (who must review before send) and a **review queue** that earns **trust** through structured signals, confidence, and human-in-the-loop actions.
+Build a **prototype** that raises the **quality floor** of **first-touch outbound** emails by combining **intent signals** (internal + external) into **one credible angle**, evaluated against a **Two-Dimensional Governance Engine** (Account Size x Signal Strength) to determine routing. The system uses a **review queue** that earns **trust** through explicitly spelled-out structured signals and human-in-the-loop actions.
 
 **Integration stance:** No dependency on real Outreach/SendGrid for v0. Mock CRM and signals; real **Exa** (or mocks) acceptable per environment.
 
@@ -34,8 +34,8 @@ The bottleneck is **trust**: reps stake **reputation** on what sends. The system
 ### 2.3 Prioritized goals
 
 1. **Quality floor** — consistent, strong first-touch drafts.  
-2. **Governance** — explicit rules for auto-eligible vs review-required (e.g. marketing-sourced sensitivity).  
-3. **Trust** — ranked/categorized signals, chosen angle, confidence; avoid dossier mode.  
+2. **2D Governance** — explicit deterministic rules for auto-send vs review-suggested based on a matrix of **Account Size** (e.g. Enterprise always needs review) and **Signal Strength**.
+3. **Trust** — clear, textual property bars explaining *why* an action was routed, avoiding ambiguous 1-100 scores or emojis.  
 4. **Future-ready analytics** — structured fields + implicit events so week-over-week success can be measured later (charts optional in v0).
 
 ### 2.4 Non-goals (v0)
@@ -63,12 +63,13 @@ The bottleneck is **trust**: reps stake **reputation** on what sends. The system
 
 | Column | Purpose |
 |--------|---------|
+| Company Size | Clean textual badge (`ENT`, `MID`, `SMB`) |
 | Lead | Name (+ title optional) |
 | Company | Organization |
 | Play | Short label (e.g. `Event — SF 2026`, `PLG signup`) |
 | Primary angle | One line — hook the draft uses |
-| Confidence | Tier + short summary |
-| Governance | `Review required` / `Auto-eligible` |
+| Signal Strength | Textual explicit label |
+| Governance | `Review suggested` / `Auto-send candidate` |
 | Status | `pending_review` / `approved` / `rejected` (stub) / `sent_stub` |
 | Updated | Optional relative time |
 
@@ -78,7 +79,7 @@ The bottleneck is **trust**: reps stake **reputation** on what sends. The system
 
 **Sections (top → bottom):**
 
-1. Header — lead, company, play, governance, confidence.  
+1. **Structured Property Bar** — explicitly spells out `Routing`, `Account` (Size), `Signal` (Strength), and `Source` in a uniform, high-density row below the lead name.
 2. **Chosen angle** — single sentence (policy: one external + one internal story, not a list of everything).  
 3. **Ranked signals** — list with: category, label/value, source (`internal` \| `external` \| `derived`), rank; mark which powered the angle (`usedInAngle`).  
 4. **Discarded / deprioritized** (collapsed) — what we did **not** lead with (trust + “not creepy”).  
@@ -130,7 +131,7 @@ Use this as the **canonical stage list** when implementing or extending the pipe
 | 5 | **SignalExtractor** | Structured output converts findings into **atomic scored signals** plus discarded/deprioritized signals. |
 | 6 | **AnglePlanner** | Structured output chooses **one angle**, `whyNow`, confidence, and `usedSignalIds[]`. |
 | 7 | **DraftGenerator** | Draft uses **only** the plan + used signals — not the whole research blob. |
-| 8 | **Governance + queue** | Deterministic rules set `review_required` vs `auto_eligible`; completed job is written to InstantDB for SDR review. |
+| 8 | **Governance + queue** | 2D Rules matrix (Account Size vs Signal Strength + Context) set `review_required` vs `auto_eligible`. Enterprise is strictly forced to manual review. |
 
 **Visual:**
 
@@ -209,11 +210,11 @@ Treat confidence as **“can we stake reputation on this *plan*?”**, not “ho
 | S0 | n/a | Ingest / normalize `LeadInput` |
 | S1A | Gemini 3.1 Pro Preview | Dynamic research orchestration |
 | S1B | Gemini 3 Flash Preview | Topic-specific sub-research loops with tools |
-| S1C | n/a | Assemble `ResearchPacket` |
+| S1C | n/a | Assemble `ResearchPacket` (includes zero-latency intrinsic Account Size grading) |
 | S2 | Gemini 3.1 Pro Preview | **Signal extraction + labels** in one structured call |
-| S3 | Gemini 3.1 Pro Preview | **Angle + confidence** in one structured call |
+| S3 | Gemini 3.1 Pro Preview | **Angle + Signal Strength** in one structured call |
 | S4 | Gemini 3.1 Pro Preview | Draft generation from plan + used signals only |
-| S5 | deterministic rules | Governance + queue eligibility |
+| S5 | deterministic rules | **2D Governance Engine (Size x Signal)** + queue eligibility |
 
 ### 7.2 Signals + labels in one pass
 
@@ -320,7 +321,7 @@ The system relies on **Bottom-Up Synthesis**. We do **not** configure rigid top-
 
 **OutboundJob** (implemented shape):
 
-- `id`, `lead`, `company`  
+- `id`, `lead`, `company`, `companySize`  
 - `play` — `{ type, label, context?, leadSource }`
 - `whyNow`
 - `status`, `governance`, `pipelineStatus`, `pipelineStage`
@@ -422,3 +423,4 @@ Event **registration/attendance**, **product signups** (e.g. Vercel), **web page
 | 2026-04-10 | Added resume note for agents; §5.1–5.4 detailed funnel, confidence, rewrite, sequence context; Appendix A (interview distillate), B (brainstorm merge), C (resume checklist) |
 | 2026-04-11 | UX overhaul to Actionable Analytics Impact Funnel; Explicit documentation of DSPy Bottom-up Synthesis vs Top-down Playbooks. |
 | 2026-04-11 | Finalized and implemented live pipeline: Gemini 3.1 Pro orchestrator, Gemini 3 Flash sub-researchers, `ResearchPacket` handoff, structured S2–S4 chain, deterministic governance, and InstantDB write path. |
+| 2026-04-15 | Updated PRD to enforce 2D Governance Engine (Account Size x Signal Strength), redefined confidence terminology, and codified the Structured Property Bar explicit UX strategy. |

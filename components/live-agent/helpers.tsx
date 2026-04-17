@@ -7,13 +7,23 @@ import {
   ToolHeader,
   type ToolState,
 } from "@/components/ai-elements/tool";
+import type { PipelineTraceValue } from "@/lib/pipeline/live-trace";
 import { cn } from "@/lib/utils";
 
 export type { ToolState };
 
-export function FieldLabel({ children }: { children: ReactNode }) {
+export function FieldLabel({
+  children,
+  htmlFor,
+}: {
+  children: ReactNode;
+  htmlFor?: string;
+}) {
   return (
-    <label className="text-[11px] font-mono uppercase tracking-[0.12em] text-zinc-500">
+    <label
+      htmlFor={htmlFor}
+      className="text-[11px] font-mono uppercase tracking-[0.12em] text-muted-foreground"
+    >
       {children}
     </label>
   );
@@ -27,16 +37,22 @@ export function getToolPartErrorText(part: { state?: string; errorText?: string 
   return part.state === "output-error" ? part.errorText : undefined;
 }
 
-export function shouldForceToolOpen(state: ToolState) {
+function shouldForceToolOpen(state: ToolState) {
   void state;
   return false;
 }
 
-export function getDefaultToolOpen(state: ToolState) {
+function getDefaultToolOpen(state: ToolState) {
   return state === "input-streaming" || state === "input-available" || state === "output-error";
 }
 
-export function formatCompactValue(value: unknown): string | null {
+function isTraceRecord(
+  value: PipelineTraceValue,
+): value is Record<string, PipelineTraceValue | undefined> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function formatCompactValue(value: PipelineTraceValue): string | null {
   if (value == null) return null;
   if (typeof value === "string") return value;
   if (typeof value === "number" || typeof value === "boolean") return String(value);
@@ -47,9 +63,9 @@ export function formatCompactValue(value: unknown): string | null {
       .filter((item): item is string => Boolean(item))
       .join(" · ");
   }
-  if (typeof value === "object") {
-    const entries = Object.entries(value as Record<string, unknown>)
-      .filter(([, entry]) => entry != null)
+  if (isTraceRecord(value)) {
+    const entries = Object.entries(value)
+      .filter((entry): entry is [string, PipelineTraceValue] => entry[1] != null)
       .slice(0, 2)
       .map(([key, entry]) => `${key}: ${formatCompactValue(entry)}`);
     return entries.join(" · ");
@@ -68,45 +84,23 @@ export function formatTimestampLabel(value?: string) {
   });
 }
 
-export function PayloadDisclosure({ label, value }: { label: string; value: unknown }) {
+export function PayloadDisclosure({
+  label,
+  value,
+}: {
+  label: string;
+  value: PipelineTraceValue;
+}) {
   if (value == null) return null;
   return (
-    <details className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2">
-      <summary className="cursor-pointer text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-zinc-500">
+    <details className="rounded-md border border-border bg-muted/40 px-3 py-2">
+      <summary className="cursor-pointer text-[10px] font-mono font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         {label}
       </summary>
-      <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words text-[11px] leading-relaxed text-zinc-700">
+      <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words text-[11px] leading-relaxed text-foreground/80">
         {JSON.stringify(value, null, 2)}
       </pre>
     </details>
-  );
-}
-
-export function TimelineBranch({
-  children,
-  level = 1,
-}: {
-  children: ReactNode;
-  level?: 1 | 2;
-}) {
-  return (
-    <div className={cn("relative", level === 1 ? "pl-6" : "pl-11")}>
-      <div
-        aria-hidden="true"
-        className={cn(
-          "absolute top-0 bottom-0 w-px bg-zinc-200",
-          level === 1 ? "left-[11px]" : "left-[31px]",
-        )}
-      />
-      <div
-        aria-hidden="true"
-        className={cn(
-          "absolute top-5 h-px bg-zinc-200",
-          level === 1 ? "left-[11px] w-3" : "left-[31px] w-4",
-        )}
-      />
-      {children}
-    </div>
   );
 }
 
@@ -140,7 +134,7 @@ export function PipelineToolRow({
       key={`${type}-${state}`}
       defaultOpen={defaultOpen ?? getDefaultToolOpen(state)}
       forceOpen={forceOpen ?? shouldForceToolOpen(state)}
-      className={cn("border-zinc-200/80 bg-white shadow-none", className)}
+      className={cn("border-border/70 bg-card shadow-none", className)}
     >
       <ToolHeader
         type={type}

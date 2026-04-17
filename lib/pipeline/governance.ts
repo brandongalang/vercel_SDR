@@ -3,6 +3,7 @@ import type { ConfidenceTier, GovernanceRule, LeadSource, PipelineStatus } from 
 export function determineGovernance(input: {
   confidenceTier: ConfidenceTier;
   leadSource: LeadSource;
+  companySize?: string;
 }) {
   const cautiousSources: LeadSource[] = [
     "marketing_event_form",
@@ -13,7 +14,9 @@ export function determineGovernance(input: {
   ];
 
   const governance: GovernanceRule =
-    input.confidenceTier === "low" || cautiousSources.includes(input.leadSource)
+    input.confidenceTier === "low" ||
+    input.companySize === "enterprise" || 
+    cautiousSources.includes(input.leadSource)
       ? "review_required"
       : "auto_eligible";
 

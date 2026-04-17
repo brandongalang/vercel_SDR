@@ -1,13 +1,16 @@
 import type { AnalyticsDateRange, AngleType, DspyVersionRow, OutboundJob } from "./types";
 import { ANGLE_CONFIG } from "./angle-config";
+import { getInclusiveDateInputBounds, parseTimestamp } from "./time";
 
 export interface QueueMetricsSummary {
   totalJobs: number;
   pendingReview: number;
+  decidedCount: number;
   approvedOrSent: number;
+  approvedSendRate: number | null;
   reviewed: number;
   sent: number;
-  /** Approved + sent where `feedback` exists (denominator for accept vs edit) */
+  /** Sent jobs where `feedback` exists (denominator for accept vs edit) */
   withApprovalFeedback: number;
   cleanAcceptCount: number;
   editedCount: number;
@@ -15,6 +18,7 @@ export interface QueueMetricsSummary {
   cleanAcceptRate: number | null;
   /** % of approvals where the rep edited before approve */
   editRate: number | null;
+  medianReviewSeconds: number | null;
   sentWithOutcomeTracked: number;
   replyCount: number;
   positiveCount: number;
@@ -38,20 +42,11 @@ export interface AngleMetricsRow {
 }
 
 function isTerminal(j: OutboundJob) {
-  return j.status === "approved" || j.status === "reviewed" || j.status === "sent_stub";
+  return j.status !== "pending_review";
 }
 
 function isApprovedPath(j: OutboundJob) {
-  return j.status === "approved" || j.status === "sent_stub";
-}
-
-function toMillis(value?: string) {
-  if (!value) {
-    return null;
-  }
-
-  const parsed = Date.parse(value);
-  return Number.isNaN(parsed) ? null : parsed;
+  return j.status === "sent_stub";
 }
 
 function toPercentage(numerator: number, denominator: number): number | null {
@@ -60,32 +55,23 @@ function toPercentage(numerator: number, denominator: number): number | null {
     : null;
 }
 
-function parseDateInput(value: string) {
-  const [year, month, day] = value.split("-").map(Number);
-  if (!year || !month || !day) {
+function toMedian(values: number[]): number | null {
+  if (values.length === 0) {
     return null;
   }
 
-  const parsed = new Date(year, month - 1, day);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  const sorted = values.toSorted((a, b) => a - b);
+  const midpoint = Math.floor(sorted.length / 2);
+
+  if (sorted.length % 2 === 0) {
+    return Math.round(((sorted[midpoint - 1] + sorted[midpoint]) / 2) * 10) / 10;
+  }
+
+  return Math.round(sorted[midpoint] * 10) / 10;
 }
 
 function getDateRangeBounds(range?: AnalyticsDateRange) {
-  if (!range) {
-    return null;
-  }
-
-  const start = parseDateInput(range.start);
-  const end = parseDateInput(range.end);
-
-  if (!start || !end || start.getTime() > end.getTime()) {
-    return null;
-  }
-
-  return {
-    start: start.getTime(),
-    end: new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59, 999).getTime(),
-  };
+  return getInclusiveDateInputBounds(range);
 }
 
 function isInRange(timestamp: string | undefined, bounds: ReturnType<typeof getDateRangeBounds>) {
@@ -93,7 +79,7 @@ function isInRange(timestamp: string | undefined, bounds: ReturnType<typeof getD
     return true;
   }
 
-  const value = toMillis(timestamp);
+  const value = parseTimestamp(timestamp);
   return value != null && value >= bounds.start && value <= bounds.end;
 }
 
@@ -160,6 +146,8 @@ export function computeQueueMetrics(jobs: OutboundJob[], dateRange?: AnalyticsDa
   const pendingReview = jobs.filter((j) => j.status === "pending_review" && isInRange(createdTimestamp(j), bounds)).length;
   const approvedOrSent = jobs.filter((j) => isApprovedPath(j) && isInRange(approvalTimestamp(j), bounds)).length;
   const reviewed = jobs.filter((j) => j.status === "reviewed" && isInRange(archiveTimestamp(j), bounds)).length;
+  const decidedCount = approvedOrSent + reviewed;
+  const approvedSendRate = toPercentage(approvedOrSent, decidedCount);
   const sent = jobs.filter((j) => j.status === "sent_stub" && isInRange(sentTimestamp(j), bounds)).length;
 
   const approvalPath = jobs.filter((j) => isApprovedPath(j) && isInRange(approvalTimestamp(j), bounds));
@@ -170,6 +158,18 @@ export function computeQueueMetrics(jobs: OutboundJob[], dateRange?: AnalyticsDa
   const denom = cleanAcceptCount + editedCount;
   const cleanAcceptRate = toPercentage(cleanAcceptCount, denom);
   const editRate = toPercentage(editedCount, denom);
+  const reviewDurations = approvalPath
+    .map((job) => {
+      const created = parseTimestamp(createdTimestamp(job));
+      const approved = parseTimestamp(approvalTimestamp(job));
+      if (created == null || approved == null || approved < created) {
+        return null;
+      }
+
+      return (approved - created) / 1000;
+    })
+    .filter((value): value is number => value != null);
+  const medianReviewSeconds = toMedian(reviewDurations);
 
   const sentJobs = jobs.filter((j) => j.status === "sent_stub");
   const withOutcome = sentJobs.filter((j) => j.outcome != null && hasTrackedOutcomeInRange(j, bounds));
@@ -182,7 +182,9 @@ export function computeQueueMetrics(jobs: OutboundJob[], dateRange?: AnalyticsDa
   const summary: QueueMetricsSummary = {
     totalJobs: bounds ? jobs.filter((j) => isInRange(createdTimestamp(j), bounds)).length : jobs.length,
     pendingReview,
+    decidedCount,
     approvedOrSent,
+    approvedSendRate,
     reviewed,
     sent,
     withApprovalFeedback,
@@ -190,6 +192,7 @@ export function computeQueueMetrics(jobs: OutboundJob[], dateRange?: AnalyticsDa
     editedCount,
     cleanAcceptRate,
     editRate,
+    medianReviewSeconds,
     sentWithOutcomeTracked: o,
     replyCount,
     positiveCount,

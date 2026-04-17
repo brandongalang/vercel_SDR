@@ -1,5 +1,7 @@
 import { init_experimental } from "@instantdb/admin";
+import { buildBenchmarkHistoryJobsForSeed } from "@/lib/analytics-mock";
 import demoSnapshotData from "@/data/demo-snapshot.json";
+import { buildSkippedJobsForSeed } from "@/lib/skipped-seed-jobs";
 import { toInstantJobRecord } from "@/lib/jobs/instant-job-codec";
 import {
   getRequiredServerEnv,
@@ -28,7 +30,11 @@ export async function POST(request: Request) {
       appId,
       adminToken,
     });
-    const snapshotJobs = demoSnapshotData as OutboundJob[];
+    const snapshotJobs: OutboundJob[] = [
+      ...(demoSnapshotData as OutboundJob[]),
+      ...(buildBenchmarkHistoryJobsForSeed(new Date()) as OutboundJob[]),
+      ...buildSkippedJobsForSeed(new Date()),
+    ];
     const existing = await db.query({ jobs: {}, pipelineRuns: {} });
 
     const deleteTxns = [

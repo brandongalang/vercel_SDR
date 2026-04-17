@@ -92,7 +92,7 @@
     "angleType": "trial_activation",
     "status": "pending_review",
     "pipelineStage": "complete",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "high",
       "summary": "Strong signal cluster: internal rollout behavior is reinforced by public launch-readiness and hiring evidence.",
@@ -106,12 +106,27 @@
     "outreach": {
       "companyInsight": "Northstar's trial crossed from solo evaluation to 3 collaborators with a production domain in 6 days (product telemetry, Apr 8–10), alongside a patient-scheduling rebuild with stricter release controls (engineering blog, Mar 27).",
       "companyRefs": [
-        { "label": "Preview deploy rollup", "url": "internal://northstarhealth/product-events/preview-rollup-apr10", "date": "2026-04-10", "sourceType": "product_data" },
-        { "label": "Patient scheduling refresh", "url": "https://www.northstarhealth.com/blog/2026/03/patient-scheduling-refresh", "date": "2026-03-27", "sourceType": "blog" }
+        {
+          "label": "Preview deploy rollup",
+          "url": "internal://northstarhealth/product-events/preview-rollup-apr10",
+          "date": "2026-04-10",
+          "sourceType": "product_data"
+        },
+        {
+          "label": "Patient scheduling refresh",
+          "url": "https://www.northstarhealth.com/blog/2026/03/patient-scheduling-refresh",
+          "date": "2026-03-27",
+          "sourceType": "blog"
+        }
       ],
       "personInsight": "Maya described review coordination as her team's main launch blocker at a HealthStack panel (Mar 12) — she's publicly focused on exactly this problem.",
       "personRefs": [
-        { "label": "HealthStack panel", "url": "https://healthstacksummit.com/2026/release-readiness-panel", "date": "2026-03-12", "sourceType": "conference" }
+        {
+          "label": "HealthStack panel",
+          "url": "https://healthstacksummit.com/2026/release-readiness-panel",
+          "date": "2026-03-12",
+          "sourceType": "conference"
+        }
       ],
       "personAngleStrength": "strong"
     },
@@ -184,7 +199,8 @@
         "label": "Generic compliance modernization note",
         "reason": "Northstar's broader compliance messaging is too company-level; the scheduling refresh and launch controls are much closer to Maya's actual workflow."
       }
-    ]
+    ],
+    "companySize": "enterprise"
   },
   {
     "id": "v2-002",
@@ -279,7 +295,7 @@
     "angleType": "hiring_signal",
     "status": "pending_review",
     "pipelineStage": "complete",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "high",
       "summary": "Multiple hiring, product, and leadership signals point to a near-term workflow standardization effort.",
@@ -293,13 +309,33 @@
     "outreach": {
       "companyInsight": "LedgerLoop opened 3 platform roles citing release automation and preview workflows (job postings, Apr 3–5), while rebuilding the merchant risk console into weekly-shippable surfaces (engineering blog, Mar 21).",
       "companyRefs": [
-        { "label": "Platform team roles", "url": "https://jobs.ledgerloop.com/teams/platform", "date": "2026-04-03", "sourceType": "job_posting" },
-        { "label": "Modular risk console", "url": "https://ledgerloop.com/engineering/modular-risk-console", "date": "2026-03-21", "sourceType": "blog" }
+        {
+          "label": "Platform team roles",
+          "url": "https://jobs.ledgerloop.com/teams/platform",
+          "date": "2026-04-03",
+          "sourceType": "job_posting"
+        },
+        {
+          "label": "Modular risk console",
+          "url": "https://ledgerloop.com/engineering/modular-risk-console",
+          "date": "2026-03-21",
+          "sourceType": "blog"
+        }
       ],
       "personInsight": "Evan described release review as LedgerLoop's remaining bottleneck on a fintech engineering podcast (Mar 29) and reshared the platform hire with a note about reducing cross-team friction (LinkedIn, Apr 6).",
       "personRefs": [
-        { "label": "Fintech engineering podcast", "url": "https://www.youtube.com/watch?v=ledgerloop-weekly-releases", "date": "2026-03-29", "sourceType": "podcast" },
-        { "label": "LinkedIn reshare", "url": "https://www.linkedin.com/posts/evan-brooks-ledgerloop_platform-hiring-release-activity-729144501", "date": "2026-04-06", "sourceType": "linkedin" }
+        {
+          "label": "Fintech engineering podcast",
+          "url": "https://www.youtube.com/watch?v=ledgerloop-weekly-releases",
+          "date": "2026-03-29",
+          "sourceType": "podcast"
+        },
+        {
+          "label": "LinkedIn reshare",
+          "url": "https://www.linkedin.com/posts/evan-brooks-ledgerloop_platform-hiring-release-activity-729144501",
+          "date": "2026-04-06",
+          "sourceType": "linkedin"
+        }
       ],
       "personAngleStrength": "strong"
     },
@@ -373,7 +409,8 @@
         "label": "Generic edge-performance role language",
         "reason": "Edge-delivery language appears in multiple fintech job descriptions; the preview-workflow ownership phrasing is much more distinctive."
       }
-    ]
+    ],
+    "companySize": "mid_market"
   },
   {
     "id": "v2-003",
@@ -454,7 +491,7 @@
     "angleType": "tech_migration",
     "status": "pending_review",
     "pipelineStage": "complete",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "high",
       "summary": "Concrete repo evidence plus Rita's public commentary make this a strong migration-to-deployment workflow angle.",
@@ -468,9 +505,24 @@
     "outreach": {
       "companyInsight": "OrbitIQ's public repos landed app-router migrations with preview-parity assertions now gating releases (engineering blog, Apr 4–7), tied to an SSR search-page refresh for the operations dashboard (engineering post, Mar 18).",
       "companyRefs": [
-        { "label": "App-router migration", "url": "https://orbitiq.com/engineering/app-router-migration", "date": "2026-04-04", "sourceType": "blog" },
-        { "label": "Preview parity checks", "url": "https://orbitiq.com/engineering/preview-parity-checks", "date": "2026-04-07", "sourceType": "blog" },
-        { "label": "SSR search pages", "url": "https://orbitiq.com/engineering/search-pages-nextjs", "date": "2026-03-18", "sourceType": "blog" }
+        {
+          "label": "App-router migration",
+          "url": "https://orbitiq.com/engineering/app-router-migration",
+          "date": "2026-04-04",
+          "sourceType": "blog"
+        },
+        {
+          "label": "Preview parity checks",
+          "url": "https://orbitiq.com/engineering/preview-parity-checks",
+          "date": "2026-04-07",
+          "sourceType": "blog"
+        },
+        {
+          "label": "SSR search pages",
+          "url": "https://orbitiq.com/engineering/search-pages-nextjs",
+          "date": "2026-03-18",
+          "sourceType": "blog"
+        }
       ],
       "personInsight": null,
       "personRefs": [],
@@ -546,7 +598,8 @@
         "label": "Generic AI feature release note",
         "reason": "The AI announcement is product-level noise compared with the very explicit migration and deployment signals."
       }
-    ]
+    ],
+    "companySize": "smb"
   },
   {
     "id": "v2-004",
@@ -653,13 +706,33 @@
     "outreach": {
       "companyInsight": "BeaconFlow is rolling out a partner-portal refresh with new multi-tenant account views that increase release-review complexity (product blog, Apr 1), and the team is hiring for shared preview and release patterns (job posting, Apr 6).",
       "companyRefs": [
-        { "label": "Partner portal refresh", "url": "https://beaconflow.com/blog/partner-portal-refresh", "date": "2026-04-01", "sourceType": "blog" },
-        { "label": "Design systems role", "url": "https://jobs.beaconflow.com/senior-design-systems-engineer", "date": "2026-04-06", "sourceType": "job_posting" }
+        {
+          "label": "Partner portal refresh",
+          "url": "https://beaconflow.com/blog/partner-portal-refresh",
+          "date": "2026-04-01",
+          "sourceType": "blog"
+        },
+        {
+          "label": "Design systems role",
+          "url": "https://jobs.beaconflow.com/senior-design-systems-engineer",
+          "date": "2026-04-06",
+          "sourceType": "job_posting"
+        }
       ],
       "personInsight": "Tom attended the preview-governance and edge-architecture sessions at Ship Conference (Apr 2), then reposted a related platform hire the same week (LinkedIn, Apr 7) — relevant interest, but no authored opinion.",
       "personRefs": [
-        { "label": "Ship Conference attendance", "url": "https://shipconf.com/2026/attendees/tom-becker", "date": "2026-04-02", "sourceType": "conference" },
-        { "label": "LinkedIn repost", "url": "https://www.linkedin.com/posts/tom-becker-beaconflow_partner-portal-review-activity-729188100", "date": "2026-04-07", "sourceType": "linkedin" }
+        {
+          "label": "Ship Conference attendance",
+          "url": "https://shipconf.com/2026/attendees/tom-becker",
+          "date": "2026-04-02",
+          "sourceType": "conference"
+        },
+        {
+          "label": "LinkedIn repost",
+          "url": "https://www.linkedin.com/posts/tom-becker-beaconflow_partner-portal-review-activity-729188100",
+          "date": "2026-04-07",
+          "sourceType": "linkedin"
+        }
       ],
       "personAngleStrength": "moderate"
     },
@@ -733,7 +806,8 @@
         "label": "Generic CDN workshop attendance",
         "reason": "Tom attended several sessions at the event; the preview-governance and edge-architecture content is the only part tightly connected to BeaconFlow's current initiative."
       }
-    ]
+    ],
+    "companySize": "mid_market"
   },
   {
     "id": "v2-005",
@@ -828,7 +902,7 @@
     "angleType": "web_intent",
     "status": "pending_review",
     "pipelineStage": "complete",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "medium",
       "summary": "Good account-level intent plus public freshness work, but evaluator attribution remains soft.",
@@ -842,12 +916,27 @@
     "outreach": {
       "companyInsight": "PulseMetrics sessions revisited ISR and pricing docs repeatedly in a 72-hour window (product telemetry, Apr 9–10), right as the company launched an analytics explorer refresh centered on dashboard freshness (company blog, Apr 7).",
       "companyRefs": [
-        { "label": "ISR intent cluster", "url": "internal://pulsemetrics/web-intent/isr-pricing-cluster-apr09", "date": "2026-04-09", "sourceType": "product_data" },
-        { "label": "Analytics explorer refresh", "url": "https://pulsemetrics.com/blog/analytics-explorer-refresh", "date": "2026-04-07", "sourceType": "blog" }
+        {
+          "label": "ISR intent cluster",
+          "url": "internal://pulsemetrics/web-intent/isr-pricing-cluster-apr09",
+          "date": "2026-04-09",
+          "sourceType": "product_data"
+        },
+        {
+          "label": "Analytics explorer refresh",
+          "url": "https://pulsemetrics.com/blog/analytics-explorer-refresh",
+          "date": "2026-04-07",
+          "sourceType": "blog"
+        }
       ],
       "personInsight": "Aisha reposted the frontend infra hiring note with a comment about keeping dashboard launches trustworthy after release (LinkedIn, Apr 8) — but she's attributed by account traffic, not confirmed as the evaluator.",
       "personRefs": [
-        { "label": "LinkedIn reshare", "url": "https://www.linkedin.com/posts/aisha-khan-pulsemetrics_frontend-infra-freshness-activity-729099010", "date": "2026-04-08", "sourceType": "linkedin" }
+        {
+          "label": "LinkedIn reshare",
+          "url": "https://www.linkedin.com/posts/aisha-khan-pulsemetrics_frontend-infra-freshness-activity-729099010",
+          "date": "2026-04-08",
+          "sourceType": "linkedin"
+        }
       ],
       "personAngleStrength": "moderate"
     },
@@ -920,7 +1009,8 @@
         "label": "Old careers page mention of Next.js",
         "reason": "A 2024 careers page mentioning Next.js is too stale compared with the very recent explorer-refresh and intent signals."
       }
-    ]
+    ],
+    "companySize": "mid_market"
   },
   {
     "id": "v2-006",
@@ -1043,12 +1133,27 @@
     "outreach": {
       "companyInsight": "FrameForge is moving to weekly campaign launches across multiple brand sites (company blog, Apr 5), and the team is hiring for preview-link consistency and reviewer routing (job posting, Apr 4).",
       "companyRefs": [
-        { "label": "Weekly campaign launches", "url": "https://frameforge.com/blog/weekly-campaign-launches", "date": "2026-04-05", "sourceType": "blog" },
-        { "label": "Web Platform Engineer role", "url": "https://jobs.frameforge.com/web-platform-engineer", "date": "2026-04-04", "sourceType": "job_posting" }
+        {
+          "label": "Weekly campaign launches",
+          "url": "https://frameforge.com/blog/weekly-campaign-launches",
+          "date": "2026-04-05",
+          "sourceType": "blog"
+        },
+        {
+          "label": "Web Platform Engineer role",
+          "url": "https://jobs.frameforge.com/web-platform-engineer",
+          "date": "2026-04-04",
+          "sourceType": "job_posting"
+        }
       ],
       "personInsight": "Leo posted that inconsistent preview URLs are burning hours in approvals — his exact words, not inferred (LinkedIn, Apr 7). In comments, he added the pain spikes during campaign-heavy weeks.",
       "personRefs": [
-        { "label": "LinkedIn post", "url": "https://www.linkedin.com/posts/leo-marino-release-process", "date": "2026-04-07", "sourceType": "linkedin" }
+        {
+          "label": "LinkedIn post",
+          "url": "https://www.linkedin.com/posts/leo-marino-release-process",
+          "date": "2026-04-07",
+          "sourceType": "linkedin"
+        }
       ],
       "personAngleStrength": "strong"
     },
@@ -1136,7 +1241,8 @@
         "label": "Generic DX thread on local dev speed",
         "reason": "Leo writes about developer experience often; the preview-review post is the only one tightly connected to the queue's current research angle."
       }
-    ]
+    ],
+    "companySize": "mid_market"
   },
   {
     "id": "v2-007",
@@ -1242,12 +1348,27 @@
     "outreach": {
       "companyInsight": "CobaltPay connected a custom domain on day three and focused preview activity on issuer-onboarding routes (product telemetry, Apr 9–10), alongside a public issuer onboarding refresh aimed at faster, better-controlled launches (company blog, Apr 6).",
       "companyRefs": [
-        { "label": "Custom domain setup", "url": "internal://cobaltpay/product-events/custom-domain-apr09", "date": "2026-04-09", "sourceType": "product_data" },
-        { "label": "Issuer onboarding refresh", "url": "https://cobaltpay.com/blog/issuer-onboarding-refresh", "date": "2026-04-06", "sourceType": "blog" }
+        {
+          "label": "Custom domain setup",
+          "url": "internal://cobaltpay/product-events/custom-domain-apr09",
+          "date": "2026-04-09",
+          "sourceType": "product_data"
+        },
+        {
+          "label": "Issuer onboarding refresh",
+          "url": "https://cobaltpay.com/blog/issuer-onboarding-refresh",
+          "date": "2026-04-06",
+          "sourceType": "blog"
+        }
       ],
       "personInsight": "Nina reshared the platform hiring post with a note about launch consistency becoming a platform problem as more teams touch onboarding (LinkedIn, Apr 9).",
       "personRefs": [
-        { "label": "LinkedIn reshare", "url": "https://www.linkedin.com/posts/nina-park-cobaltpay_preview-parity-hiring-activity-729140500", "date": "2026-04-09", "sourceType": "linkedin" }
+        {
+          "label": "LinkedIn reshare",
+          "url": "https://www.linkedin.com/posts/nina-park-cobaltpay_preview-parity-hiring-activity-729140500",
+          "date": "2026-04-09",
+          "sourceType": "linkedin"
+        }
       ],
       "personAngleStrength": "moderate"
     },
@@ -1320,7 +1441,8 @@
         "label": "Card-issuing compliance webinar",
         "reason": "The compliance webinar is adjacent but too broad; the onboarding launch and preview-parity signals are much closer to the actual workflow change."
       }
-    ]
+    ],
+    "companySize": "mid_market"
   },
   {
     "id": "v2-008",
@@ -1413,7 +1535,7 @@
     "angleType": "hiring_signal",
     "status": "pending_review",
     "pipelineStage": "complete",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "medium",
       "summary": "Good public evidence, but the lead appears closer to the technical operating problem than to commercial ownership.",
@@ -1427,13 +1549,33 @@
     "outreach": {
       "companyInsight": "AtlasRetail is consolidating storefront experiences before holiday merchandising ramps (investor update, Mar 28), and a staff platform role explicitly names preview governance and edge delivery (job posting, Apr 3).",
       "companyRefs": [
-        { "label": "Storefront unification update", "url": "https://investors.atlasretail.com/news/2026/storefront-unification-update", "date": "2026-03-28", "sourceType": "news" },
-        { "label": "Staff web platform role", "url": "https://careers.atlasretail.com/jobs/staff-web-platform", "date": "2026-04-03", "sourceType": "job_posting" }
+        {
+          "label": "Storefront unification update",
+          "url": "https://investors.atlasretail.com/news/2026/storefront-unification-update",
+          "date": "2026-03-28",
+          "sourceType": "news"
+        },
+        {
+          "label": "Staff web platform role",
+          "url": "https://careers.atlasretail.com/jobs/staff-web-platform",
+          "date": "2026-04-03",
+          "sourceType": "job_posting"
+        }
       ],
       "personInsight": "Gabe said the bottleneck is review coordination, not writing code, and framed the staffing push as making the release layer reusable before seasonal load (LinkedIn, Apr 6; conference talk, Apr 7).",
       "personRefs": [
-        { "label": "LinkedIn post", "url": "https://www.linkedin.com/posts/gabe-singh-atlasretail_storefront-release-qa-activity-729122007", "date": "2026-04-06", "sourceType": "linkedin" },
-        { "label": "Conference talk", "url": "https://retailengineers.live/talks/gabe-singh-storefront-platform", "date": "2026-04-07", "sourceType": "conference" }
+        {
+          "label": "LinkedIn post",
+          "url": "https://www.linkedin.com/posts/gabe-singh-atlasretail_storefront-release-qa-activity-729122007",
+          "date": "2026-04-06",
+          "sourceType": "linkedin"
+        },
+        {
+          "label": "Conference talk",
+          "url": "https://retailengineers.live/talks/gabe-singh-storefront-platform",
+          "date": "2026-04-07",
+          "sourceType": "conference"
+        }
       ],
       "personAngleStrength": "strong"
     },
@@ -1508,7 +1650,8 @@
         "label": "Generic conversion-rate optimization blog",
         "reason": "AtlasRetail publishes a lot of merchandising content; the storefront-unification and QA-cycle signals are much more specific to Gabe's platform problem."
       }
-    ]
+    ],
+    "companySize": "mid_market"
   },
   {
     "id": "v2-009",
@@ -1610,7 +1753,7 @@
     "angleType": "tech_migration",
     "status": "pending_review",
     "pipelineStage": "complete",
-    "governance": "review_required",
+    "governance": "auto_eligible",
     "confidence": {
       "tier": "high",
       "summary": "Strong repo and public product evidence make this a real post-migration operations angle.",
@@ -1624,13 +1767,33 @@
     "outreach": {
       "companyInsight": "DeltaChain's app-router milestones landed across explorer, docs, and landing pages (engineering blog, Apr 3), with edge-cache tags and invalidation helpers being added ahead of the explorer relaunch (changelog, Apr 8).",
       "companyRefs": [
-        { "label": "App-router milestones", "url": "https://deltachain.com/engineering/app-router-milestones", "date": "2026-04-03", "sourceType": "blog" },
-        { "label": "Explorer cache work", "url": "https://deltachain.com/changelog/explorer-apr2026", "date": "2026-04-08", "sourceType": "blog" }
+        {
+          "label": "App-router milestones",
+          "url": "https://deltachain.com/engineering/app-router-milestones",
+          "date": "2026-04-03",
+          "sourceType": "blog"
+        },
+        {
+          "label": "Explorer cache work",
+          "url": "https://deltachain.com/changelog/explorer-apr2026",
+          "date": "2026-04-08",
+          "sourceType": "blog"
+        }
       ],
       "personInsight": "Jared said cache invalidation and preview parity are the last two unresolved deployment questions after the migration (blockchain frontend panel, Mar 30), and posted that the relaunch gets risky if review assumptions differ across surfaces (LinkedIn, Apr 7).",
       "personRefs": [
-        { "label": "Frontend panel talk", "url": "https://frontendchain.live/sessions/jared-lim-router-migration", "date": "2026-03-30", "sourceType": "conference" },
-        { "label": "LinkedIn post", "url": "https://www.linkedin.com/posts/jared-lim-deltachain_explorer-release-review-activity-729121117", "date": "2026-04-07", "sourceType": "linkedin" }
+        {
+          "label": "Frontend panel talk",
+          "url": "https://frontendchain.live/sessions/jared-lim-router-migration",
+          "date": "2026-03-30",
+          "sourceType": "conference"
+        },
+        {
+          "label": "LinkedIn post",
+          "url": "https://www.linkedin.com/posts/jared-lim-deltachain_explorer-release-review-activity-729121117",
+          "date": "2026-04-07",
+          "sourceType": "linkedin"
+        }
       ],
       "personAngleStrength": "strong"
     },
@@ -1721,7 +1884,8 @@
         "label": "Wallet SDK refactor follow-on",
         "reason": "It shows engineering activity, but it is one layer removed from the explorer relaunch and release-review problem driving the angle."
       }
-    ]
+    ],
+    "companySize": "mid_market"
   },
   {
     "id": "v2-010",
@@ -1811,9 +1975,9 @@
       ]
     },
     "angleType": "event_signal",
-    "status": "approved",
+    "status": "sent_stub",
     "pipelineStage": "complete",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "medium",
       "summary": "Warm event context with technical specificity and a public company initiative behind it.",
@@ -1827,12 +1991,27 @@
     "outreach": {
       "companyInsight": "WavePilot is refreshing route-planner surfaces with heavier use of cached regional content (product blog, Apr 5), and engineering updates frame release predictability as the remaining risk (engineering newsletter, Apr 7).",
       "companyRefs": [
-        { "label": "Route-planner refresh", "url": "https://wavepilot.com/blog/route-planner-refresh", "date": "2026-04-05", "sourceType": "blog" },
-        { "label": "Release reliability update", "url": "https://wavepilot.com/engineering/planner-release-reliability", "date": "2026-04-07", "sourceType": "blog" }
+        {
+          "label": "Route-planner refresh",
+          "url": "https://wavepilot.com/blog/route-planner-refresh",
+          "date": "2026-04-05",
+          "sourceType": "blog"
+        },
+        {
+          "label": "Release reliability update",
+          "url": "https://wavepilot.com/engineering/planner-release-reliability",
+          "date": "2026-04-07",
+          "sourceType": "blog"
+        }
       ],
       "personInsight": "Sofia asked how teams keep ISR invalidation predictable when multiple reviewers touch the same release, at Regional Dev Summit (Apr 3) — a specific, technically grounded question.",
       "personRefs": [
-        { "label": "Summit Q&A", "url": "https://regionaldevsummit.com/2026/notes/isr-invalidation-q-and-a", "date": "2026-04-03", "sourceType": "conference" }
+        {
+          "label": "Summit Q&A",
+          "url": "https://regionaldevsummit.com/2026/notes/isr-invalidation-q-and-a",
+          "date": "2026-04-03",
+          "sourceType": "conference"
+        }
       ],
       "personAngleStrength": "strong"
     },
@@ -1901,7 +2080,8 @@
     "timestamps": {
       "created": "2026-04-11T09:00:00.000Z",
       "updated": "2026-04-11T11:15:00.000Z",
-      "approvedAt": "2026-04-11T13:30:00.000Z"
+      "approvedAt": "2026-04-11T13:30:00.000Z",
+      "sentAt": "2026-04-11T13:30:00.000Z"
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
@@ -1912,7 +2092,8 @@
         "label": "Generic summit attendee badge scan",
         "reason": "The useful signal is Sofia's specific ISR invalidation question, not the fact that she attended the broader summit."
       }
-    ]
+    ],
+    "companySize": "mid_market"
   },
   {
     "id": "v2-011",
@@ -2019,7 +2200,7 @@
       "uncertainty": "The account intent is strong, but I still cannot prove Derek himself was the evaluator rather than another platform engineer on the team."
     },
     "angleType": "web_intent",
-    "status": "approved",
+    "status": "sent_stub",
     "pipelineStage": "complete",
     "governance": "review_required",
     "confidence": {
@@ -2035,12 +2216,27 @@
     "outreach": {
       "companyInsight": "HarborDesk raised its published uptime target to 99.95% (reliability update, Apr 6) and published a postmortem citing rollout ordering and cache behavior as root causes of a March dashboard incident (engineering blog, Mar 30).",
       "companyRefs": [
-        { "label": "Reliability target update", "url": "https://harbordesk.com/blog/reliability-target-q2", "date": "2026-04-06", "sourceType": "blog" },
-        { "label": "March incident postmortem", "url": "https://harbordesk.com/engineering/march-incident-postmortem", "date": "2026-03-30", "sourceType": "blog" }
+        {
+          "label": "Reliability target update",
+          "url": "https://harbordesk.com/blog/reliability-target-q2",
+          "date": "2026-04-06",
+          "sourceType": "blog"
+        },
+        {
+          "label": "March incident postmortem",
+          "url": "https://harbordesk.com/engineering/march-incident-postmortem",
+          "date": "2026-03-30",
+          "sourceType": "blog"
+        }
       ],
       "personInsight": "Derek commented on the reliability update and framed the remaining work as operational — 'making rollout confidence repeatable, not picking another framework' (LinkedIn, Apr 7).",
       "personRefs": [
-        { "label": "LinkedIn comment", "url": "https://www.linkedin.com/posts/derek-osei-harbordesk_reliability-target-release-activity-729175501", "date": "2026-04-07", "sourceType": "linkedin" }
+        {
+          "label": "LinkedIn comment",
+          "url": "https://www.linkedin.com/posts/derek-osei-harbordesk_reliability-target-release-activity-729175501",
+          "date": "2026-04-07",
+          "sourceType": "linkedin"
+        }
       ],
       "personAngleStrength": "moderate"
     },
@@ -2120,7 +2316,8 @@
     "timestamps": {
       "created": "2026-04-11T08:00:00.000Z",
       "updated": "2026-04-11T10:30:00.000Z",
-      "approvedAt": "2026-04-11T13:00:00.000Z"
+      "approvedAt": "2026-04-11T13:00:00.000Z",
+      "sentAt": "2026-04-11T13:00:00.000Z"
     },
     "promptVersions": {
       "draftGenerator": "2026-02-17.draft-generator.v2"
@@ -2131,7 +2328,8 @@
         "label": "Generic AI-docs browsing",
         "reason": "Some adjacent docs traffic hit unrelated AI pages; the edge-runtime and SLA cluster is the meaningful reliability signal."
       }
-    ]
+    ],
+    "companySize": "mid_market"
   },
   {
     "id": "v2-012",
@@ -2240,12 +2438,27 @@
     "outreach": {
       "companyInsight": "StudioGrid is consolidating multi-brand review operations across product ops, brand QA, and engineering (operations update, Apr 5), but tooling evaluation is scheduled for H2 after the process pilot finishes (procurement update, Apr 4).",
       "companyRefs": [
-        { "label": "Multi-brand review program", "url": "https://studiogrid.com/blog/multi-brand-review-program", "date": "2026-04-05", "sourceType": "blog" },
-        { "label": "Tooling evaluation timeline", "url": "https://studiogrid.com/procurement/workflow-evaluation-2026", "date": "2026-04-04", "sourceType": "news" }
+        {
+          "label": "Multi-brand review program",
+          "url": "https://studiogrid.com/blog/multi-brand-review-program",
+          "date": "2026-04-05",
+          "sourceType": "blog"
+        },
+        {
+          "label": "Tooling evaluation timeline",
+          "url": "https://studiogrid.com/procurement/workflow-evaluation-2026",
+          "date": "2026-04-04",
+          "sourceType": "news"
+        }
       ],
       "personInsight": "Paula wrote that preview approvals are now the longest part of the launch cycle across StudioGrid's brand sites (LinkedIn, Apr 8), and added in comments that the queue is worst with mixed agency and internal reviewers.",
       "personRefs": [
-        { "label": "LinkedIn post", "url": "https://www.linkedin.com/posts/paula-ionescu-preview-loops", "date": "2026-04-08", "sourceType": "linkedin" }
+        {
+          "label": "LinkedIn post",
+          "url": "https://www.linkedin.com/posts/paula-ionescu-preview-loops",
+          "date": "2026-04-08",
+          "sourceType": "linkedin"
+        }
       ],
       "personAngleStrength": "strong"
     },
@@ -2325,7 +2538,8 @@
         "label": "Agency blog complaint about approvals",
         "reason": "Agency-side frustration is real but farther from Paula's decision context than StudioGrid's own operating-program evidence."
       }
-    ]
+    ],
+    "companySize": "startup"
   },
   {
     "id": "v2-013",
@@ -2345,7 +2559,7 @@
     "angleType": "hiring_signal",
     "status": "pending_review",
     "pipelineStage": "complete",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "high",
       "summary": "Strong convergence: hiring intent, a public performance mandate from James, and a new multi-surface architecture all point to the same operational gap.",
@@ -2359,13 +2573,33 @@
     "outreach": {
       "companyInsight": "Perplexity opened 5 Next.js frontend roles in 30 days with App Router and edge runtime requirements (job postings, Apr 1–3), while Spaces and Pro dashboard now ship on independent release cadences (product blog, Mar 15).",
       "companyRefs": [
-        { "label": "Frontend hiring cluster", "url": "https://jobs.ashbyhq.com/perplexity/senior-frontend-engineer-web-platform", "date": "2026-04-03", "sourceType": "job_posting" },
-        { "label": "Pro and Spaces independence", "url": "https://blog.perplexity.ai/blog/perplexity-pro-updates-q1-2026", "date": "2026-03-15", "sourceType": "blog" }
+        {
+          "label": "Frontend hiring cluster",
+          "url": "https://jobs.ashbyhq.com/perplexity/senior-frontend-engineer-web-platform",
+          "date": "2026-04-03",
+          "sourceType": "job_posting"
+        },
+        {
+          "label": "Pro and Spaces independence",
+          "url": "https://blog.perplexity.ai/blog/perplexity-pro-updates-q1-2026",
+          "date": "2026-03-15",
+          "sourceType": "blog"
+        }
       ],
       "personInsight": "James declared TTFB 'the only metric that matters for answer pages' and committed to sub-100ms globally (X, Apr 4), then posted a detailed Suspense streaming thread describing the architecture needed to hit that target (X, Mar 28).",
       "personRefs": [
-        { "label": "TTFB mandate post", "url": "https://x.com/james_park_web/status/1908421093", "date": "2026-04-04", "sourceType": "twitter" },
-        { "label": "Suspense streaming thread", "url": "https://x.com/james_park_web/status/1906187441", "date": "2026-03-28", "sourceType": "twitter" }
+        {
+          "label": "TTFB mandate post",
+          "url": "https://x.com/james_park_web/status/1908421093",
+          "date": "2026-04-04",
+          "sourceType": "twitter"
+        },
+        {
+          "label": "Suspense streaming thread",
+          "url": "https://x.com/james_park_web/status/1906187441",
+          "date": "2026-03-28",
+          "sourceType": "twitter"
+        }
       ],
       "personAngleStrength": "strong"
     },
@@ -2516,7 +2750,8 @@
     "timestamps": {
       "created": "2026-04-10T14:00:00.000Z",
       "updated": "2026-04-10T14:00:00.000Z"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-014",
@@ -2536,7 +2771,7 @@
     "angleType": "event_signal",
     "status": "pending_review",
     "pipelineStage": "complete",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "high",
       "summary": "Live expansion event plus Elena's own public framing of the compliance cost — the timing and the problem are both confirmed.",
@@ -2550,14 +2785,39 @@
     "outreach": {
       "companyInsight": "Harvey announced London and Dubai offices at LegalTech Summit (Mar 28), and two Enterprise Infrastructure Engineer roles require multi-region deployments with GDPR and DIFC compliance (job posting, Apr 6).",
       "companyRefs": [
-        { "label": "LegalTech Summit announcement", "url": "https://legaltechsummit.com/2026/sessions/harvey-international-expansion", "date": "2026-03-28", "sourceType": "conference" },
-        { "label": "Infrastructure roles", "url": "https://jobs.lever.co/harvey/enterprise-infrastructure-engineer", "date": "2026-04-06", "sourceType": "job_posting" }
+        {
+          "label": "LegalTech Summit announcement",
+          "url": "https://legaltechsummit.com/2026/sessions/harvey-international-expansion",
+          "date": "2026-03-28",
+          "sourceType": "conference"
+        },
+        {
+          "label": "Infrastructure roles",
+          "url": "https://jobs.lever.co/harvey/enterprise-infrastructure-engineer",
+          "date": "2026-04-06",
+          "sourceType": "job_posting"
+        }
       ],
       "personInsight": "Elena described the per-jurisdiction deployment checklist as 'mostly manual' and the compliance surface area as scaling faster than the engineering team (LegalTech Summit panel, Mar 28; LinkedIn, Apr 2). She also reshared Vercel's data residency post with 'watching this closely' (LinkedIn, Apr 5).",
       "personRefs": [
-        { "label": "LegalTech Summit panel", "url": "https://legaltechsummit.com/2026/speakers/elena-torres", "date": "2026-03-28", "sourceType": "conference" },
-        { "label": "Compliance cost post", "url": "https://www.linkedin.com/posts/elena-torres-harvey-deployment-compliance-apr02", "date": "2026-04-02", "sourceType": "linkedin" },
-        { "label": "Vercel data residency reshare", "url": "https://www.linkedin.com/posts/elena-torres-harvey-vercel-data-residency-apr05", "date": "2026-04-05", "sourceType": "linkedin" }
+        {
+          "label": "LegalTech Summit panel",
+          "url": "https://legaltechsummit.com/2026/speakers/elena-torres",
+          "date": "2026-03-28",
+          "sourceType": "conference"
+        },
+        {
+          "label": "Compliance cost post",
+          "url": "https://www.linkedin.com/posts/elena-torres-harvey-deployment-compliance-apr02",
+          "date": "2026-04-02",
+          "sourceType": "linkedin"
+        },
+        {
+          "label": "Vercel data residency reshare",
+          "url": "https://www.linkedin.com/posts/elena-torres-harvey-vercel-data-residency-apr05",
+          "date": "2026-04-05",
+          "sourceType": "linkedin"
+        }
       ],
       "personAngleStrength": "strong"
     },
@@ -2699,7 +2959,8 @@
     "timestamps": {
       "created": "2026-04-08T09:00:00.000Z",
       "updated": "2026-04-08T09:00:00.000Z"
-    }
+    },
+    "companySize": "smb"
   },
   {
     "id": "v2-015",
@@ -2719,7 +2980,7 @@
     "angleType": "tech_migration",
     "status": "pending_review",
     "pipelineStage": "complete",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "high",
       "summary": "Clear tech migration intent: blog post identifies the problem, Diego has a public record on the solution, and the job posting confirms active investment.",
@@ -2733,13 +2994,33 @@
     "outreach": {
       "companyInsight": "Brex's engineering blog described an 8-minute CRA+webpack build blocking DX for 40 engineers, with Next.js and Turborepo named as the target architecture (engineering blog, Mar 20). A live Frontend Platform Engineer role confirms the migration is funded (job posting, Apr 2).",
       "companyRefs": [
-        { "label": "Frontend platform blog post", "url": "https://medium.com/brex-tech/rethinking-our-frontend-platform", "date": "2026-03-20", "sourceType": "blog" },
-        { "label": "Platform engineer role", "url": "https://www.brex.com/careers/frontend-platform-engineer", "date": "2026-04-02", "sourceType": "job_posting" }
+        {
+          "label": "Frontend platform blog post",
+          "url": "https://medium.com/brex-tech/rethinking-our-frontend-platform",
+          "date": "2026-03-20",
+          "sourceType": "blog"
+        },
+        {
+          "label": "Platform engineer role",
+          "url": "https://www.brex.com/careers/frontend-platform-engineer",
+          "date": "2026-04-02",
+          "sourceType": "job_posting"
+        }
       ],
       "personInsight": "Diego presented at SF Frontend on 'DX at fintech scale,' framing slow builds as a compliance risk (meetup, Mar 18), and posted that the hardest part is preserving release guardrails while gaining speed (LinkedIn, Apr 8).",
       "personRefs": [
-        { "label": "SF Frontend Meetup talk", "url": "https://www.meetup.com/sf-frontend/events/april-2026-recap", "date": "2026-03-18", "sourceType": "conference" },
-        { "label": "LinkedIn migration post", "url": "https://www.linkedin.com/posts/diego-vargas-brex-dx-migration-apr08", "date": "2026-04-08", "sourceType": "linkedin" }
+        {
+          "label": "SF Frontend Meetup talk",
+          "url": "https://www.meetup.com/sf-frontend/events/april-2026-recap",
+          "date": "2026-03-18",
+          "sourceType": "conference"
+        },
+        {
+          "label": "LinkedIn migration post",
+          "url": "https://www.linkedin.com/posts/diego-vargas-brex-dx-migration-apr08",
+          "date": "2026-04-08",
+          "sourceType": "linkedin"
+        }
       ],
       "personAngleStrength": "strong"
     },
@@ -2880,7 +3161,8 @@
     "timestamps": {
       "created": "2026-04-09T10:00:00.000Z",
       "updated": "2026-04-09T10:00:00.000Z"
-    }
+    },
+    "companySize": "smb"
   },
   {
     "id": "v2-016",
@@ -2900,7 +3182,7 @@
     "angleType": "hiring_signal",
     "status": "pending_review",
     "pipelineStage": "complete",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "high",
       "summary": "Priya's own public comment plus three aligned job postings confirm the monorepo scaling problem is active and funded.",
@@ -2914,13 +3196,33 @@
     "outreach": {
       "companyInsight": "Rippling posted 3 senior frontend roles in two weeks, all requiring Turborepo and remote cache experience at scale (job postings, Mar 25–28), while running 12 product modules on a shared design system with independent release cadences (engineering blog, Feb 25).",
       "companyRefs": [
-        { "label": "Turborepo platform roles", "url": "https://www.rippling.com/careers/staff-frontend-platform-engineer", "date": "2026-03-28", "sourceType": "job_posting" },
-        { "label": "Modular frontend blog", "url": "https://engineering.rippling.com/blog/modular-frontend-at-rippling", "date": "2026-02-25", "sourceType": "blog" }
+        {
+          "label": "Turborepo platform roles",
+          "url": "https://www.rippling.com/careers/staff-frontend-platform-engineer",
+          "date": "2026-03-28",
+          "sourceType": "job_posting"
+        },
+        {
+          "label": "Modular frontend blog",
+          "url": "https://engineering.rippling.com/blog/modular-frontend-at-rippling",
+          "date": "2026-02-25",
+          "sourceType": "blog"
+        }
       ],
       "personInsight": "Priya commented on a Turborepo article: 'We're running into exactly this at Rippling's scale — the build time problem compounds across every module ship' (LinkedIn, Apr 3), and shared a monorepo patterns recap noting the coordination overhead across 12 surfaces (LinkedIn, Mar 30).",
       "personRefs": [
-        { "label": "Turborepo comment", "url": "https://www.linkedin.com/posts/priya-nair-rippling-turborepo-comment-apr03", "date": "2026-04-03", "sourceType": "linkedin" },
-        { "label": "Monorepo patterns reshare", "url": "https://www.linkedin.com/posts/priya-nair-rippling-monorepo-sharing-mar30", "date": "2026-03-30", "sourceType": "linkedin" }
+        {
+          "label": "Turborepo comment",
+          "url": "https://www.linkedin.com/posts/priya-nair-rippling-turborepo-comment-apr03",
+          "date": "2026-04-03",
+          "sourceType": "linkedin"
+        },
+        {
+          "label": "Monorepo patterns reshare",
+          "url": "https://www.linkedin.com/posts/priya-nair-rippling-monorepo-sharing-mar30",
+          "date": "2026-03-30",
+          "sourceType": "linkedin"
+        }
       ],
       "personAngleStrength": "strong"
     },
@@ -3061,7 +3363,8 @@
     "timestamps": {
       "created": "2026-04-08T11:00:00.000Z",
       "updated": "2026-04-08T11:00:00.000Z"
-    }
+    },
+    "companySize": "mid_market"
   },
   {
     "id": "v2-017",
@@ -3081,7 +3384,7 @@
     "angleType": "social_post",
     "status": "pending_review",
     "pipelineStage": "complete",
-    "governance": "auto_eligible",
+    "governance": "review_required",
     "confidence": {
       "tier": "high",
       "summary": "Anton's own technical thread is the primary signal — he named the exact gap Vercel addresses. The conference talk and new deployments corroborate the timing.",
@@ -3095,13 +3398,33 @@
     "outreach": {
       "companyInsight": "Linear launched changelog.linear.app as a third independent Next.js deployment alongside the main app and docs (product launch, Feb 10), creating cross-deployment preview coordination complexity for a 100k-member community preview program (company blog, Mar 1).",
       "companyRefs": [
-        { "label": "Changelog launch", "url": "https://changelog.linear.app", "date": "2026-02-10", "sourceType": "blog" },
-        { "label": "Building in public", "url": "https://linear.app/blog/building-in-public", "date": "2026-03-01", "sourceType": "blog" }
+        {
+          "label": "Changelog launch",
+          "url": "https://changelog.linear.app",
+          "date": "2026-02-10",
+          "sourceType": "blog"
+        },
+        {
+          "label": "Building in public",
+          "url": "https://linear.app/blog/building-in-public",
+          "date": "2026-03-01",
+          "sourceType": "blog"
+        }
       ],
       "personInsight": "Anton published a 12-post X thread describing the need for 100 isolated preview URLs per day and called the current setup insufficient (X, Apr 7). He also spoke at Nordic Software Summit on edge-first infrastructure, framing preview URLs as 'first-class product features, not dev tools' (Mar 12).",
       "personRefs": [
-        { "label": "Preview isolation thread", "url": "https://x.com/anton_stjernberg/status/1909102847", "date": "2026-04-07", "sourceType": "twitter" },
-        { "label": "Nordic Software Summit talk", "url": "https://nordicsoftwaresummit.com/2026/speakers/anton-stjernberg", "date": "2026-03-12", "sourceType": "conference" }
+        {
+          "label": "Preview isolation thread",
+          "url": "https://x.com/anton_stjernberg/status/1909102847",
+          "date": "2026-04-07",
+          "sourceType": "twitter"
+        },
+        {
+          "label": "Nordic Software Summit talk",
+          "url": "https://nordicsoftwaresummit.com/2026/speakers/anton-stjernberg",
+          "date": "2026-03-12",
+          "sourceType": "conference"
+        }
       ],
       "personAngleStrength": "strong"
     },
@@ -3243,7 +3566,8 @@
     "timestamps": {
       "created": "2026-04-08T16:00:00.000Z",
       "updated": "2026-04-08T16:00:00.000Z"
-    }
+    },
+    "companySize": "smb"
   },
   {
     "id": "v2-018",
@@ -3277,13 +3601,33 @@
     "outreach": {
       "companyInsight": "Glean launched Glean Apps in February — a platform where enterprises build custom AI agent UIs, each requiring per-tenant isolated deployments with custom domains and SSO (product launch, Feb 20). A live role confirms the multi-zone Next.js infrastructure investment is funded (job posting, Apr 1).",
       "companyRefs": [
-        { "label": "Glean Apps deployment docs", "url": "https://developers.glean.com/docs/glean-apps/deployment", "date": "2026-02-20", "sourceType": "blog" },
-        { "label": "Frontend Platform Engineer role", "url": "https://www.glean.com/careers/frontend-platform-engineer", "date": "2026-04-01", "sourceType": "job_posting" }
+        {
+          "label": "Glean Apps deployment docs",
+          "url": "https://developers.glean.com/docs/glean-apps/deployment",
+          "date": "2026-02-20",
+          "sourceType": "blog"
+        },
+        {
+          "label": "Frontend Platform Engineer role",
+          "url": "https://www.glean.com/careers/frontend-platform-engineer",
+          "date": "2026-04-01",
+          "sourceType": "job_posting"
+        }
       ],
       "personInsight": "Amara posted: 'Deploying 50 variants of the same AI assistant for 50 enterprise clients is not a solved problem' (LinkedIn, Mar 28), and spoke at EnterpriseTech Summit on the gap between what enterprises expect and what deployment tooling provides (conference, Mar 15).",
       "personRefs": [
-        { "label": "50-tenant post", "url": "https://www.linkedin.com/posts/amara-osei-glean-tenant-deployment-mar28", "date": "2026-03-28", "sourceType": "linkedin" },
-        { "label": "EnterpriseTech Summit talk", "url": "https://enterprisetechsummit.com/2026/sessions/glean-ai-deployment-scale", "date": "2026-03-15", "sourceType": "conference" }
+        {
+          "label": "50-tenant post",
+          "url": "https://www.linkedin.com/posts/amara-osei-glean-tenant-deployment-mar28",
+          "date": "2026-03-28",
+          "sourceType": "linkedin"
+        },
+        {
+          "label": "EnterpriseTech Summit talk",
+          "url": "https://enterprisetechsummit.com/2026/sessions/glean-ai-deployment-scale",
+          "date": "2026-03-15",
+          "sourceType": "conference"
+        }
       ],
       "personAngleStrength": "strong"
     },
@@ -3430,6 +3774,7 @@
     "timestamps": {
       "created": "2026-04-09T13:00:00.000Z",
       "updated": "2026-04-09T13:00:00.000Z"
-    }
+    },
+    "companySize": "smb"
   }
 ]
