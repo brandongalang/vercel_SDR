@@ -130,15 +130,18 @@ function FlowNode({
 
 export function ArchitectureSection({ form }: { form: LeadInput }) {
   const [workflowRunId, setWorkflowRunId] = useState<string | null>(null);
+  const [queueError, setQueueError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function handleQueue() {
+    setQueueError(null);
+    setWorkflowRunId(null);
     startTransition(async () => {
       try {
         const result = await queueLeadForPipeline(form);
         setWorkflowRunId(result.runId);
       } catch (err) {
-        console.error("Failed to queue workflow:", err);
+        setQueueError(err instanceof Error ? err.message : "Failed to queue workflow");
       }
     });
   }
@@ -160,13 +163,7 @@ export function ArchitectureSection({ form }: { form: LeadInput }) {
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-1.5">
-            {[
-              "AI SDK",
-              "Workflows",
-              "Functions",
-              "Cron",
-              "Next.js",
-            ].map((p) => (
+            {["AI SDK", "Workflows", "Functions", "Cron", "Next.js"].map((p) => (
               <span
                 key={p}
                 className="rounded-md bg-zinc-100 px-2 py-1 text-[10px] font-semibold text-zinc-500 border border-zinc-200"
@@ -179,7 +176,7 @@ export function ArchitectureSection({ form }: { form: LeadInput }) {
       </div>
 
       {/* Two paths */}
-      <div className="grid grid-cols-2 lg:divide-x divide-y lg:divide-y-0 divide-zinc-100">
+      <div className="grid grid-cols-2 divide-y lg:divide-x lg:divide-y-0 divide-zinc-100">
         {/* Demo path */}
         <div className="p-5 bg-teal-50/10">
           <div className="mb-4 flex items-center justify-between">
@@ -241,6 +238,12 @@ export function ArchitectureSection({ form }: { form: LeadInput }) {
               )}
               {isPending ? "Queuing workflow…" : "Queue in Production"}
             </Button>
+
+            {queueError && (
+              <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[11px] leading-relaxed text-red-800 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200">
+                {queueError}
+              </p>
+            )}
 
             {workflowRunId && (
               <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
