@@ -1,6 +1,7 @@
+import { createHash } from "node:crypto";
 import { init_experimental } from "@instantdb/admin";
 import { buildBenchmarkHistoryJobsForSeed } from "@/lib/analytics-mock";
-import demoSnapshotData from "@/data/demo-snapshot.json";
+import demoSnapshotData from "@/lib/db/seeds/demo-snapshot.json";
 import { buildSkippedJobsForSeed } from "@/lib/skipped-seed-jobs";
 import { toInstantJobRecord } from "@/lib/jobs/instant-job-codec";
 import {
@@ -12,6 +13,39 @@ import type { OutboundJob } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function toSeededInstantJobId(jobId: string) {
+  if (UUID_PATTERN.test(jobId)) {
+    return jobId.toLowerCase();
+  }
+
+  const bytes = createHash("sha256").update(`seed-job:${jobId}`).digest().subarray(0, 16);
+
+  // Encode local fixture IDs as stable UUIDs so InstantDB can store them.
+  bytes[6] = (bytes[6] & 0x0f) | 0x50;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+  const hex = [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+async function transactInChunks(
+  db: ReturnType<typeof init_experimental>,
+  txns: Parameters<ReturnType<typeof init_experimental>["transact"]>[0],
+  chunkSize = 100,
+) {
+  const txnArray = Array.isArray(txns) ? txns : [txns];
+  for (let index = 0; index < txnArray.length; index += chunkSize) {
+    const batch = txnArray.slice(index, index + chunkSize);
+
+    if (batch.length > 0) {
+      await db.transact(batch);
+    }
+  }
+}
 
 export async function POST(request: Request) {
   if (!isDemoResetEnabled()) {
@@ -44,17 +78,13 @@ export async function POST(request: Request) {
       ),
     ];
 
-    if (deleteTxns.length > 0) {
-      await db.transact(deleteTxns);
-    }
+    await transactInChunks(db, deleteTxns);
 
     const seedTxns = snapshotJobs.map((job) =>
-      db.tx.jobs[job.id].update(toInstantJobRecord(job)),
+      db.tx.jobs[toSeededInstantJobId(job.id)].update(toInstantJobRecord(job)),
     );
 
-    if (seedTxns.length > 0) {
-      await db.transact(seedTxns);
-    }
+    await transactInChunks(db, seedTxns);
 
     return Response.json({
       ok: true,
