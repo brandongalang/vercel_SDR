@@ -19,7 +19,7 @@
 
 **Goal:** Create visual hierarchy between the queue panel (scan) and the detail panel (read) by giving the queue a receding tinted background.
 
-**File:** `components/QueueList.tsx`
+**File:** `components/features/QueueList.tsx`
 
 **Changes:**
 1. On the root `<div>` (line ~322), change `bg-card` to `bg-zinc-50/60`.
@@ -34,7 +34,7 @@
 
 **Goal:** Reduce badge count per pending queue row from 3 inline pills to a simpler hierarchy: 1 prominent confidence chip + dot indicator + text.
 
-**File:** `components/QueueList.tsx`
+**File:** `components/features/QueueList.tsx`
 
 **Changes in `QueueRow` (pending branch, lines ~79–124):**
 
@@ -57,7 +57,7 @@
 
 **Goal:** The `<mark>` element highlighting the personalized clause in the draft body should use cyan (a product accent) instead of amber (governance/warning accent).
 
-**File:** `components/DetailPanel.tsx`
+**File:** `components/features/DetailPanel.tsx`
 
 **Changes in `renderBodyWithHighlight` function (line ~48):**
 1. Change the `<mark>` className from:
@@ -79,7 +79,7 @@
 
 **Goal:** Reduce "badge salad" in the detail panel header by using inline icon+text instead of bordered pill badges for governance and confidence.
 
-**File:** `components/DetailPanel.tsx`
+**File:** `components/features/DetailPanel.tsx`
 
 **Changes in the header metadata area (lines ~370–409):**
 1. Replace the governance pill badge with a lighter inline treatment:
@@ -99,7 +99,7 @@
 
 **Goal:** Make the primary outcome metric ("Positive reply rate") visually dominant and increase trend badge prominence across all cards.
 
-**File:** `components/AnalyticsPage.tsx`
+**File:** `components/features/AnalyticsPage.tsx`
 
 **Changes in `MetricCard` component (lines ~18–58):**
 1. Increase the trend badge size slightly: change `text-[11px]` to `text-[12px]` and add `font-semibold`.
@@ -117,7 +117,7 @@
 
 **Goal:** Add left-border color accents to the "By angle type" table rows matching each angle's dot color, creating visual continuity with the queue and detail panel.
 
-**File:** `components/AnalyticsPage.tsx`
+**File:** `components/features/AnalyticsPage.tsx`
 
 **Changes in the `byAngle` table body (lines ~257–290):**
 1. On each `<TableRow>`, add a `className` with a left border:
@@ -144,7 +144,7 @@
 
 **Goal:** Make the "Run Optimization" button match the violet accent used throughout the DSPy page instead of default primary black.
 
-**File:** `components/DspyPage.tsx`
+**File:** `components/features/DspyPage.tsx`
 
 **Changes (lines ~614–636):**
 1. On the `<Button>` for "Run Optimization", change the idle state styling:
@@ -159,7 +159,7 @@
 
 **Goal:** Add visual separation to the freeform notes field and improve the advanced inputs toggle affordance.
 
-**File:** `components/LiveAgentDemo.tsx`
+**File:** `components/features/LiveAgentDemo.tsx`
 
 **Changes:**
 1. On the freeform notes `<Textarea>` (line ~468–476):
@@ -176,7 +176,7 @@
 
 **Goal:** Connect the left rail icons to the tab switcher so clicking them navigates views.
 
-**File:** `app/layout.tsx` + `components/SDRWorkspace.tsx`
+**File:** `app/layout.tsx` + `components/features/SDRWorkspace.tsx`
 
 **Approach:** This requires lifting the `activeView` state or using a URL-based approach. Two options:
 
@@ -196,7 +196,7 @@
 
 **Goal:** Make the regeneration preview in the Sheet more visually distinct from the sheet background.
 
-**File:** `components/DetailPanel.tsx`
+**File:** `components/features/DetailPanel.tsx`
 
 **Changes in the regen preview area (line ~861):**
 1. Change the preview container from `bg-muted/30` to `bg-card` with a left border accent:
@@ -213,7 +213,7 @@
 
 **Goal:** Improve the tiny `9px` strength badges on signal cards with a clearer 3-level visual system.
 
-**File:** `components/DetailPanel.tsx`
+**File:** `components/features/DetailPanel.tsx`
 
 **Changes in the signal card strength badge (lines ~659–667):**
 1. Increase font size from `text-[9px]` to `text-[10px]`.

@@ -35,7 +35,7 @@ These are already computed in app code for the selected date range:
 - **Reply rate** — among sends with outcome tracked.  
 - **Positive rate** — “good” outcomes (meetings / strong intent), not merely any reply.
 
-**Implementation reference:** `computeQueueMetrics` in [`lib/metrics.ts`](../../lib/metrics.ts), surfaced on [`components/AnalyticsPage.tsx`](../../components/AnalyticsPage.tsx) under **Review quality**.
+**Implementation reference:** `computeQueueMetrics` in [`lib/metrics.ts`](../../lib/metrics.ts), surfaced on [`components/features/AnalyticsPage.tsx`](../../components/features/AnalyticsPage.tsx) under **Review quality**.
 
 **Types:** `OutboundJob.feedback`, `OutboundJob.outcome` (`replied`, `positive`) in [`lib/types.ts`](../../lib/types.ts).
 
@@ -108,7 +108,7 @@ Add an **Analysis** section that shows **the same core metrics** (clean accept, 
 
 ### 4.2 Current Analytics behavior (for implementers)
 
-- **Review quality:** Live metrics from `computeQueueMetrics(jobs, dateRange)` with **From / To** date pickers — [`AnalyticsPage.tsx`](../../components/AnalyticsPage.tsx).  
+- **Review quality:** Live metrics from `computeQueueMetrics(jobs, dateRange)` with **From / To** date pickers — [`AnalyticsPage.tsx`](../../components/features/AnalyticsPage.tsx).  
 - **Operational benchmarks:** Mock snapshots keyed by **nearest** 7d / 30d / 90d span — [`lib/analytics-mock.ts`](../../lib/analytics-mock.ts).
 
 ### 4.3 Two analytics modes

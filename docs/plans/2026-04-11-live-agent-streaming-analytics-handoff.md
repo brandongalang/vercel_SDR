@@ -4,7 +4,7 @@
 **Audience:** Implementing agent (Cursor / Codex / human)  
 **Repo:** `Vercel_SDR` (Next.js 16, App Router, `ai` ^6, InstantDB)
 
-This document is the **single implementation spec** for work agreed in product discussion. It assumes familiarity with the existing outbound pipeline under `lib/pipeline/` and the current **Live Agent** tab (`components/LiveAgentDemo.tsx`) that POSTs to `app/api/jobs/run/route.ts`.
+This document is the **single implementation spec** for work agreed in product discussion. It assumes familiarity with the existing outbound pipeline under `lib/pipeline/` and the current **Live Agent** tab (`components/features/LiveAgentDemo.tsx`) that POSTs to `app/api/jobs/run/route.ts`.
 
 ---
 
@@ -49,9 +49,9 @@ This document is the **single implementation spec** for work agreed in product d
 | Area | Location | Behavior today |
 |------|----------|----------------|
 | Home | `app/page.tsx` | Renders `SDRWorkspace` with `MOCK_ANALYTICS_MAP`. |
-| Lead review | `components/SDRWorkspace.tsx` | InstantDB `jobs` query; `QueueList` + `DetailPanel`. |
-| Analytics | `components/AnalyticsPage.tsx` | Mix of **mock** snapshot (`analytics` prop) + **`computeQueueMetrics(jobs)`** for “Review quality”. |
-| Live Agent | `components/LiveAgentDemo.tsx` | Form → `POST /api/jobs/run` → displays result; copy says job is written to InstantDB. |
+| Lead review | `components/features/SDRWorkspace.tsx` | InstantDB `jobs` query; `QueueList` + `DetailPanel`. |
+| Analytics | `components/features/AnalyticsPage.tsx` | Mix of **mock** snapshot (`analytics` prop) + **`computeQueueMetrics(jobs)`** for “Review quality”. |
+| Live Agent | `components/features/LiveAgentDemo.tsx` | Form → `POST /api/jobs/run` → displays result; copy says job is written to InstantDB. |
 | Pipeline | `lib/pipeline/run-job.ts` | `runOutboundJobPipeline`: research → signals → angle → draft → governance. |
 | API | `app/api/jobs/run/route.ts` | Validates `leadInputSchema`, runs pipeline, writes job via `@instantdb/admin`. |
 
@@ -177,7 +177,7 @@ This document is the **single implementation spec** for work agreed in product d
 ### 5.4 Files to touch
 
 - `lib/metrics.ts` — ensure time-filtered jobs; add `filterJobsByTimeRange` in `lib/metrics.ts` or `lib/analytics-utils.ts`.  
-- `components/AnalyticsPage.tsx` — wire filtered jobs; add labels for synthetic vs computed.  
+- `components/features/AnalyticsPage.tsx` — wire filtered jobs; add labels for synthetic vs computed.  
 - `app/page.tsx` / `SDRWorkspace.tsx` — pass filtered data or compute inside page.
 
 ---
@@ -306,12 +306,12 @@ Reference: Context7 **`/vercel/ai-elements`** examples map **`tool-invocation`**
 | Edit | `lib/pipeline/schemas.ts` — Zod |
 | Edit | `lib/pipeline/research-agent.ts` — prompt |
 | Edit | `lib/pipeline/spawn-researcher.ts` (optional) — context propagation |
-| Edit | `components/LiveAgentDemo.tsx` — textarea, streaming UI |
+| Edit | `components/features/LiveAgentDemo.tsx` — textarea, streaming UI |
 | New | `app/api/pipeline/stream/route.ts` (or agreed path) |
-| Edit | `components/SDRWorkspace.tsx` — pass props if needed; tab switch helper |
+| Edit | `components/features/SDRWorkspace.tsx` — pass props if needed; tab switch helper |
 | New | `components/ai-elements/*` (if CLI adds here) |
 | Edit | `lib/metrics.ts` or new `lib/analytics-utils.ts` — time filter |
-| Edit | `components/AnalyticsPage.tsx` — labels + filtered metrics |
+| Edit | `components/features/AnalyticsPage.tsx` — labels + filtered metrics |
 | Edit | `scripts/seed.ts` — `freeformContext` + optional outcomes |
 | Delete or use | `components/InsightsSheet.tsx` |
 

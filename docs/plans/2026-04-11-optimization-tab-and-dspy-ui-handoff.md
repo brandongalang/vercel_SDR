@@ -116,7 +116,7 @@ The interview demo should flow as a 3-act structure.
 
 ### Act 3: The Live Compile (v3)
 - **What to show:** Run `scripts/ax-compile.ts` on the expanded dataset (the v1 + v2 jobs combined, picking the best winners).
-- **The Fallback:** If the live compile fails (API error), we have a pre-committed `data/ax-optimized-v3.json` artifact to fall back on.
+- **The Fallback:** If the live compile fails (API error), we have a pre-committed `lib/db/seeds/ax-optimized-v3.json` artifact to fall back on.
 
 ---
 
@@ -124,13 +124,13 @@ The interview demo should flow as a 3-act structure.
 
 *(Documenting the required scaffolding; execution deferred per user request)*
 
-1. **Synthetic Data Corpus (`data/synthetic-jobs-*.json`)**
+1. **Synthetic Data Corpus (`lib/db/seeds/synthetic-jobs-*.json`)**
    - Create 30 sent jobs for `v1` (baseline metrics: 55% edited, 45% clean accept, ~1% positive reply).
    - Create 30 sent jobs for `v2` (improved metrics: 35% edited, 65% clean accept, ~3% positive reply).
    - Create 30 sent jobs for `v3` (best metrics: 15% edited, 85% clean accept, ~6% positive reply).
    - Ensure all jobs have `cleanAccept`, `edited`, and `positiveReply` populated.
 
-2. **Prompt Snapshot Artifacts (`data/prompt-snapshots.json`)**
+2. **Prompt Snapshot Artifacts (`lib/db/seeds/prompt-snapshots.json`)**
    - Create a JSON artifact storing the `instruction` text and `fewShotCount` for v1, v2, and v3.
    - This drives the UI diff view.
 
@@ -146,4 +146,4 @@ The interview demo should flow as a 3-act structure.
 
 5. **UI Refactor**
    - Move the "DSPy" tab to the rightmost end of `SDRWorkspace.tsx`.
-   - Build `components/DspyPage.tsx` using the live metrics and prompt snapshot diffs.
+   - Build `components/features/DspyPage.tsx` using the live metrics and prompt snapshot diffs.
