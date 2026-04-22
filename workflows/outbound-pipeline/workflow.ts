@@ -16,7 +16,7 @@ export async function outboundPipelineWorkflow(leadInput: LeadInput) {
     leadInput,
     signals: extraction.signals,
   });
-  const draft = await draftStep({
+  const drafted = await draftStep({
     leadInput,
     signals: extraction.signals,
     anglePlan,
@@ -25,9 +25,9 @@ export async function outboundPipelineWorkflow(leadInput: LeadInput) {
     leadInput,
     researchPacket: research.packet,
     anglePlan,
-    signals: extraction.signals,
+    signals: drafted.signals,
     discardedSignals: extraction.discardedSignals,
-    draft,
+    draft: drafted.draft,
   });
 
   return {

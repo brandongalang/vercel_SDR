@@ -11,6 +11,10 @@ import { getRequiredServerEnv } from "@/lib/server/env";
 import { nowIso, parseTimestamp } from "@/lib/time";
 import type { OutboundJob } from "@/lib/types";
 
+/**
+ * Runtime persistence seam for generated jobs + pipeline runs.
+ * Use this as the canonical write path for non-demo behavior.
+ */
 const INSTANT_APP_ID = getRequiredServerEnv("NEXT_PUBLIC_INSTANT_APP_ID");
 
 function getAdminDb() {

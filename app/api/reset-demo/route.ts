@@ -11,6 +11,10 @@ import {
 } from "@/lib/server/env";
 import type { OutboundJob } from "@/lib/types";
 
+/**
+ * Demo-only route. Replaces InstantDB data with known fixtures for repeatable walkthroughs.
+ * This endpoint is optional and guarded by ENABLE_DEMO_RESET + token checks.
+ */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 

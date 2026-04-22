@@ -21,7 +21,10 @@ export type SignalStepOutput = {
 
 export type AngleStepOutput = AnglePlan;
 
-export type DraftStepOutput = OutboundJob["draft"];
+export type DraftStepOutput = {
+  draft: OutboundJob["draft"];
+  signals: ScoredSignal[];
+};
 
 export type PersistStepOutput = {
   jobId: string;
@@ -69,11 +72,16 @@ export async function draftStep(input: {
   const { runDraftGenerator } = await import("@/lib/pipeline/draft-generator");
 
   const draftSignals = markAngleSignals(input.signals, input.anglePlan.usedSignalIds);
-  return runDraftGenerator({
+  const draft = await runDraftGenerator({
     leadInput: input.leadInput,
     anglePlan: input.anglePlan,
     signals: draftSignals,
   });
+
+  return {
+    draft,
+    signals: draftSignals,
+  };
 }
 
 export async function persistStep(input: {

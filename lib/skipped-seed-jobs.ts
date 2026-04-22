@@ -1,4 +1,4 @@
-import syntheticJobsAll from "@/data/synthetic-jobs-all.json";
+import syntheticJobsAll from "@/lib/db/seeds/synthetic-jobs-all.json";
 import type { OutboundJob } from "./types";
 
 const DAY_MS = 86400000;

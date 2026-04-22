@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { ArrowRight } from "lucide-react";
 import { MermaidDiagram } from "@/components/mermaid-diagram";
-import optimizedArtifactData from "@/data/ax-optimized-v3.json";
+import optimizedArtifactData from "@/lib/db/seeds/ax-optimized-v3.json";
 import { getSyntheticPromptSnapshots } from "@/lib/synthetic-data";
 import type { DspyCompileRun } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -92,37 +92,40 @@ function formatDateLabel(value: string) {
 function buildMermaidChart(): string {
   return [
     "flowchart LR",
-    '    subgraph top[" "]',
+    '    subgraph prod["Production signals"]',
     "      direction LR",
-    '      A["Live<br/>checkpoint"] ~~~ B["Rep<br/>review"] ~~~ F["Positive lead<br/>response"]',
+    '      A["Live<br/>checkpoint"] --> B["Rep<br/>review"]',
+    '      B -->|accept as-is| C["Full<br/>accept"]',
+    '      B -->|edit before send| D["Edited final<br/>draft"]',
+    '      C --> E["Compile<br/>dataset"]',
+    '      D --> E',
+    '      F["Positive lead<br/>response"] -->|weighted| E',
     "    end",
-    '    subgraph bottom[" "]',
-    "      direction LR",
-    '      C["Full<br/>accept"] ~~~ D["Edited final<br/>draft"] ~~~ E["Compile<br/>dataset"]',
+    '    subgraph gepa["GEPA offline"]',
+    "      direction TB",
+    '      E --> G["Teacher explores<br/>instruction variants"]',
+    '      G --> H["Student scored on<br/>metric (proxy / judge)"]',
+    '      H --> I["Frozen<br/>checkpoint"]',
     "    end",
-    '    A --> B',
-    '    B -->|accept as-is| C',
-    '    B -->|edit before send| D',
-    '    C --> E',
-    '    D --> E',
-    '    C -. can earn .-> F',
-    '    D -. can earn .-> F',
-    '    F -->|extra weight| E',
-    '    E -. next cycle .-> A',
-    "    style top fill:transparent,stroke:transparent",
-    "    style bottom fill:transparent,stroke:transparent",
+    '    I -. next cycle .-> A',
+    "    style prod fill:transparent,stroke:transparent",
+    "    style gepa fill:transparent,stroke:transparent",
     "    classDef observed fill:#f5f5f4,stroke:#d6d3d1,stroke-width:1.2,color:#292524,rx:6",
     "    classDef sdr fill:#fef7e6,stroke:#facc15,stroke-width:1.2,color:#854d0e,rx:6",
     "    classDef accepted fill:#effcf6,stroke:#34d399,stroke-width:1.45,color:#166534,rx:6",
     "    classDef edited fill:#fff7ed,stroke:#fb923c,stroke-width:1.45,color:#9a3412,rx:6",
     "    classDef reply fill:#fff1f2,stroke:#fb7185,stroke-width:1.45,color:#9f1239,rx:6",
     "    classDef compile fill:#f4f4f5,stroke:#a1a1aa,stroke-width:1.35,color:#27272a,rx:6",
+    "    classDef gepanode fill:#eef2ff,stroke:#818cf8,stroke-width:1.35,color:#312e81,rx:6",
     "    class A observed",
     "    class B sdr",
     "    class C accepted",
     "    class D edited",
     "    class E compile",
     "    class F reply",
+    "    class G gepanode",
+    "    class H gepanode",
+    "    class I gepanode",
   ].join("\n");
 }
 
@@ -245,14 +248,26 @@ export default function DspyPage(props: { compileRuns: DspyCompileRun[] }) {
           <div className="px-6 py-5 sm:px-8 sm:py-6">
             <div className="max-w-4xl">
               <p className="text-[12px] font-medium uppercase tracking-[0.14em] text-muted-foreground/80">
-                MIPRO feedback loop
+                GEPA optimization loop
               </p>
               <h2 className="mt-3 max-w-3xl font-heading text-[28px] font-semibold tracking-tight text-foreground sm:text-[34px]">
                 Every send sharpens the checkpoint.
               </h2>
               <p className="mt-2 max-w-[60ch] text-[15px] leading-relaxed text-muted-foreground">
-                Reps accept or rewrite the draft, positive replies add market signal, and the next
-                frozen checkpoint is rebuilt offline from final sent drafts.
+                Production accepts, edits, and replies become training signal.{" "}
+                <span className="font-medium text-foreground/90">GEPA</span> runs offline: a reflection
+                model proposes instruction updates, a student model is scored on held-out validation
+                examples, and the winning program becomes the next frozen checkpoint.
+              </p>
+              <p className="mt-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">
+                <span className="font-medium text-foreground/90">Offline</span>, each trial is graded
+                by a <span className="font-medium text-foreground/90">metric you define</span>
+                —often label-aligned scores, rules, and/or an LLM judge trained or prompted on past
+                outcomes. That score is a <span className="font-medium text-foreground/90">proxy</span>
+                : it cannot replay what reps or leads would have done to brand-new drafts.{" "}
+                <span className="font-medium text-foreground/90">Live</span> accept and reply rates
+                are what confirm real uplift; the next compile ingests fresh rows so the loop closes
+                on actual behavior, not the proxy alone.
               </p>
             </div>
 
@@ -291,9 +306,13 @@ export default function DspyPage(props: { compileRuns: DspyCompileRun[] }) {
                 <h3 className="text-[19px] font-semibold tracking-tight text-foreground">
                   How the loop works
                 </h3>
-                <p className="mt-1.5 max-w-[60ch] text-[14px] leading-relaxed text-muted-foreground">
-                  Accepts show where the model already matched rep judgment. Edits show what the
-                  draft needed to become. Replies show what the market rewarded.
+                <p className="mt-1.5 max-w-[62ch] text-[14px] leading-relaxed text-muted-foreground">
+                  Accepts and edits label rep trust; positive replies add market signal. GEPA then
+                  optimizes the instruction-bearing nodes in the generator: trials are bounded by{" "}
+                  <span className="font-medium text-foreground/90">maxMetricCalls</span>, and
+                  selection uses weighted objectives (here: clean accept vs. workable reply{" "}
+                  <span className="font-medium text-foreground/90">proxies in the metric</span>
+                  ). Shipping still uses your gates; production results feed the next dataset.
                 </p>
               </div>
 
@@ -310,9 +329,10 @@ export default function DspyPage(props: { compileRuns: DspyCompileRun[] }) {
                     What actually enters the compile
                   </h3>
                   <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
-                    The optimizer does not train on the full illustrative team volume above. It
-                    learns from a recent finalized-draft window, where edited drafts are replaced
-                    by what the rep actually sent and positive replies carry extra weight.
+                    The run does not use the full illustrative team volume above. GEPA learns from a
+                    recent finalized-draft window: edited rows are replaced by what the rep actually
+                    sent, positive replies are up-weighted, and held-out validation examples gate
+                    which instruction candidate ships.
                   </p>
                 </div>
 
@@ -340,21 +360,24 @@ export default function DspyPage(props: { compileRuns: DspyCompileRun[] }) {
                     </p>
                   </div>
                   <div>
-                    <p className="text-[13px] text-muted-foreground">What MIPRO changes</p>
+                    <p className="text-[13px] text-muted-foreground">What GEPA refines</p>
                     <p className="mt-1 text-[18px] font-semibold tracking-tight text-foreground">
-                      Instructions + examples
+                      Instructions + demos
                     </p>
                     <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-                      The checkpoint policy evolves as a whole, not just the few-shot count.
+                      Instruction-bearing nodes evolve together (policy + few-shot demos), not one
+                      isolated string at a time.
                     </p>
                   </div>
                 </div>
               </div>
 
               <p className="mt-4 max-w-[64ch] text-[13px] leading-relaxed text-muted-foreground">
-                Scoring favors positive replies, with rep trust as the early quality signal. This
-                candidate was compiled on {formatDateLabel(OPTIMIZATION_ARTIFACT.compiledAt)} with{" "}
-                {OPTIMIZATION_ARTIFACT.optimizer}.
+                Objectives weight positive replies heavily, with rep trust (accept vs. edit) as the
+                early quality signal. This candidate was frozen on{" "}
+                {formatDateLabel(OPTIMIZATION_ARTIFACT.compiledAt)} via{" "}
+                <span className="font-medium text-foreground/90">{OPTIMIZATION_ARTIFACT.optimizer}</span>
+                .
               </p>
             </div>
           </div>
@@ -392,7 +415,12 @@ export default function DspyPage(props: { compileRuns: DspyCompileRun[] }) {
 
           <div className="mt-6 rounded-[24px] border border-border/70 bg-muted/20 px-4 py-4">
             <p className="text-[12px] font-medium text-muted-foreground">
-              Why the candidate is stronger
+              Why the candidate is stronger (illustrative)
+            </p>
+            <p className="mt-2 max-w-[72ch] text-[13px] leading-relaxed text-muted-foreground">
+              Numbers below are a demo projection, not a guarantee of live lift after deploy. Real
+              wins are measured in production or experiments; the offline compile only proves the
+              candidate beat the baseline on the benchmark you set.
             </p>
             <p className="mt-3 max-w-[72ch] text-[14px] leading-relaxed text-foreground/90">
               Across {formatCount(TEAM_VIEW.drafts)} illustrative drafts, the candidate checkpoint

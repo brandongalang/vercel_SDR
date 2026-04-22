@@ -38,7 +38,7 @@ const sampleMessages: QueueMessage[] = [
         filename: "setup-guide.png",
         mediaType: "image/png",
         type: "file",
-        url: "https://github.com/haydenbleasel.png",
+        url: "https://github.com/brandongalang.png",
       },
     ],
   },

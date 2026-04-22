@@ -13,8 +13,6 @@ import { computeQueueMetrics } from "@/lib/metrics";
 import { cn } from "@/lib/utils";
 import {
   AlertCircle,
-  ArrowDownRight,
-  ArrowUpRight,
   BadgeCheck,
   Info,
 } from "lucide-react";
@@ -206,11 +204,13 @@ function ExecutiveMetric({
   label,
   value,
   supporting,
+  tone = "neutral",
   tooltip,
 }: {
   label: string;
   value: string;
   supporting: string;
+  tone?: "positive" | "negative" | "neutral";
   tooltip?: string;
 }) {
   return (
@@ -219,7 +219,18 @@ function ExecutiveMetric({
         {label}
         {tooltip && <MetricTooltip text={tooltip} />}
       </p>
-      <p className="font-mono tabular-nums text-[22px] font-semibold tracking-tight text-foreground">{value}</p>
+      <p
+        className={cn(
+          "font-mono tabular-nums text-[22px] font-semibold tracking-tight",
+          tone === "positive"
+            ? "text-emerald-700 dark:text-emerald-300"
+            : tone === "negative"
+              ? "text-rose-700 dark:text-rose-300"
+              : "text-foreground"
+        )}
+      >
+        {value}
+      </p>
       <p className="max-w-[40ch] text-[13px] leading-5 text-muted-foreground">{supporting}</p>
     </div>
   );
@@ -271,7 +282,7 @@ function InsightList({
         {positive ? (
           <BadgeCheck className="size-5 text-emerald-500" aria-hidden />
         ) : (
-          <AlertCircle className="size-5 text-amber-500" aria-hidden />
+          <AlertCircle className="size-5 text-rose-500" aria-hidden />
         )}
       </div>
 
@@ -300,24 +311,12 @@ function InsightList({
                   "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-medium",
                   positive
                     ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
-                    : "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
+                    : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
                 )}
               >
                 {play.metricLabel}
                 <span className="font-mono tabular-nums font-semibold">{play.metricValue}%</span>
               </span>
-              {play.metricTrend != null && (
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1 text-[13px] font-medium",
-                    play.metricTrend >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
-                  )}
-                >
-                  {play.metricTrend >= 0 ? <ArrowUpRight className="size-3.5" aria-hidden /> : <ArrowDownRight className="size-3.5" aria-hidden />}
-                  <span className="tabular-nums">{Math.abs(play.metricTrend).toFixed(1)}%</span>
-                  <span className="sr-only">{play.metricTrend >= 0 ? 'increase' : 'decrease'}</span>
-                </span>
-              )}
             </div>
           </div>
         ))}
@@ -530,7 +529,7 @@ export default function AnalyticsPage({
 
   const generatedSentDelta = analytics.trends?.generatedSent ?? null;
   const acceptLift = analytics.trends?.cleanAccept ?? null;
-  const medianReviewDelta = analytics.trends?.medianReviewSeconds ?? null;
+  const editedLift = analytics.trends?.editedAccept ?? null;
   const isPresetRange = ANALYTICS_RANGE_PRESETS.some((preset) => preset.days === rangeDays);
   const benchmarkSignal = getBenchmarkSignal(Math.min(analytics.generatedSent, analytics.comparisonSent));
   const liveQueueSignal = getQueueSignal(summary.withApprovalFeedback);
@@ -616,7 +615,16 @@ export default function AnalyticsPage({
           <p className="text-[12px] font-medium tracking-[0.02em] text-muted-foreground">
             Response lift vs prior window
           </p>
-          <p className="mt-2 font-mono tabular-nums text-[30px] font-semibold tracking-[-0.04em] leading-none text-foreground sm:text-[36px]">
+          <p
+            className={cn(
+              "mt-2 font-mono tabular-nums text-[30px] font-semibold tracking-[-0.04em] leading-none sm:text-[36px]",
+              analytics.responseLift > 0
+                ? "text-emerald-700 dark:text-emerald-300"
+                : analytics.responseLift < 0
+                  ? "text-rose-700 dark:text-rose-300"
+                  : "text-foreground"
+            )}
+          >
             {formatSignedPoints(analytics.responseLift)}
           </p>
           <p className="mt-3 max-w-[58ch] text-[16px] leading-6 text-foreground sm:text-[17px] sm:leading-7">
@@ -635,19 +643,21 @@ export default function AnalyticsPage({
               label="Sent without edits"
               value={formatPercent(analytics.cleanAcceptRate)}
               supporting={formatDeltaSentence(acceptLift, "higher accept rate", "lower accept rate", "pts", analytics.comparisonWindowLabel)}
+              tone="positive"
               tooltip="Drafts the reviewer approved and sent without editing the AI's draft."
             />
             <ExecutiveMetric
-              label="Median review time"
-              value={formatDuration(analytics.medianReviewSeconds)}
+              label="Needs edits"
+              value={formatPercent(analytics.editedAcceptRate)}
               supporting={formatDeltaSentence(
-                medianReviewDelta,
-                "slower",
-                "faster",
-                "seconds",
+                editedLift,
+                "higher edit rate",
+                "lower edit rate",
+                "pts",
                 analytics.comparisonWindowLabel
               )}
-              tooltip="Median time from opening a draft to approving or skipping it."
+              tone="negative"
+              tooltip="Drafts the reviewer changed before sending instead of shipping the AI draft as-is."
             />
             <ExecutiveMetric
               label="AI-generated sends"

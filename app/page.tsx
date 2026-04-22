@@ -1,4 +1,4 @@
-import SDRWorkspace from "@/components/SDRWorkspace";
+import SDRWorkspace from "@/components/features/SDRWorkspace";
 
 export default function Home() {
   return <SDRWorkspace />;

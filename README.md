@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Vercel SDR Prototype
 
-## Getting Started
+Interview-oriented outbound personalization prototype. The app is a thin Next.js shell around a staged pipeline that generates personalized drafts and persists review jobs in InstantDB.
 
-First, run the development server:
+## Start Here
+
+- Repo map for live coding: `INTERVIEW_MAP.md`
+- Agent/session guidance: `AGENTS.md`
+- App entrypoint: `app/page.tsx` -> `components/features/SDRWorkspace.tsx`
+
+## Run Locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Runtime vs Demo Data
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Runtime pipeline writes to InstantDB through `lib/pipeline/persistence.ts`.
+- Review UI reads live jobs via `db.useQuery` in `components/features/SDRWorkspace.tsx`.
+- Some interview/demo surfaces intentionally use local fixture artifacts:
+  - `lib/analytics-mock.ts`
+  - `lib/synthetic-data.ts`
+  - `lib/pipeline/prompt-artifacts.ts`
+  - `app/api/reset-demo/route.ts`
 
-## Learn More
+## Main Paths
 
-To learn more about Next.js, take a look at the following resources:
+- Streamed live pipeline: `app/api/jobs/stream/route.ts`
+- Direct sequential run: `app/api/jobs/run/route.ts`
+- Durable workflow run: `app/actions/queue-pipeline.ts` + `workflows/outbound-pipeline/*`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Scripts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `npm run dev`: local development
+- `npm run build`: production build check
+- `npm run start`: run built app
+- `npm run lint`: linting

@@ -24,6 +24,7 @@ import { useJobActions } from "@/lib/hooks/use-job-actions";
 import { useQueueState, selectNextPendingId } from "@/lib/hooks/use-queue-state";
 import { useDemoReset } from "@/lib/hooks/use-demo-reset";
 import { useAnalyticsState } from "@/lib/hooks/use-analytics-state";
+import { getReviewHeader, getViewHeader, getWorkspaceTabs } from "./workspace-config";
 
 type ReviewWorkspaceState = "loading" | "error" | "empty" | "complete" | "idle" | "ready";
 
@@ -173,48 +174,15 @@ export default function SDRWorkspace() {
   };
 
   // ── View headers ──────────────────────────────────────────────────────────
-  function getReviewHeader() {
-    const overline = "Lead review";
-    if (isLoading) {
-      return { overline, title: "Loading lead review queue", subtitle: "Connecting to InstantDB so you can review the latest drafted leads." };
-    }
-    if (error) {
-      return { overline, title: "Lead review unavailable", subtitle: "The queue could not load right now. You can still use the other demo surfaces." };
-    }
-    if (jobs.length === 0) {
-      return { overline, title: "Queue is empty", subtitle: "No AI-generated drafts are waiting in review yet." };
-    }
-    const figures = `${queueStatusCounts.pending} pending · ${queueStatusCounts.sent} sent · ${queueStatusCounts.skipped} skipped`;
-    if (pendingCount === 0) {
-      return { overline, title: "All caught up", subtitle: figures };
-    }
-    return {
-      overline,
-      title: `${pendingCount} lead${pendingCount !== 1 ? "s" : ""} pending review`,
-      subtitle: figures,
-    };
-  }
-  const reviewHeader = getReviewHeader();
-  const viewHeader = {
-    review: {
-      ...reviewHeader,
-    },
-    analytics: {
-      overline: "Analytics",
-      title: "Benchmark board",
-      subtitle: "Benchmark reporting for AI-generated outbound and the current review queue.",
-    },
-    dspy: {
-      overline: "GEPA loop",
-      title: "Reflective prompt optimization",
-      subtitle: "AxGEPA searches instruction space; rep judgment and replies ground each compile.",
-    },
-    debugger: {
-      overline: "Live agent",
-      title: "Live pipeline demo",
-      subtitle: "Step through a full research-and-draft run in real time.",
-    },
-  }[activeView];
+  const reviewHeader = getReviewHeader({
+    isLoading,
+    hasError: Boolean(error),
+    hasJobs: jobs.length > 0,
+    pendingCount,
+    queueStatusCounts,
+  });
+  const viewHeader = getViewHeader(activeView, reviewHeader);
+  const workspaceTabs = getWorkspaceTabs(queueListState, queueStatusCounts);
 
   const handleOpenReviewJob = (jobId: string) => {
     setSelectedJobId(jobId);
@@ -298,35 +266,7 @@ export default function SDRWorkspace() {
 
           <div className="flex flex-col gap-2 lg:items-end">
             <div role="tablist" className="-mx-1 flex max-w-full overflow-x-auto rounded-xl border border-border bg-muted p-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:inline-flex sm:w-fit [&::-webkit-scrollbar]:hidden">
-              {[
-                {
-                  id: "review" as const,
-                  label: "Lead review",
-                  sub:
-                    queueListState === "loading"
-                      ? "Loading…"
-                      : queueListState === "error"
-                        ? "Unavailable"
-                        : queueListState === "empty"
-                          ? "No leads"
-                          : `${queueStatusCounts.pending} pending · ${queueStatusCounts.sent} sent · ${queueStatusCounts.skipped} skipped`,
-                },
-                {
-                  id: "analytics" as const,
-                  label: "Analytics",
-                  sub: "Benchmarks",
-                },
-                {
-                  id: "dspy" as const,
-                  label: "GEPA loop",
-                  sub: "AxGEPA",
-                },
-                {
-                  id: "debugger" as const,
-                  label: "Live Agent",
-                  sub: "Live pipeline",
-                },
-              ].map((tab) => (
+              {workspaceTabs.map((tab) => (
                 <button
                   key={tab.id}
                   id={`tab-${tab.id}`}

@@ -2,6 +2,7 @@
   "name": "sdr-prototype",
   "version": "0.1.0",
   "private": true,
+  "author": "Brandon Galang",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

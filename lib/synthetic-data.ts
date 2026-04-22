@@ -1,6 +1,10 @@
-import v2PromptArtifactData from "@/data/ax-optimized-v2.json";
-import promptSnapshotsData from "@/data/prompt-snapshots.json";
+import v2PromptArtifactData from "@/lib/db/seeds/ax-optimized-v2.json";
+import promptSnapshotsData from "@/lib/db/seeds/prompt-snapshots.json";
 
+/**
+ * Demo-only DSPy snapshots used by the interview surface.
+ * This is intentionally fixture-backed and separate from runtime job data.
+ */
 interface SyntheticPromptSnapshot {
   version: string;
   label: string;

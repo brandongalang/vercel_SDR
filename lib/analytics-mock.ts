@@ -1,4 +1,4 @@
-import syntheticJobsAllData from "@/data/synthetic-jobs-all.json";
+import syntheticJobsAllData from "@/lib/db/seeds/synthetic-jobs-all.json";
 import { ANGLE_CONFIG } from "./angle-config";
 import { computeQueueMetrics } from "./metrics";
 import { getDateInputRange, parseTimestamp, toDateInputValue } from "./time";
@@ -9,6 +9,10 @@ import {
   OutboundJob,
 } from "./types";
 
+/**
+ * Demo-only analytics fixtures.
+ * Runtime queue persistence and review state come from InstantDB.
+ */
 const SYNTHETIC_BENCHMARK_JOBS = syntheticJobsAllData as readonly OutboundJob[];
 const DAY_MS = 86400000;
 
@@ -281,6 +285,7 @@ function buildPlayRows(
         id: string;
         combo: string;
         volume: number;
+        replied: number;
         positive: number;
         clean: number;
         edited: number;
@@ -292,12 +297,16 @@ function buildPlayRows(
       id: `${job.angleType}-${job.play.type}`,
       combo,
       volume: 0,
+      replied: 0,
       positive: 0,
       clean: 0,
       edited: 0,
     };
 
     current.volume += 1;
+    if (job.outcome?.replied) {
+      current.replied += 1;
+    }
     if (job.outcome?.positive || job.feedback?.positiveReply) {
       current.positive += 1;
     }
@@ -314,12 +323,14 @@ function buildPlayRows(
   const normalized = [...byCombo.values()]
     .filter((row) => row.volume >= 2)
     .map((row) => {
+      const replyRate = row.volume > 0 ? Math.round((row.replied / row.volume) * 1000) / 10 : 0;
       const positiveRate = row.volume > 0 ? Math.round((row.positive / row.volume) * 1000) / 10 : 0;
       const cleanRate = row.volume > 0 ? Math.round((row.clean / row.volume) * 1000) / 10 : 0;
       const editRate = row.volume > 0 ? Math.round((row.edited / row.volume) * 1000) / 10 : 0;
 
       return {
         ...row,
+        replyRate,
         positiveRate,
         cleanRate,
         editRate,
@@ -329,23 +340,22 @@ function buildPlayRows(
   const ranked =
     tone === "positive"
       ? normalized
-          .filter((row) => row.positiveRate > 0)
-          .sort((a, b) => b.positiveRate - a.positiveRate || b.cleanRate - a.cleanRate || b.volume - a.volume)
+          .filter((row) => row.replyRate > 0)
+          .sort((a, b) => b.replyRate - a.replyRate || b.cleanRate - a.cleanRate || b.volume - a.volume)
       : normalized
           .filter((row) => row.editRate > 0)
-          .sort((a, b) => b.editRate - a.editRate || a.positiveRate - b.positiveRate || b.volume - a.volume);
+          .sort((a, b) => b.editRate - a.editRate || a.replyRate - b.replyRate || b.volume - a.volume);
 
   return ranked.slice(0, tone === "positive" ? 3 : 2).map((row) => ({
     id: row.id,
     combo: row.combo,
     volume: row.volume,
-    metricLabel: tone === "positive" ? "Positive reply" : "Edit rate",
-    metricValue: tone === "positive" ? row.positiveRate : row.editRate,
-    metricTrend: tone === "positive" ? row.cleanRate - row.editRate : row.cleanRate - row.editRate,
+    metricLabel: tone === "positive" ? "Reply rate" : "Edit rate",
+    metricValue: tone === "positive" ? row.replyRate : row.editRate,
     metricType: tone,
     note:
       tone === "positive"
-        ? `${row.positive} of ${row.volume} sends drew a positive reply. ${row.clean} shipped without edits.`
+        ? `${row.replied} of ${row.volume} sends got a reply. ${row.clean} shipped without edits.`
         : `${row.edited} of ${row.volume} sends were edited before send, and only ${row.positive} drew a positive reply.`,
   }));
 }
@@ -464,7 +474,7 @@ export const MOCK_DSPY_COMPILE_RUNS: DspyCompileRun[] = [
   {
     id: "compile-v2-to-v3",
     compiledAt: "2026-04-11",
-    optimizer: "MIPROv2",
+    optimizer: "GEPA",
     promptVersionBefore: "2026-02-17.draft-generator.v2",
     promptVersionAfter: "2026-04-11.draft-generator.v3",
     trainWindowDays: 53,

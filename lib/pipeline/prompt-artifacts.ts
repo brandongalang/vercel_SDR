@@ -1,5 +1,9 @@
-import draftGeneratorV2ArtifactData from "@/data/ax-optimized-v2.json";
+import draftGeneratorV2ArtifactData from "@/lib/db/seeds/ax-optimized-v2.json";
 
+/**
+ * Demo fixture artifact for prompt inspection and replayed draft guidance.
+ * Runtime writes still persist through the InstantDB pipeline path.
+ */
 export interface DraftGeneratorPromptDemo {
   id: string;
   leadContext: string;

@@ -195,6 +195,10 @@ export interface OutboundJob {
   feedback?: {
     edited: boolean;
     editorNote?: string;
+    /** SDR's free-text explanation of why the edited draft was stronger than the original — training signal for GEPA. */
+    draftRationale?: string;
+    /** SDR's free-text explanation for why this lead was skipped — training signal for GEPA. */
+    skipReason?: string;
     /** Workable, non-negative lead reply that an SDR can advance. */
     positiveReply?: boolean | null;
   };
@@ -219,7 +223,6 @@ export interface PlaybookRow {
   volume: number;
   metricLabel: string;
   metricValue: number; 
-  metricTrend?: number;
   metricType: "positive" | "negative";
   note: string;
 }
@@ -286,7 +289,7 @@ export interface DspyVersionRow {
 export interface DspyCompileRun {
   id: string;
   compiledAt: string;           // ISO date string
-  optimizer: string;            // e.g. "BootstrapFewShot", "MIPROv2"
+  optimizer: string;            // e.g. "BootstrapFewShot", "AxGEPA"
   promptVersionBefore: string;  // draftGenerator version that was the baseline
   promptVersionAfter: string;   // draftGenerator version produced by this compile
   trainWindowDays: number;      // how many days of jobs were used as training data
