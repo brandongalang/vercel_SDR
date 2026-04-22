@@ -16,7 +16,7 @@ import type {
   PlanAnglePart,
   RunResearchPart,
   TraceNode,
-} from "@/components/live-agent/types";
+} from "@/lib/pipeline/agent-ui-types";
 import type { ToolState } from "@/components/ai-elements/tool";
 
 type ToolCardError = { error: string };

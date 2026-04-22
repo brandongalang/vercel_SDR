@@ -1,9 +1,11 @@
-import {
+import type {
   InferUITools,
+  UIMessage,
+} from "ai";
+import {
   stepCountIs,
   tool,
   ToolLoopAgent,
-  UIMessage,
   zodSchema,
 } from "ai";
 import { z } from "zod/v4";

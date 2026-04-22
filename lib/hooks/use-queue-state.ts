@@ -45,20 +45,16 @@ export function useQueueState(
   { isLoading, error }: { isLoading: boolean; error: { message: string } | undefined },
 ) {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
-  const [queueView, setQueueView] = useState<QueueView>("queue");
-  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("all");
-
-  useEffect(() => {
+  const [queueView, setQueueView] = useState<QueueView>(() => {
     const savedView = readStoredPreference(QUEUE_VIEW_KEY);
-    if (savedView === "queue" || savedView === "history") {
-      setQueueView(savedView);
-    }
-
+    return savedView === "queue" || savedView === "history" ? savedView : "queue";
+  });
+  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>(() => {
     const savedFilter = readStoredPreference(HISTORY_FILTER_KEY);
-    if (savedFilter === "all" || savedFilter === "sent_today" || savedFilter === "skipped") {
-      setHistoryFilter(savedFilter);
-    }
-  }, []);
+    return savedFilter === "all" || savedFilter === "sent_today" || savedFilter === "skipped"
+      ? savedFilter
+      : "all";
+  });
 
   useEffect(() => {
     writeStoredPreference(QUEUE_VIEW_KEY, queueView);

@@ -38,8 +38,11 @@ function createVertexWithTools() {
       try {
         const credentials = JSON.parse(raw) as Record<string, unknown>;
         googleAuthOptions = { credentials };
-      } catch {
-        // Ignore parse errors — will fall through to ADC
+      } catch (error) {
+        console.warn(
+          "[google-search] GOOGLE_APPLICATION_CREDENTIALS_JSON is invalid; falling back to ADC",
+          error,
+        );
       }
     }
   }

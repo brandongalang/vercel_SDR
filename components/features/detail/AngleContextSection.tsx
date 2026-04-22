@@ -3,13 +3,10 @@
 import { useState } from "react";
 import type { OutboundJob } from "@/lib/types";
 import { ANGLE_CONFIG } from "@/lib/angle-config";
+import { formatLeadSource } from "@/lib/format";
 import { ContextLabel } from "./ContextLabel";
 import { AlertTriangle, ChevronRight, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-function formatLeadSource(source: OutboundJob["play"]["leadSource"]) {
-  return source.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
 
 export function AngleContextSection({ job }: { job: OutboundJob }) {
   const [showResearch, setShowResearch] = useState(false);

@@ -44,7 +44,7 @@ import type {
   RunResearchPart,
   TracePart,
   TraceNode,
-} from "@/components/live-agent/types";
+} from "@/lib/pipeline/agent-ui-types";
 import { FieldLabel } from "@/components/live-agent/helpers";
 import {
   ExtractSignalsCard,
@@ -61,8 +61,6 @@ import {
 } from "@/components/live-agent/phase-panel";
 import { getRunStatusViewModel } from "@/components/live-agent/run-status";
 import { ArchitectureSection } from "@/components/live-agent/architecture-section";
-
-// ─── Horizontal phase progress bar ───────────────────────────────────────────
 
 function PipelineProgressBar({
   statuses,
@@ -115,7 +113,6 @@ function PipelineProgressBar({
                 )}
               />
             </div>
-            {/* Label */}
             <p
               className={cn(
                 "mt-1.5 text-center text-[10px] font-medium transition-colors",
@@ -136,8 +133,6 @@ function PipelineProgressBar({
     </div>
   );
 }
-
-// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function LiveAgentDemo({
   onOpenReviewJob,

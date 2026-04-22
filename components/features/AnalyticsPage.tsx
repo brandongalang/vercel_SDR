@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useMemo } from "react";
-import {
+import type {
   AnalyticsDateRange,
   AnalyticsSnapshot,
   AnalyticsTrendPoint,

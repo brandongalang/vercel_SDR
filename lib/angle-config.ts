@@ -1,4 +1,4 @@
-import { AngleType } from './types';
+import type { AngleType } from './types';
 
 /** Muted chips: single accent per angle type; avoid competing with queue amber (governance). */
 export const ANGLE_CONFIG: Record<

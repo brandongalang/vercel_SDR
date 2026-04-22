@@ -43,7 +43,6 @@ export default function SDRWorkspace() {
   const [mobileReviewPane, setMobileReviewPane] = useState<"queue" | "detail">("detail");
   const [isLoadingSlow, setIsLoadingSlow] = useState(false);
 
-  // ── Hooks ──────────────────────────────────────────────────────────────────
   const {
     handleApprove,
     handleArchive,
@@ -84,22 +83,22 @@ export default function SDRWorkspace() {
   const { handleResetDemo, isResettingDemo, resetError, workspaceResetVersion } =
     useDemoReset(handleDemoResetCallback);
 
-  // ── Slow-loading indicator ────────────────────────────────────────────────
   useEffect(() => {
-    if (!isLoading) {
-      setIsLoadingSlow(false);
-      return;
-    }
+    let timer: number;
 
-    setIsLoadingSlow(false);
-    const timer = window.setTimeout(() => {
-      setIsLoadingSlow(true);
-    }, 4000);
+    if (!isLoading) {
+      timer = window.setTimeout(() => {
+        setIsLoadingSlow(false);
+      }, 0);
+    } else {
+      timer = window.setTimeout(() => {
+        setIsLoadingSlow(true);
+      }, 4000);
+    }
 
     return () => window.clearTimeout(timer);
   }, [isLoading]);
 
-  // ── Derived values ────────────────────────────────────────────────────────
   const selectedJob = resolvedSelectedJobId ? jobs.find((j) => j.id === resolvedSelectedJobId) || null : null;
   const pendingCount = jobs.filter((j) => j.status === "pending_review").length;
 
@@ -122,7 +121,6 @@ export default function SDRWorkspace() {
     [analyticsDateRange]
   );
 
-  // ── Workspace state ───────────────────────────────────────────────────────
   function deriveReviewWorkspaceState(): ReviewWorkspaceState {
     if (error) return "error";
     if (isLoading) return "loading";
@@ -133,7 +131,6 @@ export default function SDRWorkspace() {
   }
   const reviewWorkspaceState = deriveReviewWorkspaceState();
 
-  // ── Composite action handlers ─────────────────────────────────────────────
   const handleApproveFromQueue = (jobId: string) => {
     const job = jobs.find((value) => value.id === jobId);
     if (!job || job.status !== "pending_review") return;
@@ -173,7 +170,6 @@ export default function SDRWorkspace() {
     setSelectedJobId(selectNextPendingId(jobs, jobId));
   };
 
-  // ── View headers ──────────────────────────────────────────────────────────
   const reviewHeader = getReviewHeader({
     isLoading,
     hasError: Boolean(error),

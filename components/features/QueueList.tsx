@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { OutboundJob } from "@/lib/types";
+import type { OutboundJob } from "@/lib/types";
 import { ANGLE_CONFIG } from "@/lib/angle-config";
 import { getPlayConfig } from "@/lib/play-config";
 import { Badge } from "@/components/ui/badge";

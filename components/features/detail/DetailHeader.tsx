@@ -3,6 +3,7 @@
 import type { OutboundJob } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatLeadSource } from "@/lib/format";
 import {
   ChevronLeft,
   Info,
@@ -21,10 +22,6 @@ function formatCompanySize(size?: string): string {
     startup: "Startup",
   };
   return size ? (labels[size] ?? size.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())) : "Unknown";
-}
-
-function formatLeadSource(source: OutboundJob["play"]["leadSource"]) {
-  return source.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function ReviewMetadata({ job }: { job: OutboundJob }) {

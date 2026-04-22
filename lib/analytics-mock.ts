@@ -2,7 +2,7 @@ import syntheticJobsAllData from "@/lib/db/seeds/synthetic-jobs-all.json";
 import { ANGLE_CONFIG } from "./angle-config";
 import { computeQueueMetrics } from "./metrics";
 import { getDateInputRange, parseTimestamp, toDateInputValue } from "./time";
-import {
+import type {
   AnalyticsDateRange,
   AnalyticsSnapshot,
   DspyCompileRun,

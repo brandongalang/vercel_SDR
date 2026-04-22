@@ -14,15 +14,26 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-function extractLeadInput(body: unknown) {
-  if (typeof body === "object" && body !== null && "leadInput" in body) {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function extractLeadInput(body: unknown): unknown {
+  if (isRecord(body) && "leadInput" in body) {
     return body.leadInput;
   }
   return body;
 }
 
+function extractMessages(body: unknown): unknown[] {
+  if (!isRecord(body)) {
+    return [];
+  }
+  return Array.isArray(body.messages) ? body.messages : [];
+}
+
 export async function POST(request: Request) {
-  const body = await request.json();
+  const body: unknown = await request.json();
   const parsed = demoLeadInputSchema.safeParse(extractLeadInput(body));
 
   if (!parsed.success) {
@@ -32,7 +43,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const messages = Array.isArray(body?.messages) ? body.messages : [];
+  const messages = extractMessages(body);
   let persistedFailureAudit = false;
   let pipeline = createPipelineAgent(parsed.data, {
     abortSignal: request.signal,

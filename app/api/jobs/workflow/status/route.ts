@@ -22,7 +22,8 @@ export async function GET(request: Request) {
     }
 
     return Response.json({ status });
-  } catch {
+  } catch (error) {
+    console.error("Failed to fetch workflow run status", error);
     return Response.json({ error: "Failed to fetch run status" }, { status: 500 });
   }
 }

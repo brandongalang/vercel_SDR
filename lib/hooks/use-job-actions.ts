@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import type { OutboundJob } from "@/lib/types";
 import { db } from "@/lib/instant-db";
 
-type BaselineDraft = { subject: string; body: string; highlightedSpan?: string };
+type BaselineDraft = OutboundJob["draft"];
 
 export function useJobActions(jobs: OutboundJob[]) {
   const [baselineDrafts, setBaselineDrafts] = useState<Record<string, BaselineDraft>>({});

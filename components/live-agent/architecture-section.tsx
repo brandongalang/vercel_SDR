@@ -6,8 +6,6 @@ import { Button } from "@/components/ui/button";
 import { queueLeadForPipeline } from "@/app/actions/queue-pipeline";
 import type { LeadInput } from "@/lib/types";
 
-// ─── Node data ───────────────────────────────────────────────────────────────
-
 type PathNode = {
   label: string;
   sublabel: string;
@@ -77,8 +75,6 @@ const PROD_NODES: PathNode[] = [
   },
 ];
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
 function FlowNode({
   node,
   isLast,
@@ -126,8 +122,6 @@ function FlowNode({
   );
 }
 
-// ─── Main exported component ──────────────────────────────────────────────────
-
 export function ArchitectureSection({ form }: { form: LeadInput }) {
   const [workflowRunId, setWorkflowRunId] = useState<string | null>(null);
   const [queueError, setQueueError] = useState<string | null>(null);
@@ -148,7 +142,6 @@ export function ArchitectureSection({ form }: { form: LeadInput }) {
 
   return (
     <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-      {/* Header */}
       <div className="border-b border-zinc-100 bg-zinc-50/50 px-6 pb-4 pt-6">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -175,9 +168,7 @@ export function ArchitectureSection({ form }: { form: LeadInput }) {
         </div>
       </div>
 
-      {/* Two paths */}
       <div className="grid grid-cols-2 divide-y lg:divide-x lg:divide-y-0 divide-zinc-100">
-        {/* Demo path */}
         <div className="p-5 bg-teal-50/10">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -200,7 +191,6 @@ export function ArchitectureSection({ form }: { form: LeadInput }) {
           </div>
         </div>
 
-        {/* Production path */}
         <div className="p-5 bg-violet-50/10">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -222,7 +212,6 @@ export function ArchitectureSection({ form }: { form: LeadInput }) {
             ))}
           </div>
 
-          {/* Queue button */}
           <div className="mt-4 space-y-2">
             <Button
               variant="outline"
@@ -272,7 +261,6 @@ export function ArchitectureSection({ form }: { form: LeadInput }) {
         </div>
       </div>
 
-      {/* Shared layer */}
       <div className="mx-5 mb-5 mt-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 shadow-sm">
         <div className="mb-2 flex items-center gap-2">
           <div className="h-1.5 w-1.5 rounded-full bg-zinc-300" />
