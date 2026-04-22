@@ -6,42 +6,58 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # Repo Guidance
 
-This repo is an interview prototype and a thin Next.js shell around an outbound-personalization pipeline. Optimize for clarity, speakability, and fast feature iteration over framework purity.
+This repo is an interview prototype: a thin Next.js shell around an outbound-personalization pipeline. Optimize for clarity, speakability, and fast feature iteration over framework purity.
 
-## Live Coding Session Guidance
+## Interview Mode
 
-When helping in a live AI coding or pair-coding session:
+When helping in a live coding session:
 
-- Start by grounding the user in the repo shape before proposing changes.
-- Proactively surface the likely files to touch for the requested feature instead of only speaking abstractly.
-- Explain architecture and tradeoffs in a compact, interview-friendly way: what owns the UI, what owns the pipeline, what owns persistence, and whether a change is demo-only or part of the real runtime path.
+- Start with the user-facing goal, not the implementation.
+- Quickly ground the user in the repo shape before proposing changes.
+- Name the likely files to touch before editing.
 - Prefer the smallest change that is easy to explain out loud.
-- Avoid broad refactors unless they materially reduce risk for the feature being built right now.
-- If a request has more than one plausible implementation path, briefly name the options, recommend one, and explain why.
-- Make it easy for the user to narrate ownership: "this file is the screen", "this file is the state/orchestration seam", "this file is the pipeline stage", "this file is the persistence seam".
+- Default to one canonical implementation story instead of describing every possible path.
+- Make it easy for the user to say: "this is the screen", "this is the state seam", "this is the pipeline owner", "this is the persistence seam".
 
-## Canonical Repo Map
+## Fast Repo Map
 
-Use these files as the default orientation points when explaining the codebase:
+Open these first:
 
-- `app/page.tsx`: app entrypoint; renders the main workspace.
-- `components/features/SDRWorkspace.tsx`: top-level product shell for the review, analytics, DSPy, and live-agent surfaces.
-- `components/features/QueueList.tsx`: review queue and history list UI.
-- `components/features/DetailPanel.tsx` and `components/features/detail/*`: draft review, angle/context display, and regenerate flow.
-- `components/features/LiveAgentDemo.tsx`: live streamed demo surface for the pipeline.
-- `lib/types.ts`: canonical nouns and data model.
-- `lib/jobs/instant-job-codec.ts`: mapping between InstantDB records and the app's domain model.
-- `lib/pipeline/run-job.ts`: clearest sequential view of the full pipeline.
+- `app/page.tsx`: entrypoint; renders `SDRWorkspace`.
+- `components/features/SDRWorkspace.tsx`: top-level screen coordinator for review, analytics, GEPA, and live-agent views.
+- `components/features/QueueList.tsx`: review queue/history rail.
+- `components/features/DetailPanel.tsx`: draft review, edit, regenerate, approve, skip.
+- `components/features/LiveAgentDemo.tsx`: streamed live pipeline demo.
+- `lib/types.ts`: canonical nouns and shared model.
+- `lib/jobs/instant-job-codec.ts`: InstantDB record <-> `OutboundJob` mapper.
+- `lib/pipeline/run-job.ts`: clearest sequential pipeline story.
 - `lib/pipeline/execution-core.ts`: stage ownership and shared pipeline state.
-- `lib/pipeline/pipeline-agent.ts`: streamed tool-based pipeline path for the live demo.
-- `lib/pipeline/persistence.ts`: persistence seam for jobs and pipeline runs.
-- `app/api/jobs/stream/route.ts`: live streaming API path.
-- `app/api/jobs/run/route.ts`: direct sequential run path.
+- `lib/pipeline/pipeline-agent.ts`: streamed tool-based pipeline path.
+- `lib/pipeline/persistence.ts`: jobs + pipeline runs persistence seam.
+- `app/api/jobs/stream/route.ts`: live streaming route.
+- `app/api/jobs/run/route.ts`: direct sequential route.
 - `app/actions/queue-pipeline.ts` and `workflows/outbound-pipeline/*`: durable workflow path.
 
-## How To Frame Feature Additions
+## Canonical Story
 
-When discussing or implementing a new feature, first classify it into one or more of these buckets:
+For most live feature work, tell the story in this order:
+
+1. User-facing goal
+2. Screen / surface
+3. State or orchestration seam
+4. Route or action
+5. Pipeline logic
+6. Persistence
+
+Default implementation path:
+
+`SDRWorkspace -> feature component -> hook/state -> API route -> lib/pipeline -> persistence`
+
+De-emphasize the workflow path unless the feature is explicitly about durable background execution.
+
+## Feature Placement
+
+Classify a feature into one or more of these buckets before editing:
 
 - UI surface change
 - State/orchestration change
@@ -50,20 +66,20 @@ When discussing or implementing a new feature, first classify it into one or mor
 - Persistence/schema change
 - Demo-only / fixture-only change
 
-Then name the most likely files in each bucket before editing.
+Then name the most likely files in each bucket.
 
-## Preferred Explanation Style
+## Response Style
 
-For interview-oriented conversations:
+For interview-facing output:
 
-- Lead with the user-facing goal and where it lives in the code.
-- Then explain the data flow from UI -> route/action -> pipeline logic -> persistence.
-- Call out tradeoffs explicitly when relevant, especially if there is a choice between the streamed demo path and the durable workflow path.
-- Default to one canonical implementation story rather than describing every possible path in the repo.
+- Lead with what the feature does for the SDR.
+- Then explain where it lives in the code.
+- Call out tradeoffs briefly and explicitly.
+- Prefer a few concrete file references over a broad file dump.
+- Say plainly when something is demo-only, fixture-backed, or not yet wired into the real runtime path.
 
-## Preferred Change Strategy
+## Avoid
 
-- For most live feature work, treat `SDRWorkspace -> feature component -> hook/state -> API route -> lib/pipeline -> persistence` as the canonical path.
-- De-emphasize the workflow path unless the feature is explicitly about durable background execution.
-- Keep demo fixtures and production-ish runtime changes conceptually separate and say which side you are touching.
-- If the app is using local fixture artifacts for a surface, say that plainly instead of implying it is fully live-backed.
+- Do not lead with broad validation-gate ideas; that muddles the DSPy story and creates a second optimization target.
+- Do not equate "better interview answer" with "show more data"; prefer understandability over surface area.
+- Do not reach for broad refactors unless they materially reduce risk for the feature being built right now.
