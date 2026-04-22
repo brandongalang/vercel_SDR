@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import random
 import re
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -11,10 +12,11 @@ from pathlib import Path
 from typing import Any, Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
-DATASET_PATH = ROOT / "data" / "synthetic-jobs-v2.json"
-PROMPT_SNAPSHOTS_PATH = ROOT / "data" / "prompt-snapshots.json"
-DEFAULT_OUT_PATH = ROOT / "data" / "ax-optimized-v3.json"
-DEFAULT_PROGRAM_PATH = ROOT / "data" / "ax-optimized-v3.dspy.json"
+SEEDS_DIR = ROOT / "lib" / "db" / "seeds"
+DATASET_PATH = SEEDS_DIR / "synthetic-jobs-all.json"
+PROMPT_SNAPSHOTS_PATH = SEEDS_DIR / "prompt-snapshots.json"
+DEFAULT_OUT_PATH = SEEDS_DIR / "ax-optimized-v3.json"
+DEFAULT_PROGRAM_PATH = SEEDS_DIR / "ax-optimized-v3.dspy.json"
 
 OBJECTIVE_WEIGHTS = {
     "cleanAccept": 0.2,
@@ -86,23 +88,19 @@ def parse_args() -> argparse.Namespace:
         help="Where to save the raw compiled DSPy program in real mode.",
     )
     parser.add_argument("--demos", type=int, default=6, help="How many demos to keep in the artifact.")
-    parser.add_argument("--auto", default="medium", choices=("light", "medium", "heavy"))
-    parser.add_argument("--max-bootstrapped-demos", type=int, default=4)
-    parser.add_argument("--max-labeled-demos", type=int, default=6)
+    parser.add_argument("--auto", choices=("light", "medium", "heavy"))
+    parser.add_argument("--max-full-evals", type=int, help="Optional GEPA budget override.")
+    parser.add_argument("--val-ratio", type=float, default=0.2, help="Fraction of examples reserved for validation.")
+    parser.add_argument("--num-threads", type=int, help="Optional GEPA parallelism override.")
     parser.add_argument(
         "--model",
         default=os.getenv("DSPY_MODEL"),
         help='Task model for real mode, e.g. "openai/gpt-4o-mini".',
     )
     parser.add_argument(
-        "--teacher-model",
-        default=os.getenv("DSPY_TEACHER_MODEL"),
-        help='Teacher model for real mode, e.g. "openai/gpt-4o".',
-    )
-    parser.add_argument(
-        "--prompt-model",
-        default=os.getenv("DSPY_PROMPT_MODEL"),
-        help='Prompt proposal model for real mode, e.g. "openai/gpt-4o-mini".',
+        "--reflection-model",
+        default=os.getenv("DSPY_REFLECTION_MODEL") or os.getenv("DSPY_TEACHER_MODEL"),
+        help='Reflection model for GEPA, e.g. "openai/gpt-4o".',
     )
     parser.add_argument(
         "--compiled-at",
@@ -315,12 +313,17 @@ def round_rate(value: float | None) -> float | None:
 
 
 def version_row(jobs: list[dict[str, Any]], draft_prompt_version: str) -> dict[str, Any]:
-    with_feedback = [job for job in jobs if job.get("feedback") is not None]
+    version_jobs = [
+        job
+        for job in jobs
+        if (job.get("promptVersions") or {}).get("draftGenerator") == draft_prompt_version
+    ]
+    with_feedback = [job for job in version_jobs if job.get("feedback") is not None]
     clean_accept = sum(1 for job in with_feedback if clean_accept_label(job))
     edited = len(with_feedback) - clean_accept
     sent_with_outcome = [
         job
-        for job in jobs
+        for job in version_jobs
         if job.get("status") == "sent_stub"
         and (job.get("outcome") is not None or (job.get("feedback") or {}).get("positiveReply") is not None)
     ]
@@ -329,7 +332,7 @@ def version_row(jobs: list[dict[str, Any]], draft_prompt_version: str) -> dict[s
     return {
         "draftPromptVersion": draft_prompt_version,
         "angleType": None,
-        "jobCount": len(jobs),
+        "jobCount": len(version_jobs),
         "withFeedback": len(with_feedback),
         "cleanAccept": clean_accept,
         "edited": edited,
@@ -490,6 +493,29 @@ def serialize_program_demos(raw_demos: Any) -> list[dict[str, Any]]:
     return serialized
 
 
+def split_examples_for_gepa(examples: list[dict[str, Any]], val_ratio: float) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    if not examples:
+        raise ValueError("Need at least one example to compile.")
+
+    if len(examples) < 3:
+        return examples, examples
+
+    shuffled = list(examples)
+    random.Random(0).shuffle(shuffled)
+
+    bounded_ratio = min(max(val_ratio, 0.0), 0.5)
+    val_size = max(1, round(len(shuffled) * bounded_ratio))
+    train_size = len(shuffled) - val_size
+
+    if train_size < 1:
+        train_size = len(shuffled) - 1
+        val_size = 1
+
+    train_examples = shuffled[:train_size]
+    val_examples = shuffled[train_size:]
+    return train_examples, (val_examples or train_examples)
+
+
 def real_mode_artifact(
     args: argparse.Namespace,
     examples: list[dict[str, Any]],
@@ -499,14 +525,17 @@ def real_mode_artifact(
     projected_version_row: dict[str, Any],
     compiled_at: str,
 ) -> dict[str, Any]:
-    missing = [flag for flag, value in {"--model": args.model, "--teacher-model": args.teacher_model}.items() if not value]
+    missing = [flag for flag, value in {"--model": args.model, "--reflection-model": args.reflection_model}.items() if not value]
     if missing:
         raise SystemExit(f"Real mode requires {' and '.join(missing)} (or matching DSPY_* env vars).")
+
+    if args.auto and args.max_full_evals is not None:
+        raise SystemExit("Use either --auto or --max-full-evals with GEPA, not both.")
 
     try:
         import dspy  # type: ignore
     except ImportError as exc:
-        raise SystemExit("DSPy is not installed. Run `pip install -r requirements-dspy.txt` first.") from exc
+        raise SystemExit("DSPy is not installed. Run `pip install -U dspy` first.") from exc
 
     class DraftGeneratorSignature(dspy.Signature):
         """You are a B2B SDR email writer for Vercel. Given a lead context, the top signal, and an earlier draft, write a tighter cold email that leads with the signal, frames a concrete outcome, and ends with a low-friction CTA."""
@@ -529,7 +558,7 @@ def real_mode_artifact(
                 prior_draft=prior_draft,
             )
 
-    def metric(example: Any, prediction: Any, trace: Any = None) -> float:
+    def metric(example: Any, prediction: Any, trace: Any = None, *_args: Any, **_kwargs: Any) -> float:
         subject = getattr(prediction, "subject", "") or ""
         body = getattr(prediction, "body", "") or ""
         example_payload = {
@@ -543,11 +572,10 @@ def real_mode_artifact(
         )
 
     task_lm = dspy.LM(args.model)
-    teacher_lm = dspy.LM(args.teacher_model)
-    prompt_lm = dspy.LM(args.prompt_model or args.model)
+    reflection_lm = dspy.LM(args.reflection_model)
     dspy.configure(lm=task_lm)
 
-    trainset = [
+    compiled_examples = [
         dspy.Example(
             id=example["id"],
             lead_context=example["leadContext"],
@@ -562,19 +590,26 @@ def real_mode_artifact(
         ).with_inputs("lead_context", "top_signal", "prior_draft")
         for example in examples
     ]
+    trainset, valset = split_examples_for_gepa(compiled_examples, args.val_ratio)
 
     program = DraftProgram()
-    teleprompter = dspy.MIPROv2(
-        metric=metric,
-        auto=args.auto,
-        prompt_model=prompt_lm,
-        teacher_settings=dict(lm=teacher_lm),
-    )
-    optimized_program = teleprompter.compile(
-        program,
+    optimizer_kwargs: dict[str, Any] = {
+        "metric": metric,
+        "reflection_lm": reflection_lm,
+        "track_stats": True,
+    }
+    if args.num_threads is not None:
+        optimizer_kwargs["num_threads"] = args.num_threads
+    if args.max_full_evals is not None:
+        optimizer_kwargs["max_full_evals"] = args.max_full_evals
+    else:
+        optimizer_kwargs["auto"] = args.auto or "medium"
+
+    optimizer = dspy.GEPA(**optimizer_kwargs)
+    optimized_program = optimizer.compile(
+        student=program,
         trainset=trainset,
-        max_bootstrapped_demos=args.max_bootstrapped_demos,
-        max_labeled_demos=args.max_labeled_demos,
+        valset=valset,
     )
     optimized_instruction = optimized_program.predict.signature.instructions
 
@@ -589,7 +624,7 @@ def real_mode_artifact(
         instruction=optimized_instruction or v3_snapshot["instruction"],
         demos=demos[: args.demos],
         compiled_at=compiled_at,
-        optimizer="MIPROv2",
+        optimizer="GEPA",
         prompt_version_before=prompt_version_before,
         prompt_version_after=v3_snapshot["version"],
         baseline_row=baseline_row,
@@ -615,7 +650,7 @@ def mock_mode_artifact(
         instruction=v3_snapshot["instruction"],
         demos=demos,
         compiled_at=compiled_at,
-        optimizer="MIPROv2",
+        optimizer="GEPA",
         prompt_version_before=prompt_version_before,
         prompt_version_after=v3_snapshot["version"],
         baseline_row=baseline_row,
@@ -633,7 +668,7 @@ def main() -> None:
     prompt_version_before = latest_prompt_version(jobs)
     v3_snapshot = snapshots_by_key.get("v3")
     if not v3_snapshot:
-        raise SystemExit("Could not find a v3 prompt snapshot in data/prompt-snapshots.json.")
+        raise SystemExit("Could not find a v3 prompt snapshot in lib/db/seeds/prompt-snapshots.json.")
 
     examples = [build_example(job) for job in jobs]
     baseline_row = version_row(jobs, prompt_version_before)
