@@ -19,7 +19,16 @@ export function useJobActions(jobs: OutboundJob[]) {
   );
 
   const handleApprove = useCallback(
-    (jobId: string, payload: { subject: string; body: string; edited: boolean; editorNote?: string }) => {
+    (
+      jobId: string,
+      payload: {
+        subject: string;
+        body: string;
+        edited: boolean;
+        editorNote?: string;
+        draftRationale?: string;
+      },
+    ) => {
       const now = Date.now();
       db.transact(
         db.tx.jobs[jobId].update({
@@ -27,7 +36,11 @@ export function useJobActions(jobs: OutboundJob[]) {
           draftSubject: payload.subject,
           draftBody: payload.body,
           highlightedSpan: null,
-          feedback: { edited: payload.edited, editorNote: payload.editorNote ?? null },
+          feedback: {
+            edited: payload.edited,
+            editorNote: payload.editorNote ?? null,
+            draftRationale: payload.draftRationale ?? null,
+          },
           approvedAt: now,
           sentAt: now,
           updatedAt: now,
@@ -43,11 +56,17 @@ export function useJobActions(jobs: OutboundJob[]) {
     [],
   );
 
-  const handleArchive = useCallback((jobId: string) => {
+  const handleArchive = useCallback((jobId: string, payload?: { skipReason?: string }) => {
     const now = Date.now();
     db.transact(
       db.tx.jobs[jobId].update({
         status: "reviewed",
+        feedback: payload?.skipReason
+          ? {
+              edited: false,
+              skipReason: payload.skipReason,
+            }
+          : null,
         archivedAt: now,
         updatedAt: now,
       }),

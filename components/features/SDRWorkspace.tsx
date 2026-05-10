@@ -24,9 +24,16 @@ import { useJobActions } from "@/lib/hooks/use-job-actions";
 import { useQueueState, selectNextPendingId } from "@/lib/hooks/use-queue-state";
 import { useDemoReset } from "@/lib/hooks/use-demo-reset";
 import { useAnalyticsState } from "@/lib/hooks/use-analytics-state";
+import { useReviewFeedbackRateLimit } from "@/lib/hooks/use-review-feedback-rate-limit";
 import { getReviewHeader, getViewHeader, getWorkspaceTabs } from "./workspace-config";
+import type { ReviewOutcomeFeedbackKind } from "./detail/ReviewOutcomeFeedback";
 
 type ReviewWorkspaceState = "loading" | "error" | "empty" | "complete" | "idle" | "ready";
+type PendingReviewFeedbackAction = {
+  jobId: string;
+  kind: ReviewOutcomeFeedbackKind;
+  text: string;
+};
 
 export default function SDRWorkspace() {
   const { isLoading, error, data } = db.useQuery({ jobs: {} });
@@ -42,6 +49,8 @@ export default function SDRWorkspace() {
   const isDesktopReviewLayout = useMediaQuery("(min-width: 768px)");
   const [mobileReviewPane, setMobileReviewPane] = useState<"queue" | "detail">("detail");
   const [isLoadingSlow, setIsLoadingSlow] = useState(false);
+  const [pendingReviewFeedback, setPendingReviewFeedback] =
+    useState<PendingReviewFeedbackAction | null>(null);
 
   const {
     handleApprove,
@@ -53,6 +62,12 @@ export default function SDRWorkspace() {
     getRegenerateNote,
     resetAll: resetJobActions,
   } = useJobActions(jobs);
+  const {
+    shouldPromptForAction,
+    markPromptShown,
+    markEligibleActionHandled,
+    reset: resetReviewFeedbackRateLimit,
+  } = useReviewFeedbackRateLimit();
 
   const {
     selectedJobId: resolvedSelectedJobId,
@@ -75,10 +90,18 @@ export default function SDRWorkspace() {
 
   const handleDemoResetCallback = useCallback(() => {
     setSelectedJobId(null);
+    setPendingReviewFeedback(null);
     resetJobActions();
+    resetReviewFeedbackRateLimit();
     resetAnalyticsDateRange();
     setActiveView("review");
-  }, [setSelectedJobId, resetJobActions, resetAnalyticsDateRange, setActiveView]);
+  }, [
+    setSelectedJobId,
+    resetJobActions,
+    resetReviewFeedbackRateLimit,
+    resetAnalyticsDateRange,
+    setActiveView,
+  ]);
 
   const { handleResetDemo, isResettingDemo, resetError, workspaceResetVersion } =
     useDemoReset(handleDemoResetCallback);
@@ -131,43 +154,120 @@ export default function SDRWorkspace() {
   }
   const reviewWorkspaceState = deriveReviewWorkspaceState();
 
+  const openPendingFeedbackPrompt = useCallback(
+    (jobId: string, kind: ReviewOutcomeFeedbackKind) => {
+      markPromptShown(jobId);
+      setPendingReviewFeedback({ jobId, kind, text: "" });
+      setSelectedJobId(jobId);
+      if (!isDesktopReviewLayout) setMobileReviewPane("detail");
+    },
+    [isDesktopReviewLayout, markPromptShown, setSelectedJobId],
+  );
+
+  const completeApproveAction = useCallback(
+    (
+      jobId: string,
+      payload: {
+        subject: string;
+        body: string;
+        edited: boolean;
+        editorNote?: string;
+        draftRationale?: string;
+      },
+    ) => {
+      handleApprove(jobId, payload);
+      if (payload.edited) {
+        markEligibleActionHandled();
+      }
+      setPendingReviewFeedback((current) => (current?.jobId === jobId ? null : current));
+      setSelectedJobId(selectNextPendingId(jobs, jobId));
+      if (!isDesktopReviewLayout) setMobileReviewPane("detail");
+    },
+    [handleApprove, isDesktopReviewLayout, jobs, markEligibleActionHandled, setSelectedJobId],
+  );
+
+  const completeArchiveAction = useCallback(
+    (jobId: string, payload?: { skipReason?: string }) => {
+      handleArchive(jobId, payload);
+      markEligibleActionHandled();
+      setPendingReviewFeedback((current) => (current?.jobId === jobId ? null : current));
+      setSelectedJobId(selectNextPendingId(jobs, jobId));
+      if (!isDesktopReviewLayout) setMobileReviewPane("detail");
+    },
+    [handleArchive, isDesktopReviewLayout, jobs, markEligibleActionHandled, setSelectedJobId],
+  );
+
+  const createApprovePayload = useCallback(
+    (jobId: string, draftRationale?: string) => {
+      const job = jobs.find((value) => value.id === jobId);
+      if (!job || job.status !== "pending_review") return null;
+
+      const base = getBaselineDraft(jobId);
+      const edited = base ? job.draft.subject !== base.subject || job.draft.body !== base.body : false;
+
+      return {
+        subject: job.draft.subject,
+        body: job.draft.body,
+        edited,
+        editorNote: getRegenerateNote(jobId),
+        draftRationale,
+      };
+    },
+    [getBaselineDraft, getRegenerateNote, jobs],
+  );
+
   const handleApproveFromQueue = (jobId: string) => {
-    const job = jobs.find((value) => value.id === jobId);
-    if (!job || job.status !== "pending_review") return;
+    const payload = createApprovePayload(jobId);
+    if (!payload) return;
 
-    const base = getBaselineDraft(jobId);
-    const edited = base ? job.draft.subject !== base.subject || job.draft.body !== base.body : false;
+    if (payload.edited && shouldPromptForAction(jobId)) {
+      openPendingFeedbackPrompt(jobId, "approve_with_edits");
+      return;
+    }
 
-    handleApprove(jobId, {
-      subject: job.draft.subject,
-      body: job.draft.body,
-      edited,
-      editorNote: getRegenerateNote(jobId),
-    });
-
-    const nextId = selectNextPendingId(jobs, jobId);
-    setSelectedJobId(nextId);
-    if (!isDesktopReviewLayout) setMobileReviewPane("detail");
+    completeApproveAction(jobId, payload);
   };
 
   const handleArchiveFromQueue = (jobId: string) => {
-    const nextId = selectNextPendingId(jobs, jobId);
-    handleArchive(jobId);
-    setSelectedJobId(nextId);
-    if (!isDesktopReviewLayout) setMobileReviewPane("detail");
+    const job = jobs.find((value) => value.id === jobId);
+    if (!job || job.status !== "pending_review") return;
+
+    if (shouldPromptForAction(jobId)) {
+      openPendingFeedbackPrompt(jobId, "skip");
+      return;
+    }
+
+    completeArchiveAction(jobId);
   };
 
   const handleApproveFromDetail = (
     jobId: string,
-    payload: { subject: string; body: string; edited: boolean; editorNote?: string },
+    payload: {
+      subject: string;
+      body: string;
+      edited: boolean;
+      editorNote?: string;
+      draftRationale?: string;
+    },
   ) => {
-    handleApprove(jobId, payload);
-    setSelectedJobId(selectNextPendingId(jobs, jobId));
+    if (payload.edited && shouldPromptForAction(jobId)) {
+      openPendingFeedbackPrompt(jobId, "approve_with_edits");
+      return;
+    }
+
+    completeApproveAction(jobId, payload);
   };
 
-  const handleArchiveFromDetail = (jobId: string) => {
-    handleArchive(jobId);
-    setSelectedJobId(selectNextPendingId(jobs, jobId));
+  const handleArchiveFromDetail = (jobId: string, payload?: { skipReason?: string }) => {
+    const job = jobs.find((value) => value.id === jobId);
+    if (!job || job.status !== "pending_review") return;
+
+    if (!payload?.skipReason && shouldPromptForAction(jobId)) {
+      openPendingFeedbackPrompt(jobId, "skip");
+      return;
+    }
+
+    completeArchiveAction(jobId, payload);
   };
 
   const reviewHeader = getReviewHeader({
@@ -181,6 +281,7 @@ export default function SDRWorkspace() {
   const workspaceTabs = getWorkspaceTabs(queueListState, queueStatusCounts);
 
   const handleOpenReviewJob = (jobId: string) => {
+    setPendingReviewFeedback(null);
     setSelectedJobId(jobId);
     setActiveView("review");
     setMobileReviewPane("detail");
@@ -221,10 +322,45 @@ export default function SDRWorkspace() {
   }, [activeView]);
 
   const handleSelectReviewJob = (jobId: string) => {
+    setPendingReviewFeedback(null);
     setSelectedJobId(jobId);
     if (!isDesktopReviewLayout) setMobileReviewPane("detail");
   };
 
+  const selectedPendingFeedback =
+    selectedJob && pendingReviewFeedback?.jobId === selectedJob.id ? pendingReviewFeedback : null;
+
+  const handlePendingFeedbackTextChange = (value: string) => {
+    setPendingReviewFeedback((current) => (current ? { ...current, text: value } : current));
+  };
+
+  const handleContinueWithoutFeedback = () => {
+    if (!pendingReviewFeedback) return;
+
+    if (pendingReviewFeedback.kind === "skip") {
+      completeArchiveAction(pendingReviewFeedback.jobId);
+      return;
+    }
+
+    const payload = createApprovePayload(pendingReviewFeedback.jobId);
+    if (!payload) return;
+    completeApproveAction(pendingReviewFeedback.jobId, payload);
+  };
+
+  const handleSubmitPendingFeedback = () => {
+    if (!pendingReviewFeedback) return;
+
+    const note = pendingReviewFeedback.text.trim() || undefined;
+
+    if (pendingReviewFeedback.kind === "skip") {
+      completeArchiveAction(pendingReviewFeedback.jobId, { skipReason: note });
+      return;
+    }
+
+    const payload = createApprovePayload(pendingReviewFeedback.jobId, note);
+    if (!payload) return;
+    completeApproveAction(pendingReviewFeedback.jobId, payload);
+  };
   useEffect(() => {
     setRailControls(
       <Button
@@ -343,6 +479,11 @@ export default function SDRWorkspace() {
             onDraftUpdate={handleDraftUpdate}
             onResetDraft={handleResetDraft}
             onRegenerateNote={handleRegenerateNote}
+            pendingFeedbackAction={selectedPendingFeedback?.kind ?? null}
+            pendingFeedbackText={selectedPendingFeedback?.text ?? ""}
+            onPendingFeedbackTextChange={handlePendingFeedbackTextChange}
+            onSubmitPendingFeedback={handleSubmitPendingFeedback}
+            onContinueWithoutFeedback={handleContinueWithoutFeedback}
             draftHasEdits={Boolean(draftHasEdits)}
             regenerateNote={selectedJob ? getRegenerateNote(selectedJob.id) : undefined}
             state={reviewWorkspaceState}

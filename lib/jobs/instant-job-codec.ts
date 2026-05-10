@@ -291,6 +291,8 @@ function parseFeedback(value: unknown): OutboundJob["feedback"] | undefined {
   return {
     edited: value.edited,
     editorNote: typeof value.editorNote === "string" ? value.editorNote : undefined,
+    draftRationale: typeof value.draftRationale === "string" ? value.draftRationale : undefined,
+    skipReason: typeof value.skipReason === "string" ? value.skipReason : undefined,
     positiveReply:
       typeof value.positiveReply === "boolean" || value.positiveReply === null
         ? value.positiveReply

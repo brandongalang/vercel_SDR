@@ -17,6 +17,10 @@ import { ReviewStatusBanner } from "./detail/ReviewStatusBanner";
 import { DraftSection } from "./detail/DraftSection";
 import { RegenerationWorkspace } from "./detail/RegenerationWorkspace";
 import { AngleContextSection } from "./detail/AngleContextSection";
+import {
+  ReviewOutcomeFeedback,
+  type ReviewOutcomeFeedbackKind,
+} from "./detail/ReviewOutcomeFeedback";
 
 function DetailPanelEmptyState({
   state,
@@ -115,6 +119,11 @@ export default function DetailPanel({
   onDraftUpdate,
   onResetDraft,
   onRegenerateNote,
+  pendingFeedbackAction,
+  pendingFeedbackText,
+  onPendingFeedbackTextChange,
+  onSubmitPendingFeedback,
+  onContinueWithoutFeedback,
   draftHasEdits,
   regenerateNote,
   onBackToQueue,
@@ -123,11 +132,25 @@ export default function DetailPanel({
   isLoadingSlow,
 }: {
   job: OutboundJob | null;
-  onApprove: (jobId: string, payload: { subject: string; body: string; edited: boolean; editorNote?: string }) => void;
-  onArchive: (jobId: string) => void;
+  onApprove: (
+    jobId: string,
+    payload: {
+      subject: string;
+      body: string;
+      edited: boolean;
+      editorNote?: string;
+      draftRationale?: string;
+    },
+  ) => void;
+  onArchive: (jobId: string, payload?: { skipReason?: string }) => void;
   onDraftUpdate: (jobId: string, draft: OutboundJob["draft"]) => void;
   onResetDraft: (jobId: string) => void;
   onRegenerateNote: (jobId: string, note: string | undefined) => void;
+  pendingFeedbackAction: ReviewOutcomeFeedbackKind | null;
+  pendingFeedbackText: string;
+  onPendingFeedbackTextChange: (value: string) => void;
+  onSubmitPendingFeedback: () => void;
+  onContinueWithoutFeedback: () => void;
   draftHasEdits: boolean;
   regenerateNote?: string;
   onBackToQueue?: () => void;
@@ -150,6 +173,7 @@ export default function DetailPanel({
 
   const isDone = job.status !== "pending_review";
   const showReviewState = draftHasEdits;
+  const feedbackPromptOpen = pendingFeedbackAction !== null;
 
   const handleApprove = () => {
     onApprove(job.id, {
@@ -187,6 +211,16 @@ export default function DetailPanel({
               }
             />
 
+            {pendingFeedbackAction && (
+              <ReviewOutcomeFeedback
+                kind={pendingFeedbackAction}
+                value={pendingFeedbackText}
+                onChange={onPendingFeedbackTextChange}
+                onSubmit={onSubmitPendingFeedback}
+                onContinueWithoutFeedback={onContinueWithoutFeedback}
+              />
+            )}
+
             <AngleContextSection job={job} />
           </div>
         </div>
@@ -206,34 +240,42 @@ export default function DetailPanel({
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "h-8 gap-1.5 rounded-md px-2.5 text-xs font-medium",
-                    "text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-200",
-                  )}
-                  onClick={handleApprove}
-                >
-                  <CheckCircle size={13} />
-                  {draftHasEdits ? "Approve with edits" : "Approve draft"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "h-8 gap-1.5 rounded-md px-2.5 text-xs font-medium",
-                    "text-muted-foreground hover:text-foreground hover:bg-muted",
-                  )}
-                  onClick={() => onArchive(job.id)}
-                >
-                  <SkipForward size={13} />
-                  Skip
-                </Button>
-              </div>
+              {feedbackPromptOpen ? (
+                <p className="text-[11px] text-muted-foreground">
+                  {pendingFeedbackAction === "skip"
+                    ? "Skip is pending until you continue from the feedback prompt."
+                    : "Approve with edits is pending until you continue from the feedback prompt."}
+                </p>
+              ) : (
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "h-8 gap-1.5 rounded-md px-2.5 text-xs font-medium",
+                      "text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-200",
+                    )}
+                    onClick={handleApprove}
+                  >
+                    <CheckCircle size={13} />
+                    {draftHasEdits ? "Approve with edits" : "Approve draft"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "h-8 gap-1.5 rounded-md px-2.5 text-xs font-medium",
+                      "text-muted-foreground hover:text-foreground hover:bg-muted",
+                    )}
+                    onClick={() => onArchive(job.id)}
+                  >
+                    <SkipForward size={13} />
+                    Skip
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         )}
