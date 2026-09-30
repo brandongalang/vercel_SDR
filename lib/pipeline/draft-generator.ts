@@ -1,5 +1,5 @@
 import { generateText, Output } from "ai";
-import { vertexModels } from "@/lib/ai/vertex";
+import { pipelineModels } from "@/lib/ai/models";
 import { buildDraftGeneratorPrompt } from "@/lib/pipeline/draft-generator-prompt";
 import {
   getLiveDraftGeneratorArtifact,
@@ -37,7 +37,7 @@ export async function runDraftGenerator(input: {
   const promptArtifact = getLiveDraftGeneratorArtifact();
 
   const result = await generateText({
-    model: vertexModels.draftGenerator,
+    model: pipelineModels.draftGenerator,
     output: Output.object({
       schema: draftOutputSchema,
     }),

@@ -13,7 +13,7 @@ import type {
   PipelineTraceDataParts,
   PipelineTraceEmitter,
 } from "@/lib/pipeline/live-trace";
-import { vertexModels } from "@/lib/ai/vertex";
+import { pipelineModels } from "@/lib/ai/models";
 import {
   buildPipelineJob,
   createPipelineExecutionState,
@@ -174,7 +174,7 @@ export function createPipelineAgent(
   }
 
   const agent = new ToolLoopAgent({
-    model: vertexModels.orchestrator,
+    model: pipelineModels.orchestrator,
     instructions: buildSystemPrompt(leadInput),
     stopWhen: stepCountIs(20),
     tools: {

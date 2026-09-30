@@ -17,6 +17,20 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+Set `NEXT_PUBLIC_INSTANT_APP_ID`, `INSTANT_ADMIN_TOKEN`, `OPENROUTER_API_KEY`, and
+`TAVILY_API_KEY` through local environment variables or the existing Vercel project's
+environment settings. Secret values belong in the provider's secure settings UI.
+
+## Free Runtime Providers
+
+- All five model roles use OpenRouter `qwen/qwen3.8-27b:free`, with zero-price provider
+  limits and structured output validation. No secondary model is configured.
+- Web search uses Tavily basic search on its free Researcher plan. Every request checks
+  account usage and requires pay-as-you-go to be disabled. Missing configuration,
+  unknown billing state, or exhausted quota stops search. Exa and Vertex search are absent.
+- Keep the existing Vercel login protection enabled. The prototype has no application
+  sign-in, and InstantDB permission rules must be inspected before publishing its data.
+
 ## Runtime vs Demo Data
 
 - Runtime pipeline writes to InstantDB through `lib/pipeline/persistence.ts`.
@@ -39,3 +53,4 @@ Open `http://localhost:3000`.
 - `npm run build`: production build check
 - `npm run start`: run built app
 - `npm run lint`: linting
+- `npm test`: mocked provider, structured output, and free-search checks (Node 24+)

@@ -1,5 +1,5 @@
 import { generateText, Output } from "ai";
-import { vertexModels } from "@/lib/ai/vertex";
+import { pipelineModels } from "@/lib/ai/models";
 import { buildAnglePlannerPrompt } from "@/lib/pipeline/angle-planner-prompt";
 import { getVercelProductContext } from "@/lib/pipeline/prompts";
 import { anglePlanSchema } from "@/lib/pipeline/schemas";
@@ -12,7 +12,7 @@ export async function runAnglePlanner(input: {
   const productContext = await getVercelProductContext();
 
   const result = await generateText({
-    model: vertexModels.anglePlanner,
+    model: pipelineModels.anglePlanner,
     output: Output.object({
       schema: anglePlanSchema,
     }),

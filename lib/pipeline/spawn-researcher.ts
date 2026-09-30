@@ -1,5 +1,5 @@
 import { Output, stepCountIs, tool, ToolLoopAgent } from "ai";
-import { vertexModels } from "@/lib/ai/vertex";
+import { pipelineModels } from "@/lib/ai/models";
 import {
   getTraceErrorMessage,
   nowIso,
@@ -187,7 +187,7 @@ export async function runResearchThread(input: {
     `${traceParentId}:${toolName}:${++toolCallCount}`;
 
   const researcher = new ToolLoopAgent({
-    model: vertexModels.researcher,
+    model: pipelineModels.researcher,
     instructions: `You are a focused research subagent.
 
 Only investigate the single topic you were assigned.

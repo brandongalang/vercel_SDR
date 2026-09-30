@@ -1,12 +1,12 @@
 import { generateText, Output } from "ai";
-import { vertexModels } from "@/lib/ai/vertex";
+import { pipelineModels } from "@/lib/ai/models";
 import { PROMPT_VERSIONS } from "@/lib/pipeline/prompts";
 import { signalExtractionSchema } from "@/lib/pipeline/schemas";
 import type { ResearchPacket } from "@/lib/types";
 
 export async function runSignalExtractor(packet: ResearchPacket) {
   const result = await generateText({
-    model: vertexModels.signalExtractor,
+    model: pipelineModels.signalExtractor,
     output: Output.object({
       schema: signalExtractionSchema,
     }),

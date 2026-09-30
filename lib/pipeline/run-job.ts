@@ -1,8 +1,7 @@
 import {
-  VERTEX_LOCATION,
-  VERTEX_MODEL_IDS,
-  VERTEX_PROJECT,
-} from "@/lib/ai/vertex";
+  MODEL_IDS,
+  MODEL_PROVIDER,
+} from "@/lib/ai/models";
 import {
   buildPipelineJob,
   createPipelineExecutionState,
@@ -45,9 +44,9 @@ export interface PipelineRunAudit {
   traces: PipelineTraces;
   promptVersions: typeof PROMPT_VERSIONS;
   modelMetadata: {
-    project: string;
-    location: string;
-    models: typeof VERTEX_MODEL_IDS;
+    provider: typeof MODEL_PROVIDER;
+    freeOnly: true;
+    models: typeof MODEL_IDS;
   };
   error?: {
     message: string;
@@ -186,9 +185,9 @@ export function createPipelineRunAudit(leadInput: LeadInput): PipelineRunAudit {
     traces: {},
     promptVersions: PROMPT_VERSIONS,
     modelMetadata: {
-      project: VERTEX_PROJECT,
-      location: VERTEX_LOCATION,
-      models: VERTEX_MODEL_IDS,
+      provider: MODEL_PROVIDER,
+      freeOnly: true,
+      models: MODEL_IDS,
     },
   };
 }
@@ -255,14 +254,19 @@ export function failPipelineAuditPhase<P extends PipelinePhase>(
 }
 
 export class PipelineExecutionError extends Error {
+  readonly audit: PipelineRunAudit;
+  readonly traces: PipelineTraces;
+
   constructor(
     message: string,
-    readonly audit: PipelineRunAudit,
-    readonly traces: PipelineTraces,
+    audit: PipelineRunAudit,
+    traces: PipelineTraces,
     options?: ErrorOptions,
   ) {
     super(message, options);
     this.name = "PipelineExecutionError";
+    this.audit = audit;
+    this.traces = traces;
   }
 }
 

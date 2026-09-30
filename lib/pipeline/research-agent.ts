@@ -1,5 +1,5 @@
 import { Output, stepCountIs, tool, ToolLoopAgent } from "ai";
-import { VERTEX_MODEL_IDS, vertexModels } from "@/lib/ai/vertex";
+import { MODEL_IDS, pipelineModels } from "@/lib/ai/models";
 import {
   getTraceErrorMessage,
   nowIso,
@@ -230,7 +230,7 @@ export async function runResearchAgent(input: {
     subtitle: "Plans coverage and spawns focused research threads",
     status: "running",
     startedAt: orchestratorStartedAt,
-    model: VERTEX_MODEL_IDS.orchestrator,
+    model: MODEL_IDS.orchestrator,
   });
   await yieldStreamFlush();
 
@@ -253,7 +253,7 @@ export async function runResearchAgent(input: {
       subtitle: "Focused evidence gathering",
       status: "running",
       startedAt,
-      model: VERTEX_MODEL_IDS.researcher,
+      model: MODEL_IDS.researcher,
       topic: args.topic,
       goal: args.researchGoal,
       queryHints: args.queryHints,
@@ -287,7 +287,7 @@ export async function runResearchAgent(input: {
         status: "completed",
         startedAt,
         completedAt: nowIso(),
-        model: VERTEX_MODEL_IDS.researcher,
+        model: MODEL_IDS.researcher,
         topic: args.topic,
         goal: args.researchGoal,
         queryHints: args.queryHints,
@@ -311,7 +311,7 @@ export async function runResearchAgent(input: {
         status: "error",
         startedAt,
         completedAt: nowIso(),
-        model: VERTEX_MODEL_IDS.researcher,
+        model: MODEL_IDS.researcher,
         topic: args.topic,
         goal: args.researchGoal,
         queryHints: args.queryHints,
@@ -343,7 +343,7 @@ export async function runResearchAgent(input: {
   });
 
   const orchestrator = new ToolLoopAgent({
-    model: vertexModels.orchestrator,
+    model: pipelineModels.orchestrator,
     instructions: "You coordinate research threads for outbound lead enrichment and decide when coverage is sufficient.",
     tools: {
       spawn_researcher: spawnResearcher,
@@ -398,7 +398,7 @@ export async function runResearchAgent(input: {
       status: "completed",
       startedAt: orchestratorStartedAt,
       completedAt: nowIso(),
-      model: VERTEX_MODEL_IDS.orchestrator,
+      model: MODEL_IDS.orchestrator,
       summary: packet.orchestratorSummary,
       uncertainty: packet.uncertainty,
     });
@@ -420,7 +420,7 @@ export async function runResearchAgent(input: {
       status: "error",
       startedAt: orchestratorStartedAt,
       completedAt: nowIso(),
-      model: VERTEX_MODEL_IDS.orchestrator,
+      model: MODEL_IDS.orchestrator,
       error: getTraceErrorMessage(error),
     });
     await yieldStreamFlush();

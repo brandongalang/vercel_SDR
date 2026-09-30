@@ -1,98 +1,83 @@
-import { googleSearch } from "@/lib/pipeline/tools/google-search";
-import type { WebSearchOutput } from "@/lib/pipeline/tools/search-types";
+import "server-only";
+import { z } from "zod";
+import type { WebSearchOutput } from "./search-types";
 
-type ExaSearchResult = {
-  title?: string;
-  url?: string;
-  publishedDate?: string;
-  summary?: string;
-  highlights?: string[];
-  text?: string;
-};
+const usageSchema = z.object({
+  key: z.object({ usage: z.number().nonnegative(), limit: z.number().nonnegative() }),
+  account: z.object({
+    current_plan: z.literal("Researcher"),
+    plan_usage: z.number().nonnegative(),
+    plan_limit: z.literal(1000),
+    paygo_usage: z.literal(0),
+    paygo_limit: z.literal(0),
+  }),
+});
 
-type ExaSearchResponse = {
-  results?: ExaSearchResult[];
-};
+const resultsSchema = z.object({
+  results: z.array(z.object({
+    title: z.string().optional(),
+    url: z.string().url(),
+    content: z.string().optional(),
+    published_date: z.string().optional(),
+  })),
+});
 
-async function exaSearch(input: {
-  query: string;
-  includeDomains?: string[];
-  numResults?: number;
-}): Promise<WebSearchOutput> {
-  const apiKey = process.env.EXA_API_KEY;
+export function createWebSearch(options: {
+  requestFetch?: typeof fetch;
+  getApiKey?: () => string | undefined;
+} = {}) {
+  return async function searchWeb(input: {
+    query: string;
+    includeDomains?: string[];
+    numResults?: number;
+  }): Promise<WebSearchOutput> {
+    const apiKey = (options.getApiKey?.() ?? process.env.TAVILY_API_KEY)?.trim();
+    if (!apiKey) throw new Error("Missing TAVILY_API_KEY: free web search is not configured");
+    const requestFetch = options.requestFetch ?? fetch;
+    const headers = { authorization: `Bearer ${apiKey}`, "content-type": "application/json" };
+    const usageResponse = await requestFetch("https://api.tavily.com/usage", {
+      headers, redirect: "error", signal: AbortSignal.timeout(20000), cache: "no-store",
+    });
+    if (!usageResponse.ok) {
+      throw new Error(`Cannot verify Tavily free quota (${usageResponse.status})`);
+    }
+    const usage = usageSchema.safeParse(await usageResponse.json());
+    if (!usage.success) {
+      throw new Error("Free-only search requires Tavily Researcher plan with pay-as-you-go disabled");
+    }
+    if (usage.data.account.plan_usage >= 1000 || usage.data.key.usage >= usage.data.key.limit) {
+      throw new Error("Tavily free search quota exhausted; no paid fallback is enabled");
+    }
 
-  if (!apiKey) {
-    throw new Error("Missing EXA_API_KEY");
-  }
-
-  const response = await fetch("https://api.exa.ai/search", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": apiKey,
-    },
-    body: JSON.stringify({
-      query: input.query,
-      numResults: input.numResults ?? 5,
-      includeDomains: input.includeDomains,
-      contents: {
-        summary: true,
-        highlights: { maxCharacters: 1200 },
-        text: { maxCharacters: 1200 },
-        livecrawl: "fallback",
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Exa search failed (${response.status})`);
-  }
-
-  const data = (await response.json()) as ExaSearchResponse;
-  return {
-    query: input.query,
-    provider: "exa",
-    results: (data.results ?? []).map((result) => ({
-      title: result.title ?? "Untitled result",
-      url: result.url ?? "",
-      publishedDate: result.publishedDate,
-      summary: result.summary ?? "",
-      highlights: result.highlights ?? [],
-      text: result.text ?? "",
-    })),
-  };
-}
-
-export async function searchWeb(input: {
-  query: string;
-  includeDomains?: string[];
-  numResults?: number;
-}): Promise<WebSearchOutput> {
-  const warnings: string[] = [];
-
-  try {
-    return await exaSearch(input);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown Exa search failure";
-    warnings.push(`Exa search unavailable: ${message}`);
-  }
-
-  try {
-    const google = await googleSearch(input);
+    const limit = Math.min(20, Math.max(1, Math.trunc(input.numResults ?? 5)));
+    const response = await requestFetch("https://api.tavily.com/search", {
+      method: "POST", headers, redirect: "error", signal: AbortSignal.timeout(20000),
+      body: JSON.stringify({
+        query: input.query,
+        search_depth: "basic",
+        auto_parameters: false,
+        max_results: limit,
+        include_domains: input.includeDomains ?? [],
+        include_answer: false,
+        include_raw_content: false,
+      }),
+    });
+    if (!response.ok) throw new Error(`Tavily search failed (${response.status}); no paid fallback is enabled`);
+    const parsed = resultsSchema.safeParse(await response.json());
+    if (!parsed.success) throw new Error("Tavily returned invalid search results");
     return {
-      ...google,
-      warnings: [...warnings, ...(google.warnings ?? [])],
+      query: input.query,
+      provider: "tavily",
+      results: parsed.data.results.slice(0, limit).map((result) => ({
+        title: result.title ?? "Untitled result",
+        url: result.url,
+        publishedDate: result.published_date,
+        summary: result.content ?? "",
+        highlights: result.content ? [result.content.slice(0, 1200)] : [],
+        text: result.content ?? "",
+      })),
     };
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unknown Gemini Google Search failure";
-    warnings.push(`Gemini Google Search unavailable: ${message}`);
-  }
-
-  return {
-    query: input.query,
-    provider: "none",
-    results: [],
-    warnings,
   };
 }
+
+export const searchWeb = createWebSearch();
