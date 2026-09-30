@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { generateText, streamText, Output, ToolLoopAgent, stepCountIs, tool } from "ai";
 import { z } from "zod";
-import { createPipelineModel, MODEL_IDS, PRIMARY_MODEL_ID } from "../lib/ai/models.ts";
+import { createPipelineModel, MODEL_IDS, PRIMARY_MODEL_ID, FALLBACK_MODEL_IDS } from "../lib/ai/models.ts";
 import { createWebSearch } from "../lib/pipeline/tools/web-search.ts";
 
 const completion = (message, reason = "stop") => Response.json({
@@ -91,11 +91,170 @@ test("tool loop executes validated tools and returns validated structured output
   assert.equal(result.output.summary, "Synthetic public result");
 });
 
-test("provider errors expose only status and never fall back", async () => {
+test("unclassified live data blocks fallback and provider echoes stay private", async () => {
   let calls = 0;
   const model = createPipelineModel({ getApiKey: () => "synthetic-test-key", requestFetch: async () => { calls++; return Response.json({ error: { message: "sensitive-provider-echo" } }, { status: 429 }); } });
   await assert.rejects(generateText({ model, prompt: "Synthetic", maxRetries: 0 }), error => error.message.includes("429") && !error.message.includes("sensitive-provider-echo"));
   assert.equal(calls, 1);
+});
+
+const syntheticHarness = { getApiKey: () => "synthetic-test-key", fallbackDataPolicy: "synthetic-nonpersonal", agenticHarness: true };
+
+test("synthetic harness follows Qwen -> Nemotron -> Inkling with zero-price routing", async () => {
+  const ids = [];
+  const model = createPipelineModel({ ...syntheticHarness, requestFetch: async (_url, init) => {
+    const body = JSON.parse(init.body);
+    ids.push(body.model);
+    assert.equal(body.models, undefined);
+    assert.equal(body.plugins, undefined);
+    assert.deepEqual(body.provider, { allow_fallbacks: false, require_parameters: true, max_price: { prompt: 0, completion: 0, request: 0 } });
+    if (ids.length < 3) return Response.json({ error: { message: "private echo" } }, { status: ids.length === 1 ? 429 : 503 });
+    return completion({ content: "Synthetic harness success" });
+  } });
+  const result = await generateText({ model, prompt: "Synthetic fixture only", maxRetries: 0,
+    providerOptions: { openrouter: { model: "paid/model", models: ["paid/model"], route: "fallback", plugins: [{ id: "web" }] } } });
+  assert.equal(result.text, "Synthetic harness success");
+  assert.deepEqual(ids, [PRIMARY_MODEL_ID, ...FALLBACK_MODEL_IDS]);
+});
+
+test("invalid JSON and schema failure advance fallback; endpoints without JSON support use a schema prompt", async () => {
+  const ids = [];
+  const model = createPipelineModel({ ...syntheticHarness, requestFetch: async (_url, init) => {
+    const body = JSON.parse(init.body);
+    ids.push(body.model);
+    if (ids.length === 1) {
+      assert.equal(body.response_format.type, "json_schema");
+      return completion({ content: "malformed JSON" });
+    }
+    assert.equal(body.response_format, undefined);
+    assert.match(body.messages.at(-1).content, /JSON matching this schema/);
+    assert.match(body.messages.at(-1).content, /"value"/);
+    return completion({ content: ids.length === 2 ? '{"value":123}' : '{"value":"synthetic"}' });
+  } });
+  const result = await generateText({ model, prompt: "Synthetic fixture", maxRetries: 0,
+    output: Output.object({ schema: z.object({ value: z.string() }) }) });
+  assert.deepEqual(result.output, { value: "synthetic" });
+  assert.deepEqual(ids, [PRIMARY_MODEL_ID, ...FALLBACK_MODEL_IDS]);
+});
+
+for (const status of [400, 401, 402, 403, 422]) {
+  test(`terminal provider status ${status} makes only one request`, async () => {
+    let calls = 0;
+    const model = createPipelineModel({ ...syntheticHarness, requestFetch: async () => {
+      calls++;
+      return Response.json({ error: { message: "private echo" } }, { status });
+    } });
+    await assert.rejects(generateText({ model, prompt: "Synthetic", maxRetries: 0 }), error =>
+      error.message.includes(String(status)) && !error.message.includes("private echo"));
+    assert.equal(calls, 1);
+  });
+}
+
+test("exhausted free models stop after three attempts and sanitize errors", async () => {
+  let calls = 0;
+  const model = createPipelineModel({ ...syntheticHarness, requestFetch: async () => {
+    calls++;
+    return Response.json({ error: { message: "private echo" } }, { status: 429 });
+  } });
+  await assert.rejects(generateText({ model, prompt: "Synthetic" }), error =>
+    error.message.includes("429") && !error.message.includes("private echo"));
+  assert.equal(calls, 3);
+});
+
+test("synthetic data alone cannot invoke Inkling outside an agentic harness", async () => {
+  let calls = 0;
+  const model = createPipelineModel({ ...syntheticHarness, agenticHarness: false, requestFetch: async () => {
+    calls++;
+    return Response.json({}, { status: 503 });
+  } });
+  await assert.rejects(generateText({ model, prompt: "Synthetic", maxRetries: 0 }), /agentic harness is required/);
+  assert.equal(calls, 2);
+});
+
+test("network failures fall back without exposing network error text", async () => {
+  let calls = 0;
+  const model = createPipelineModel({ ...syntheticHarness, requestFetch: async () => {
+    if (++calls === 1) throw new TypeError("private network detail");
+    return completion({ content: "Synthetic" });
+  } });
+  assert.equal((await generateText({ model, prompt: "Synthetic", maxRetries: 0 })).text, "Synthetic");
+  assert.equal(calls, 2);
+});
+
+test("cancellation stops without any fallback", async () => {
+  const controller = new AbortController();
+  let calls = 0;
+  const model = createPipelineModel({ ...syntheticHarness, requestFetch: async () => {
+    calls++;
+    controller.abort();
+    throw new Error("cancelled");
+  } });
+  await assert.rejects(generateText({ model, prompt: "Synthetic", maxRetries: 0, abortSignal: controller.signal }), /abort/i);
+  assert.equal(calls, 1);
+});
+
+const streamCompletion = (text, reason = "stop") => new Response([
+  { id: "synthetic-stream", model: PRIMARY_MODEL_ID, created: 1, choices: [{ index: 0, delta: { role: "assistant", content: text }, finish_reason: null }] },
+  { id: "synthetic-stream", model: PRIMARY_MODEL_ID, created: 1, choices: [{ index: 0, delta: {}, finish_reason: reason }] },
+].map(chunk => `data: ${JSON.stringify(chunk)}\n\n`).join("") + "data: [DONE]\n\n", { headers: { "content-type": "text/event-stream" } });
+
+test("stream fallback suppresses failed step text and validates final JSON before publishing", async () => {
+  const ids = [];
+  const model = createPipelineModel({ ...syntheticHarness, requestFetch: async (_url, init) => {
+    ids.push(JSON.parse(init.body).model);
+    return streamCompletion(ids.length === 1 ? '{"value":123}' : '{"value":"synthetic"}');
+  } });
+  const result = streamText({ model, prompt: "Synthetic", maxRetries: 0,
+    output: Output.object({ schema: z.object({ value: z.string() }) }) });
+  let published = "";
+  for await (const text of result.textStream) published += text;
+  assert.equal(published, '{"value":"synthetic"}');
+  assert.deepEqual(await result.output, { value: "synthetic" });
+  assert.deepEqual(ids, [PRIMARY_MODEL_ID, FALLBACK_MODEL_IDS[0]]);
+});
+
+test("synthetic tool harness reaches Inkling without replaying completed tool executions", async () => {
+  const ids = [];
+  let executions = 0;
+  const model = createPipelineModel({ ...syntheticHarness, requestFetch: async (_url, init) => {
+    const body = JSON.parse(init.body);
+    ids.push(body.model);
+    assert.ok(body.tools.some(t => t.function.name === "synthetic_lookup"));
+    if (body.messages.some(m => m.role === "tool")) return completion({ content: '{"summary":"Synthetic fixture"}' });
+    if (body.model !== FALLBACK_MODEL_IDS[1]) return Response.json({}, { status: 503 });
+    return completion({ content: null, tool_calls: [{ id: "synthetic-call", type: "function", function: { name: "synthetic_lookup", arguments: '{"domain":"example.com"}' } }] }, "tool_calls");
+  } });
+  const agent = new ToolLoopAgent({ model, stopWhen: stepCountIs(3),
+    output: Output.object({ schema: z.object({ summary: z.string() }) }),
+    tools: { synthetic_lookup: tool({ inputSchema: z.object({ domain: z.literal("example.com") }), execute: async () => { executions++; return { summary: "Synthetic fixture" }; } }) },
+  });
+  assert.equal((await agent.generate({ prompt: "Synthetic fixture only" })).output.summary, "Synthetic fixture");
+  assert.equal(executions, 1);
+  assert.deepEqual(ids, [PRIMARY_MODEL_ID, ...FALLBACK_MODEL_IDS, PRIMARY_MODEL_ID]);
+});
+
+test("content-filtered responses stop without fallback", async () => {
+  let calls = 0;
+  const model = createPipelineModel({ ...syntheticHarness, requestFetch: async () => {
+    calls++;
+    return completion({ content: "" }, "content_filter");
+  } });
+  await assert.rejects(generateText({ model, prompt: "Synthetic", output: Output.object({ schema: z.object({ value: z.string() }) }) }), /filtered/);
+  assert.equal(calls, 1);
+});
+
+test("streaming provider errors recover without publishing partial failed content", async () => {
+  let calls = 0;
+  const model = createPipelineModel({ ...syntheticHarness, requestFetch: async () => {
+    if (++calls === 1) return new Response(
+      `data: ${JSON.stringify({ id: "synthetic", model: PRIMARY_MODEL_ID, created: 1, choices: [{ index: 0, delta: { content: "failed partial" }, finish_reason: null }] })}\n\n` +
+      `data: ${JSON.stringify({ error: { code: 503, message: "private provider echo" } })}\n\n`,
+      { headers: { "content-type": "text/event-stream" } });
+    return streamCompletion("Synthetic success");
+  } });
+  const result = streamText({ model, prompt: "Synthetic", maxRetries: 0 });
+  assert.equal(await result.text, "Synthetic success");
+  assert.equal(calls, 2);
 });
 
 const freeUsage = {

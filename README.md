@@ -25,8 +25,33 @@ secret of at least 32 bytes. No credentials belong in source control or chat.
 
 ## Free Runtime Providers
 
-- All five model roles use OpenRouter `qwen/qwen3.8-27b:free`, with zero-price provider
-  limits and structured output validation. No secondary model is configured.
+- All five model roles start with OpenRouter `qwen/qwen3.8-27b:free`. The selected
+  free fallback order is `nvidia/nemotron-3-ultra-550b-a55b:free`, then
+  `thinkingmachines/inkling:free`. Every attempt pins its model and zero-price
+  provider limits; provider routing, plugins, and paid model overrides are disabled.
+  Recoverable connection/provider failures (404/408/429/500/502/503/504) and invalid
+  structured output advance to the next eligible model. Authentication, billing,
+  invalid requests, content filtering, and cancellation stop immediately. An
+  exhausted chain is not retried by the SDK.
+- **Live lead fallback is blocked.** Both free Nemotron and Inkling forbid personal
+  or confidential data, and Inkling additionally requires an agentic harness.
+  Current live prompts include lead names, CRM notes, and external search results;
+  even a synthetic lead can acquire personal data through search. Those paths use
+  the primary model and fail closed when fallback would be needed. No request flag
+  or environment variable bypasses this boundary. A trusted server-side synthetic
+  fixture harness can use `createPipelineModel({ fallbackDataPolicy:
+  "synthetic-nonpersonal", agenticHarness: true })` only when **all** prompt content,
+  tool inputs/outputs, notes, and prior messages are nonpersonal/nonconfidential.
+  The existing tests exercise this chain with synthetic fixtures and mocked tools.
+- Qwen uses provider JSON schema output. Free Nemotron and Inkling do not support
+  `response_format`; they receive a JSON schema prompt and the same local validation.
+  Streaming buffers one model step before publishing text or tool calls, allowing
+  fallback without executing failed tool calls or replaying completed agent steps.
+  This trades token-by-token display for validated step delivery.
+  Official model/terms references: [Qwen](https://openrouter.ai/qwen/qwen3.8-27b:free),
+  [Nemotron](https://openrouter.ai/nvidia/nemotron-3-ultra-550b-a55b:free),
+  [Inkling](https://openrouter.ai/thinkingmachines/inkling:free),
+  [capability catalog](https://openrouter.ai/api/v1/models).
 - Web search uses Tavily basic search on its free Researcher plan. Every request checks
   account usage and requires pay-as-you-go to be disabled. Missing configuration,
   unknown billing state, or exhausted quota stops search. Exa and Vertex search are absent.
