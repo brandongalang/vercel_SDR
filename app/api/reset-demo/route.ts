@@ -1,3 +1,4 @@
+import { authorizeRequest } from "@/lib/server/session";
 import { createHash } from "node:crypto";
 import { init_experimental } from "@instantdb/admin";
 import { buildBenchmarkHistoryJobsForSeed } from "@/lib/analytics-mock";
@@ -52,6 +53,8 @@ async function transactInChunks(
 }
 
 export async function POST(request: Request) {
+  const denied = authorizeRequest(request);
+  if (denied) return denied;
   if (!isDemoResetEnabled()) {
     return Response.json({ error: "Not found" }, { status: 404 });
   }

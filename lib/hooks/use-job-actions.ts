@@ -1,12 +1,21 @@
 import { useCallback, useState } from "react";
 import type { OutboundJob } from "@/lib/types";
-import { db } from "@/lib/instant-db";
 
 type BaselineDraft = OutboundJob["draft"];
 
 export function useJobActions(jobs: OutboundJob[]) {
   const [baselineDrafts, setBaselineDrafts] = useState<Record<string, BaselineDraft>>({});
   const [regenerateNotes, setRegenerateNotes] = useState<Record<string, string | undefined>>({});
+  const [actionError, setActionError] = useState<string>();
+  const save = useCallback(async (command: Record<string, unknown>) => {
+    setActionError(undefined);
+    try {
+      const response = await fetch("/api/jobs", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(command) });
+      if (response.status === 401) { window.location.replace("/login"); return; }
+      if (!response.ok) throw new Error("Unable to save job action");
+      window.dispatchEvent(new Event("sdr-jobs-changed"));
+    } catch { setActionError("Unable to save job action. Please try again."); }
+  }, []);
 
   const getBaselineDraft = useCallback(
     (jobId: string): BaselineDraft | undefined => baselineDrafts[jobId],
@@ -29,49 +38,19 @@ export function useJobActions(jobs: OutboundJob[]) {
         draftRationale?: string;
       },
     ) => {
-      const now = Date.now();
-      db.transact(
-        db.tx.jobs[jobId].update({
-          status: "sent_stub",
-          draftSubject: payload.subject,
-          draftBody: payload.body,
-          highlightedSpan: null,
-          feedback: {
-            edited: payload.edited,
-            editorNote: payload.editorNote ?? null,
-            draftRationale: payload.draftRationale ?? null,
-          },
-          approvedAt: now,
-          sentAt: now,
-          updatedAt: now,
-          outcome: { replied: false, positive: false },
-        }),
-      );
+      void save({ action: "approve", jobId, ...payload });
       setRegenerateNotes((prev) => {
         const next = { ...prev };
         delete next[jobId];
         return next;
       });
     },
-    [],
+    [save],
   );
 
   const handleArchive = useCallback((jobId: string, payload?: { skipReason?: string }) => {
-    const now = Date.now();
-    db.transact(
-      db.tx.jobs[jobId].update({
-        status: "reviewed",
-        feedback: payload?.skipReason
-          ? {
-              edited: false,
-              skipReason: payload.skipReason,
-            }
-          : null,
-        archivedAt: now,
-        updatedAt: now,
-      }),
-    );
-  }, []);
+    void save({ action: "archive", jobId, skipReason: payload?.skipReason });
+  }, [save]);
 
   const handleDraftUpdate = useCallback(
     (jobId: string, draft: OutboundJob["draft"]) => {
@@ -92,16 +71,9 @@ export function useJobActions(jobs: OutboundJob[]) {
           ? baseline.highlightedSpan
           : draft.highlightedSpan;
 
-      db.transact(
-        db.tx.jobs[jobId].update({
-          draftSubject: draft.subject,
-          draftBody: draft.body,
-          highlightedSpan: resolvedHighlight ?? null,
-          updatedAt: Date.now(),
-        }),
-      );
+      void save({ action: "draft", jobId, subject: draft.subject, body: draft.body, highlightedSpan: resolvedHighlight });
     },
-    [jobs, baselineDrafts],
+    [jobs, baselineDrafts, save],
   );
 
   const handleResetDraft = useCallback(
@@ -109,14 +81,7 @@ export function useJobActions(jobs: OutboundJob[]) {
       const baseline = baselineDrafts[jobId];
       if (!baseline) return;
 
-      db.transact(
-        db.tx.jobs[jobId].update({
-          draftSubject: baseline.subject,
-          draftBody: baseline.body,
-          highlightedSpan: baseline.highlightedSpan ?? null,
-          updatedAt: Date.now(),
-        }),
-      );
+      void save({ action: "draft", jobId, ...baseline });
 
       setRegenerateNotes((prev) => {
         const next = { ...prev };
@@ -124,7 +89,7 @@ export function useJobActions(jobs: OutboundJob[]) {
         return next;
       });
     },
-    [baselineDrafts],
+    [baselineDrafts, save],
   );
 
   const handleRegenerateNote = useCallback((jobId: string, note: string | undefined) => {
@@ -134,9 +99,11 @@ export function useJobActions(jobs: OutboundJob[]) {
   const resetAll = useCallback(() => {
     setRegenerateNotes({});
     setBaselineDrafts({});
+    setActionError(undefined);
   }, []);
 
   return {
+    actionError,
     handleApprove,
     handleArchive,
     handleDraftUpdate,

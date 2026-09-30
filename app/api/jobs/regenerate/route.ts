@@ -1,3 +1,4 @@
+import { authorizeRequest } from "@/lib/server/session";
 import { z } from "zod";
 import { runDraftGenerator } from "@/lib/pipeline/draft-generator";
 import { regenerateDraftRequestSchema } from "@/lib/pipeline/schemas";
@@ -7,6 +8,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const denied = authorizeRequest(request);
+  if (denied) return denied;
   try {
     const body = await request.json();
     const parsed = regenerateDraftRequestSchema.safeParse(body);

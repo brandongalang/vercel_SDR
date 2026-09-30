@@ -34,7 +34,7 @@ const DEMO_NODES: PathNode[] = [
     badgeClass: "bg-teal-50 text-teal-700 border border-teal-200",
   },
   {
-    label: "Vertex AI · Gemini Flash",
+    label: "OpenRouter · Qwen Free",
     sublabel: "Inference for research, signals, angle, and draft",
     badge: "Google Cloud",
     badgeClass: "bg-sky-50 text-sky-700 border border-sky-200",

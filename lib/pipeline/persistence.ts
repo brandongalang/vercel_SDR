@@ -1,4 +1,5 @@
-import { id as generateId, init_experimental } from "@instantdb/admin";
+import "server-only";
+import { id as generateId } from "@instantdb/admin";
 import { toInstantJobRecord } from "@/lib/jobs/instant-job-codec";
 import {
   clonePipelineRunAudit,
@@ -7,7 +8,7 @@ import {
   startPipelineAuditPhase,
   type PipelineRunAudit,
 } from "@/lib/pipeline/run-job";
-import { getRequiredServerEnv } from "@/lib/server/env";
+import { getAdminDb } from "@/lib/server/database";
 import { nowIso, parseTimestamp } from "@/lib/time";
 import type { OutboundJob } from "@/lib/types";
 
@@ -15,17 +16,6 @@ import type { OutboundJob } from "@/lib/types";
  * Runtime persistence seam for generated jobs + pipeline runs.
  * Use this as the canonical write path for non-demo behavior.
  */
-const INSTANT_APP_ID = getRequiredServerEnv("NEXT_PUBLIC_INSTANT_APP_ID");
-
-function getAdminDb() {
-  const adminToken = getRequiredServerEnv("INSTANT_ADMIN_TOKEN");
-
-  return init_experimental({
-    appId: INSTANT_APP_ID,
-    adminToken,
-  });
-}
-
 function toEpochMilliseconds(value?: string): number | null {
   return parseTimestamp(value);
 }

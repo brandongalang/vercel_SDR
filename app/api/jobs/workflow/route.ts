@@ -1,3 +1,4 @@
+import { authorizeRequest } from "@/lib/server/session";
 import { start } from "workflow/api";
 import { leadInputSchema } from "@/lib/pipeline/schemas";
 import { outboundPipelineWorkflow } from "@/workflows/outbound-pipeline/workflow";
@@ -7,12 +8,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  const expectedKey = process.env.WORKFLOW_API_KEY;
-  if (expectedKey && authHeader !== `Bearer ${expectedKey}`) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+  const denied = authorizeRequest(request);
+  if (denied) return denied;
   const body = await request.json();
   const parsed = leadInputSchema.safeParse(body);
 

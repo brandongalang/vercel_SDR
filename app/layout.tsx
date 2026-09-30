@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AppShell } from "@/components/AppShell";
 import { Providers } from "@/components/Providers";
 
 const geistSans = Geist({
@@ -42,13 +41,10 @@ export default function RootLayout({
       <body className="min-h-dvh flex flex-col bg-background text-foreground md:h-dvh md:flex-row md:overflow-hidden">
         <Providers>
           <TooltipProvider>
-            <AppShell>
-              {children}
-            </AppShell>
+            {children}
           </TooltipProvider>
         </Providers>
       </body>
     </html>
   );
 }
-

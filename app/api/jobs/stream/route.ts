@@ -1,3 +1,4 @@
+import { authorizeRequest } from "@/lib/server/session";
 import {
   createAgentUIStream,
   createUIMessageStream,
@@ -33,6 +34,8 @@ function extractMessages(body: unknown): unknown[] {
 }
 
 export async function POST(request: Request) {
+  const denied = authorizeRequest(request);
+  if (denied) return denied;
   const body: unknown = await request.json();
   const parsed = demoLeadInputSchema.safeParse(extractLeadInput(body));
 
@@ -65,8 +68,8 @@ export async function POST(request: Request) {
 
     try {
       await persistPipelineRun({ audit: failedAudit });
-    } catch (persistError) {
-      console.error("Failed to persist stream audit:", persistError);
+    } catch {
+      console.error("Failed to persist stream audit");
     }
   };
 

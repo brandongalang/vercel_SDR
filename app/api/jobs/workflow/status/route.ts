@@ -1,6 +1,9 @@
+import { authorizeRequest } from "@/lib/server/session";
 import { getRun } from "workflow/api";
 
 export async function GET(request: Request) {
+  const denied = authorizeRequest(request);
+  if (denied) return denied;
   const { searchParams } = new URL(request.url);
   const runId = searchParams.get("runId");
   
@@ -22,8 +25,8 @@ export async function GET(request: Request) {
     }
 
     return Response.json({ status });
-  } catch (error) {
-    console.error("Failed to fetch workflow run status", error);
+  } catch {
+    console.error("Failed to fetch workflow run status");
     return Response.json({ error: "Failed to fetch run status" }, { status: 500 });
   }
 }

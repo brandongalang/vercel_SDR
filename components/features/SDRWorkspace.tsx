@@ -1,9 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useEffectEvent, useMemo, useState } from "react";
-import type { OutboundJob } from "@/lib/types";
-import { db } from "@/lib/instant-db";
-import { fromInstantJobRecord } from "@/lib/jobs/instant-job-codec";
+import { useJobs } from "@/lib/hooks/use-jobs";
 import {
   formatAnalyticsDateRangeLabel,
   getAnalyticsDateRangeSpanDays,
@@ -36,14 +34,7 @@ type PendingReviewFeedbackAction = {
 };
 
 export default function SDRWorkspace() {
-  const { isLoading, error, data } = db.useQuery({ jobs: {} });
-  const jobs: OutboundJob[] = useMemo(
-    () =>
-      [...(data?.jobs ?? [])]
-        .sort((a, b) => ((a.createdAt as number) ?? 0) - ((b.createdAt as number) ?? 0))
-        .map(fromInstantJobRecord),
-    [data?.jobs]
-  );
+  const { isLoading, error, jobs } = useJobs();
 
   const { activeView, setActiveView, setRailControls } = useViewContext();
   const isDesktopReviewLayout = useMediaQuery("(min-width: 768px)");
@@ -53,6 +44,7 @@ export default function SDRWorkspace() {
     useState<PendingReviewFeedbackAction | null>(null);
 
   const {
+    actionError,
     handleApprove,
     handleArchive,
     handleDraftUpdate,
@@ -422,8 +414,8 @@ export default function SDRWorkspace() {
               ))}
             </div>
 
-            {resetError && (
-              <p className="text-[12px] text-destructive">{resetError}</p>
+            {(resetError || actionError) && (
+              <p role="alert" className="text-[12px] text-destructive">{resetError || actionError}</p>
             )}
           </div>
         </div>
