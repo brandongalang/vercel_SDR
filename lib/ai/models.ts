@@ -4,8 +4,12 @@ import { APICallError, InvalidResponseDataError, wrapLanguageModel } from "ai";
 import { z } from "zod";
 
 export const MODEL_PROVIDER = "openrouter";
-export const PRIMARY_MODEL_ID = "qwen/qwen3.8-27b:free";
+export const MODEL_REQUEST_TIMEOUT_MS = 60000;
+const PRIMARY_COOLDOWN_MS = 300000;
+export const PRIMARY_MODEL_ID = "stealth/space-bunny-alpha";
+export const LIVE_FALLBACK_MODEL_ID = "inclusionai/ling-3.0-flash-sante:free";
 export const FALLBACK_MODEL_IDS = [
+  LIVE_FALLBACK_MODEL_ID,
   "nvidia/nemotron-3-ultra-550b-a55b:free",
   "thinkingmachines/inkling:free",
 ] as const;
@@ -22,7 +26,7 @@ class InvalidStructuredOutput extends Error {
 }
 
 class ProviderUnavailable extends Error {
-  constructor() { super("OpenRouter connection failed"); }
+  constructor(message = "OpenRouter connection failed") { super(message); }
 }
 
 function isRecoverable(error: unknown) {
@@ -36,9 +40,11 @@ function isRecoverable(error: unknown) {
 export function createPipelineModel(options: {
   requestFetch?: typeof fetch;
   getApiKey?: () => string | undefined;
+  requestTimeoutMs?: number;
   fallbackDataPolicy?: "synthetic-nonpersonal";
   agenticHarness?: boolean;
 } = {}) {
+  let primaryRetryAfter = 0;
   const makeModel = (modelId: string) => createOpenAICompatible({
     name: MODEL_PROVIDER,
     baseURL: "https://openrouter.ai/api/v1",
@@ -49,22 +55,26 @@ export function createPipelineModel(options: {
       delete safeBody.models;
       delete safeBody.plugins;
       delete safeBody.route;
-      // The free Nemotron and Inkling endpoints support tools, but not response_format.
-      if (modelId !== PRIMARY_MODEL_ID && safeBody.response_format) {
+      // These endpoints support tools; the schema prompt avoids relying on native
+      // JSON schema enforcement, while validation remains mandatory locally.
+      if (safeBody.response_format) {
         const format = safeBody.response_format as { json_schema?: { schema?: unknown } };
         safeBody.messages = [...(safeBody.messages as object[]), {
           role: "user",
           content: `For the final answer, return only JSON matching this schema: ${JSON.stringify(format.json_schema?.schema)}. You may call the available tools before the final answer.`,
         }];
-        delete safeBody.response_format;
+        if (modelId === PRIMARY_MODEL_ID) safeBody.response_format = { type: "json_object" };
+        else delete safeBody.response_format;
       }
       return {
         ...safeBody,
         model: modelId,
+        ...(modelId === PRIMARY_MODEL_ID ? { reasoning: { effort: "low" } } : {}),
         provider: {
           allow_fallbacks: false,
           require_parameters: true,
           max_price: { prompt: 0, completion: 0, request: 0 },
+          ...([PRIMARY_MODEL_ID, LIVE_FALLBACK_MODEL_ID].includes(modelId) ? { data_collection: "deny" } : {}),
         },
       };
     },
@@ -77,11 +87,22 @@ export function createPipelineModel(options: {
       const headers = new Headers(init?.headers);
       headers.set("authorization", `Bearer ${apiKey}`);
       let response: Response;
+      const startedAt = Date.now();
+      console.info("SDR OpenRouter request started", { model: modelId });
       try {
         response = await (options.requestFetch ?? fetch)(url, {
           ...init, headers, redirect: "error",
         });
+        console.info("SDR OpenRouter response", {
+          model: modelId,
+          status: response.status,
+          durationMs: Date.now() - startedAt,
+        });
       } catch {
+        console.info("SDR OpenRouter connection failed", {
+          model: modelId,
+          durationMs: Date.now() - startedAt,
+        });
         init?.signal?.throwIfAborted();
         throw new ProviderUnavailable();
       }
@@ -132,38 +153,53 @@ export function createPipelineModel(options: {
   type Params = Parameters<(typeof models)[number]["doGenerate"]>[0];
 
   function validateOutput(params: Params, text: string, hasTools: boolean) {
-    if (hasTools || params.responseFormat?.type !== "json") return;
+    if (hasTools || params.responseFormat?.type !== "json") return text;
     // Convert before parsing: an unsupported caller schema is a configuration error,
     // not a reason to send the same request to another provider.
     const schema = params.responseFormat.schema
       ? z.fromJSONSchema(params.responseFormat.schema as Parameters<typeof z.fromJSONSchema>[0]) : undefined;
+    // Prompt-only JSON providers can wrap an otherwise valid object in a fence.
+    // Accept only a complete JSON fence; prose and schema violations still fail.
+    const normalized = text.trim().replace(/^```(?:json)?\s*\n([\s\S]*?)\n```$/i, "$1").trim();
     try {
-      const value = JSON.parse(text);
+      const value = JSON.parse(normalized);
       if (schema && !schema.safeParse(value).success) throw new InvalidStructuredOutput();
+      return normalized;
     } catch { throw new InvalidStructuredOutput(); }
   }
 
-  async function attempt<T>(params: Params, call: (model: (typeof models)[number]) => Promise<T>) {
+  async function attempt<T>(params: Params, call: (model: (typeof models)[number], boundedParams: Params) => Promise<T>) {
     let failure: unknown;
     for (const [index, model] of models.entries()) {
       params.abortSignal?.throwIfAborted();
-      if (index > 0 && options.fallbackDataPolicy !== "synthetic-nonpersonal") {
-        const status = APICallError.isInstance(failure) ? ` (${failure.statusCode})` : "";
+      if (index === 0 && Date.now() < primaryRetryAfter) continue;
+      if (index > 1 && options.fallbackDataPolicy !== "synthetic-nonpersonal") {
+        const status = APICallError.isInstance(failure) ? ` (${failure.statusCode})`
+          : failure instanceof ProviderUnavailable && failure.message === "OpenRouter request timed out" ? " (request timed out)" : "";
         throw new Error(`Free fallback blocked${status}: Nemotron and Inkling require synthetic, nonpersonal, nonconfidential data. No paid fallback.`);
       }
-      if (index === 2 && !options.agenticHarness) {
+      if (index === 3 && !options.agenticHarness) {
         throw new Error("Free Inkling fallback blocked: an agentic harness is required. No paid fallback.");
       }
-      try { return await call(model); } catch (error) {
+      // Bound the entire model step, including reading its response body.
+      const deadline = AbortSignal.timeout(options.requestTimeoutMs ?? MODEL_REQUEST_TIMEOUT_MS);
+      const boundedParams = { ...params, abortSignal: params.abortSignal
+        ? AbortSignal.any([params.abortSignal, deadline]) : deadline };
+      try { return await call(model, boundedParams); } catch (error) {
         params.abortSignal?.throwIfAborted();
-        if (!isRecoverable(error)) throw error;
+        const handledError = deadline.aborted ? new ProviderUnavailable("OpenRouter request timed out") : error;
+        if (deadline.aborted) console.info("SDR OpenRouter model step timed out", { model: model.modelId });
+        if (!isRecoverable(handledError)) throw handledError;
+        if (index === 0 && (handledError instanceof ProviderUnavailable || APICallError.isInstance(handledError))) {
+          primaryRetryAfter = Date.now() + PRIMARY_COOLDOWN_MS;
+        }
         if (index === models.length - 1) {
-          const status = APICallError.isInstance(error) ? ` (${error.statusCode})` : "";
+          const status = APICallError.isInstance(handledError) ? ` (${handledError.statusCode})` : "";
           // A plain Error prevents the SDK's outer retry loop from replaying the
           // entire exhausted chain. Never include provider response text.
           throw new Error(`Free models exhausted${status}. No paid fallback.`);
         }
-        failure = error;
+        failure = handledError;
       }
     }
     throw new Error("Free models exhausted. No paid fallback.");
@@ -173,14 +209,22 @@ export function createPipelineModel(options: {
     model: models[0],
     middleware: {
       specificationVersion: "v3",
-      wrapGenerate: ({ params }) => attempt(params, async model => {
-        const result = await model.doGenerate(params);
+      wrapGenerate: ({ params }) => attempt(params, async (model, boundedParams) => {
+        const result = await model.doGenerate(boundedParams);
         if (result.finishReason.unified === "content-filter") throw new Error("Model response was filtered");
-        validateOutput(params, result.content.filter(part => part.type === "text").map(part => part.text).join(""), result.content.some(part => part.type === "tool-call"));
-        return result;
+        const text = result.content.filter(part => part.type === "text").map(part => part.text).join("");
+        const normalized = validateOutput(params, text, result.content.some(part => part.type === "tool-call"));
+        if (normalized === text) return result;
+        let emitted = false;
+        return { ...result, content: result.content.flatMap<(typeof result.content)[number]>(part => {
+          if (part.type !== "text") return [part];
+          if (emitted) return [];
+          emitted = true;
+          return [{ ...part, text: normalized }];
+        }) };
       }),
-      wrapStream: ({ params }) => attempt(params, async model => {
-        const result = await model.doStream(params);
+      wrapStream: ({ params }) => attempt(params, async (model, boundedParams) => {
+        const result = await model.doStream(boundedParams);
         const reader = result.stream.getReader();
         const chunks: NonNullable<Awaited<ReturnType<typeof reader.read>>["value"]>[] = [];
         let text = "";
@@ -190,7 +234,7 @@ export function createPipelineModel(options: {
         // before choosing a fallback. Completed agent steps are never replayed.
         try {
           while (true) {
-            params.abortSignal?.throwIfAborted();
+            boundedParams.abortSignal?.throwIfAborted();
             const { value, done } = await reader.read();
             if (done) break;
             if (value.type === "error") {
@@ -208,7 +252,22 @@ export function createPipelineModel(options: {
             chunks.push(value);
           }
           if (!finished) throw new ProviderUnavailable();
-          validateOutput(params, text, hasTools);
+          const normalized = validateOutput(params, text, hasTools);
+          if (normalized !== text) {
+            let emitted = false;
+            for (let index = chunks.length - 1; index >= 0; index--) {
+              if (chunks[index].type === "text-delta") chunks.splice(index, 1);
+            }
+            const startIndex = chunks.findIndex(chunk => chunk.type === "text-start");
+            if (startIndex >= 0) {
+              const start = chunks[startIndex];
+              if (start.type === "text-start") {
+                chunks.splice(startIndex + 1, 0, { type: "text-delta", id: start.id, delta: normalized });
+                emitted = true;
+              }
+            }
+            if (!emitted) throw new InvalidStructuredOutput();
+          }
         } finally {
           await reader.cancel().catch(() => {});
           reader.releaseLock();
@@ -222,10 +281,12 @@ export function createPipelineModel(options: {
   });
 }
 
+// Roles share the provider cooldown so an outage does not stall each stage again.
+const sharedPipelineModel = createPipelineModel();
 export const pipelineModels = {
-  orchestrator: createPipelineModel(),
-  researcher: createPipelineModel(),
-  signalExtractor: createPipelineModel(),
-  anglePlanner: createPipelineModel(),
-  draftGenerator: createPipelineModel(),
+  orchestrator: sharedPipelineModel,
+  researcher: sharedPipelineModel,
+  signalExtractor: sharedPipelineModel,
+  anglePlanner: sharedPipelineModel,
+  draftGenerator: sharedPipelineModel,
 };

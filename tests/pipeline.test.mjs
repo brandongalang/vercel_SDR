@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { PRIMARY_MODEL_ID } from "../lib/ai/models.ts";
 import { test } from "node:test";
 import { registerHooks } from "node:module";
 import { resolve } from "node:path";
@@ -31,7 +32,7 @@ test("actual sequential pipeline runs synthetic research, search, extraction, pl
   const phases = [];
   const signal = { id: "synthetic-signal", category: "hiring_signal", label: "Synthetic hiring", value: "Synthetic public hiring page", source: "external", rank: 1, strength: "moderate", usedInAngle: false, evidenceUrl: "https://example.com", scope: "company" };
   const response = (message, reason = "stop") => Response.json({
-    id: "synthetic", model: "qwen/qwen3.8-27b:free", created: 1,
+    id: "synthetic", model: PRIMARY_MODEL_ID, created: 1,
     choices: [{ index: 0, message: { role: "assistant", ...message }, finish_reason: reason }],
     usage: { prompt_tokens: 5, completion_tokens: 5, total_tokens: 10 },
   });
@@ -41,7 +42,7 @@ test("actual sequential pipeline runs synthetic research, search, extraction, pl
     if (url === "https://api.tavily.com/search") return Response.json({ results: [{ title: "Synthetic public hiring", url: "https://example.com", content: "Synthetic Company is hiring developers." }] });
     assert.equal(url, "https://openrouter.ai/api/v1/chat/completions");
     const body = JSON.parse(init.body);
-    assert.equal(body.model, "qwen/qwen3.8-27b:free");
+    assert.equal(body.model, PRIMARY_MODEL_ID);
     assert.deepEqual(body.provider.max_price, { prompt: 0, completion: 0, request: 0 });
     const names = (body.tools ?? []).map(t => t.function.name);
     const hasToolResult = body.messages.some(m => m.role === "tool");
@@ -51,7 +52,10 @@ test("actual sequential pipeline runs synthetic research, search, extraction, pl
     if (names.includes("web_search") && !hasToolResult) {
       return response({ content: null, tool_calls: [{ id: "search-1", type: "function", function: { name: "web_search", arguments: JSON.stringify({ query: "Synthetic Company hiring", includeDomains: ["example.com"], numResults: 1 }) } }] }, "tool_calls");
     }
-    const properties = body.response_format.json_schema.schema.properties;
+    assert.deepEqual(body.response_format, { type: "json_object" });
+    const schemaPrompt = body.messages.at(-1).content;
+    const schema = JSON.parse(schemaPrompt.slice(schemaPrompt.indexOf("schema: ") + 8, schemaPrompt.lastIndexOf(". You may")));
+    const properties = schema.properties;
     let output;
     if (properties.topic) output = { topic: "Synthetic hiring", findings: [{ text: "Synthetic Company is hiring developers.", sourceUrl: "https://example.com", signalHint: "hiring_signal", strengthHint: "moderate", confidence: "medium" }], gaps: [], summary: "Synthetic public hiring evidence." };
     else if (properties.orchestratorSummary) output = { threadSummaries: ["Synthetic public hiring evidence."], orchestratorSummary: "Synthetic research complete.", companySize: "startup" };

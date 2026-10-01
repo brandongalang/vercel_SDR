@@ -25,35 +25,51 @@ secret of at least 32 bytes. No credentials belong in source control or chat.
 
 ## Free Runtime Providers
 
-- All five model roles start with OpenRouter `qwen/qwen3.8-27b:free`. The selected
-  free fallback order is `nvidia/nemotron-3-ultra-550b-a55b:free`, then
+- All five model roles start with OpenRouter `stealth/space-bunny-alpha`. The selected
+  free fallback order is `inclusionai/ling-3.0-flash-sante:free`,
+  `nvidia/nemotron-3-ultra-550b-a55b:free`, then
   `thinkingmachines/inkling:free`. Every attempt pins its model and zero-price
   provider limits; provider routing, plugins, and paid model overrides are disabled.
   Recoverable connection/provider failures (404/408/429/500/502/503/504) and invalid
   structured output advance to the next eligible model. Authentication, billing,
   invalid requests, content filtering, and cancellation stop immediately. An
   exhausted chain is not retried by the SDK.
-- **Live lead fallback is blocked.** Both free Nemotron and Inkling forbid personal
+- Live leads can fall back to free Ling through a provider that does not train on
+  prompts (`data_collection: deny`). Space Bunny uses the same no-training routing.
+  Space Bunny is a free preview scheduled to retire October 5, 2026; Ling remains
+  the live-eligible backup after that endpoint becomes unavailable. Each model step
+  has a 60-second deadline, including its response body. When Space Bunny times out or returns a recoverable provider
+  error, all roles share a five-minute cooldown before trying it again.
+  **Nemotron and Inkling fallback for live leads is blocked.** Both forbid personal
   or confidential data, and Inkling additionally requires an agentic harness.
   Current live prompts include lead names, CRM notes, and external search results;
   even a synthetic lead can acquire personal data through search. Those paths use
-  the primary model and fail closed when fallback would be needed. No request flag
-  or environment variable bypasses this boundary. A trusted server-side synthetic
+  Space Bunny and Ling and fail closed when restricted fallback would be needed.
+  No request flag or environment variable bypasses this boundary. A trusted server-side synthetic
   fixture harness can use `createPipelineModel({ fallbackDataPolicy:
   "synthetic-nonpersonal", agenticHarness: true })` only when **all** prompt content,
   tool inputs/outputs, notes, and prior messages are nonpersonal/nonconfidential.
   The existing tests exercise this chain with synthetic fixtures and mocked tools.
-- Qwen uses provider JSON schema output. Free Nemotron and Inkling do not support
-  `response_format`; they receive a JSON schema prompt and the same local validation.
+- Space Bunny and the fallback endpoints receive a JSON schema prompt followed by
+  mandatory local schema validation. Space Bunny also uses native JSON-object mode
+  and low reasoning effort to keep the prototype responsive.
+  A complete JSON Markdown fence is removed before validation; surrounding prose,
+  invalid JSON, and schema mismatches remain errors.
   Streaming buffers one model step before publishing text or tool calls, allowing
   fallback without executing failed tool calls or replaying completed agent steps.
   This trades token-by-token display for validated step delivery.
-  Official model/terms references: [Qwen](https://openrouter.ai/qwen/qwen3.8-27b:free),
+  Official model/terms references: [Space Bunny](https://openrouter.ai/stealth/space-bunny-alpha),
+  [Ling](https://openrouter.ai/inclusionai/ling-3.0-flash-sante:free),
   [Nemotron](https://openrouter.ai/nvidia/nemotron-3-ultra-550b-a55b:free),
   [Inkling](https://openrouter.ai/thinkingmachines/inkling:free),
   [capability catalog](https://openrouter.ai/api/v1/models).
-- Web search uses Tavily basic search on its free Researcher plan. Every request checks
-  account usage and requires pay-as-you-go to be disabled. Missing configuration,
+- Web search uses Tavily basic search on its free Researcher plan. A shared quota check
+  verifies account usage, zero paid usage, and a capped API key within the remaining
+  free account allowance. It caches that approval for ten minutes to respect Tavily's
+  usage-endpoint rate limit, reserving one credit before each basic search. The API
+  key's hard cap still applies across processes. The pay-as-you-go limit can be `0`
+  or `null` (the response observed with pay-as-you-go disabled); positive or missing limits are rejected.
+  Keep pay-as-you-go disabled in the account dashboard. Missing configuration,
   unknown billing state, or exhausted quota stops search. Exa and Vertex search are absent.
 - The public prototype requires its shared password. Sessions are signed, expire after
   eight hours, and use HttpOnly/Secure/SameSite=Strict cookies. Changing either password

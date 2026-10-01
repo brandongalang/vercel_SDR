@@ -34,6 +34,13 @@ export async function POST(request: Request) {
     const result = await runOutboundJobPipeline({
       leadInput: parsed.data,
       abortSignal: request.signal,
+      onPhaseUpdate: (event) => {
+        console.info("SDR pipeline phase", {
+          phase: event.phase.id,
+          event: event.type,
+          durationMs: event.phase.durationMs,
+        });
+      },
     });
     audit = result.audit;
     startPipelineAuditPhase(audit, "persist");
@@ -55,9 +62,13 @@ export async function POST(request: Request) {
 
     if (failedAudit && failedAudit.currentPhase !== "persist") {
       try {
+        console.info("SDR failure audit persistence started", {
+          phase: failedAudit.currentPhase,
+        });
         await persistPipelineRun({
           audit: failedAudit,
         });
+        console.info("SDR failure audit persistence completed");
       } catch (persistError) {
         auditPersistenceError =
           persistError instanceof Error ? persistError.message : "Unknown audit persistence failure";

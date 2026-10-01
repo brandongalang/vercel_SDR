@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { generateText, streamText, Output, ToolLoopAgent, stepCountIs, tool } from "ai";
 import { z } from "zod";
-import { createPipelineModel, MODEL_IDS, PRIMARY_MODEL_ID, FALLBACK_MODEL_IDS } from "../lib/ai/models.ts";
+import { createPipelineModel, MODEL_IDS, PRIMARY_MODEL_ID, LIVE_FALLBACK_MODEL_ID, FALLBACK_MODEL_IDS } from "../lib/ai/models.ts";
 import { createWebSearch } from "../lib/pipeline/tools/web-search.ts";
 
 const completion = (message, reason = "stop") => Response.json({
@@ -12,6 +12,7 @@ const completion = (message, reason = "stop") => Response.json({
 });
 
 test("all roles use the selected free model; missing key makes no request", async () => {
+  assert.equal(PRIMARY_MODEL_ID, "stealth/space-bunny-alpha");
   assert.ok(Object.values(MODEL_IDS).every(id => id === PRIMARY_MODEL_ID));
   let requests = 0;
   const model = createPipelineModel({ getApiKey: () => "", requestFetch: async () => { requests++; } });
@@ -19,7 +20,47 @@ test("all roles use the selected free model; missing key makes no request", asyn
   assert.equal(requests, 0);
 });
 
-test("structured output uses JSON schema and cannot override the free routing policy", async () => {
+test("a stalled OpenRouter request reaches its deadline without using a restricted fallback", async () => {
+  let calls = 0;
+  const model = createPipelineModel({ getApiKey: () => "synthetic-test-key", requestTimeoutMs: 10,
+    requestFetch: async (_url, init) => {
+      calls++;
+      return new Promise((_resolve, reject) => {
+        const keepAlive = setTimeout(() => reject(new Error("Deadline was not enforced")), 1000);
+        init.signal.addEventListener("abort", () => {
+          clearTimeout(keepAlive);
+          reject(init.signal.reason);
+        }, { once: true });
+      });
+    },
+  });
+  await assert.rejects(generateText({ model, prompt: "Synthetic fixture", maxRetries: 0 }), /Free fallback blocked \(request timed out\)/);
+  assert.equal(calls, 2);
+});
+
+test("the model deadline also stops a response body stalled after HTTP 200", async () => {
+  let calls = 0;
+  const model = createPipelineModel({ getApiKey: () => "synthetic-test-key", requestTimeoutMs: 10,
+    requestFetch: async (_url, init) => {
+      calls++;
+      let keepAlive;
+      return new Response(new ReadableStream({
+        start(controller) {
+          keepAlive = setTimeout(() => controller.error(new Error("Body deadline was not enforced")), 1000);
+          init.signal.addEventListener("abort", () => {
+            clearTimeout(keepAlive);
+            controller.error(init.signal.reason);
+          }, { once: true });
+        },
+        cancel() { clearTimeout(keepAlive); },
+      }), { headers: { "content-type": "application/json" } });
+    },
+  });
+  await assert.rejects(generateText({ model, prompt: "Synthetic fixture", maxRetries: 0 }), /Free fallback blocked \(request timed out\)/);
+  assert.equal(calls, 2);
+});
+
+test("structured output carries its schema prompt and cannot override the free routing policy", async () => {
   let body;
   const model = createPipelineModel({
     getApiKey: () => "synthetic-test-key",
@@ -38,10 +79,12 @@ test("structured output uses JSON schema and cannot override the free routing po
   });
   assert.deepEqual(result.output, { value: "synthetic" });
   assert.equal(body.model, PRIMARY_MODEL_ID);
-  assert.equal(body.response_format.type, "json_schema");
+  assert.deepEqual(body.response_format, { type: "json_object" });
+  assert.deepEqual(body.reasoning, { effort: "low" });
+  assert.match(body.messages.at(-1).content, /JSON matching this schema/);
   assert.equal(body.models, undefined);
   assert.equal(body.plugins, undefined);
-  assert.deepEqual(body.provider, { allow_fallbacks: false, require_parameters: true, max_price: { prompt: 0, completion: 0, request: 0 } });
+  assert.deepEqual(body.provider, { allow_fallbacks: false, require_parameters: true, max_price: { prompt: 0, completion: 0, request: 0 }, data_collection: "deny" });
 });
 
 test("malformed structured output is rejected by the SDK", async () => {
@@ -91,24 +134,65 @@ test("tool loop executes validated tools and returns validated structured output
   assert.equal(result.output.summary, "Synthetic public result");
 });
 
-test("unclassified live data blocks fallback and provider echoes stay private", async () => {
+test("prompt-only JSON fences are normalized without weakening schema validation", async () => {
+  let calls = 0;
+  const model = createPipelineModel({ getApiKey: () => "synthetic-test-key", requestFetch: async () => {
+    if (++calls === 1) return Response.json({}, { status: 429 });
+    return completion({ content: '```json\n{"value":"synthetic"}\n```' });
+  } });
+  const result = await generateText({ model, prompt: "Synthetic fixture", maxRetries: 0,
+    output: Output.object({ schema: z.object({ value: z.string() }) }) });
+  assert.deepEqual(result.output, { value: "synthetic" });
+  assert.equal(result.text, '{"value":"synthetic"}');
+});
+
+for (const content of ['```json\n{"value":123}\n```', 'Here is the result:\n```json\n{"value":"synthetic"}\n```']) {
+  test(`JSON normalization rejects schema violations or surrounding prose: ${content.slice(0, 20)}`, async () => {
+    const model = createPipelineModel({ getApiKey: () => "synthetic-test-key", requestFetch: async () => completion({ content }) });
+    await assert.rejects(generateText({ model, prompt: "Synthetic fixture", maxRetries: 0,
+      output: Output.object({ schema: z.object({ value: z.string() }) }) }));
+  });
+}
+
+test("live data blocks restricted fallback after Space Bunny and Ling fail; provider echoes stay private", async () => {
   let calls = 0;
   const model = createPipelineModel({ getApiKey: () => "synthetic-test-key", requestFetch: async () => { calls++; return Response.json({ error: { message: "sensitive-provider-echo" } }, { status: 429 }); } });
   await assert.rejects(generateText({ model, prompt: "Synthetic", maxRetries: 0 }), error => error.message.includes("429") && !error.message.includes("sensitive-provider-echo"));
-  assert.equal(calls, 1);
+  assert.equal(calls, 2);
+});
+
+test("Space Bunny rate limits recover through the free nontraining Ling endpoint", async () => {
+  const ids = [];
+  const model = createPipelineModel({ getApiKey: () => "synthetic-test-key", requestFetch: async (_url, init) => {
+    const body = JSON.parse(init.body);
+    ids.push(body.model);
+    if (body.model === PRIMARY_MODEL_ID) return Response.json({}, { status: 429 });
+    assert.equal(body.model, LIVE_FALLBACK_MODEL_ID);
+    assert.equal(body.provider.data_collection, "deny");
+    assert.deepEqual(body.provider.max_price, { prompt: 0, completion: 0, request: 0 });
+    assert.equal(body.response_format, undefined);
+    return completion({ content: '{"value":"synthetic"}' });
+  } });
+  const result = await generateText({ model, prompt: "Synthetic fixture", maxRetries: 0,
+    output: Output.object({ schema: z.object({ value: z.string() }) }) });
+  assert.deepEqual(result.output, { value: "synthetic" });
+  assert.deepEqual(ids, [PRIMARY_MODEL_ID, LIVE_FALLBACK_MODEL_ID]);
+  assert.deepEqual((await generateText({ model, prompt: "Next stage", maxRetries: 0,
+    output: Output.object({ schema: z.object({ value: z.string() }) }) })).output, { value: "synthetic" });
+  assert.deepEqual(ids, [PRIMARY_MODEL_ID, LIVE_FALLBACK_MODEL_ID, LIVE_FALLBACK_MODEL_ID]);
 });
 
 const syntheticHarness = { getApiKey: () => "synthetic-test-key", fallbackDataPolicy: "synthetic-nonpersonal", agenticHarness: true };
 
-test("synthetic harness follows Qwen -> Nemotron -> Inkling with zero-price routing", async () => {
+test("synthetic harness follows Space Bunny -> Ling -> Nemotron -> Inkling with zero-price routing", async () => {
   const ids = [];
   const model = createPipelineModel({ ...syntheticHarness, requestFetch: async (_url, init) => {
     const body = JSON.parse(init.body);
     ids.push(body.model);
     assert.equal(body.models, undefined);
     assert.equal(body.plugins, undefined);
-    assert.deepEqual(body.provider, { allow_fallbacks: false, require_parameters: true, max_price: { prompt: 0, completion: 0, request: 0 } });
-    if (ids.length < 3) return Response.json({ error: { message: "private echo" } }, { status: ids.length === 1 ? 429 : 503 });
+    assert.deepEqual(body.provider, { allow_fallbacks: false, require_parameters: true, max_price: { prompt: 0, completion: 0, request: 0 }, ...([PRIMARY_MODEL_ID, LIVE_FALLBACK_MODEL_ID].includes(body.model) ? { data_collection: "deny" } : {}) });
+    if (ids.length < 4) return Response.json({ error: { message: "private echo" } }, { status: ids.length === 1 ? 429 : 503 });
     return completion({ content: "Synthetic harness success" });
   } });
   const result = await generateText({ model, prompt: "Synthetic fixture only", maxRetries: 0,
@@ -123,13 +207,15 @@ test("invalid JSON and schema failure advance fallback; endpoints without JSON s
     const body = JSON.parse(init.body);
     ids.push(body.model);
     if (ids.length === 1) {
-      assert.equal(body.response_format.type, "json_schema");
+      assert.deepEqual(body.response_format, { type: "json_object" });
+      assert.deepEqual(body.reasoning, { effort: "low" });
+      assert.match(body.messages.at(-1).content, /JSON matching this schema/);
       return completion({ content: "malformed JSON" });
     }
     assert.equal(body.response_format, undefined);
     assert.match(body.messages.at(-1).content, /JSON matching this schema/);
     assert.match(body.messages.at(-1).content, /"value"/);
-    return completion({ content: ids.length === 2 ? '{"value":123}' : '{"value":"synthetic"}' });
+    return completion({ content: ids.length < 4 ? '{"value":123}' : '{"value":"synthetic"}' });
   } });
   const result = await generateText({ model, prompt: "Synthetic fixture", maxRetries: 0,
     output: Output.object({ schema: z.object({ value: z.string() }) }) });
@@ -150,7 +236,7 @@ for (const status of [400, 401, 402, 403, 422]) {
   });
 }
 
-test("exhausted free models stop after three attempts and sanitize errors", async () => {
+test("exhausted free models stop after four attempts and sanitize errors", async () => {
   let calls = 0;
   const model = createPipelineModel({ ...syntheticHarness, requestFetch: async () => {
     calls++;
@@ -158,7 +244,7 @@ test("exhausted free models stop after three attempts and sanitize errors", asyn
   } });
   await assert.rejects(generateText({ model, prompt: "Synthetic" }), error =>
     error.message.includes("429") && !error.message.includes("private echo"));
-  assert.equal(calls, 3);
+  assert.equal(calls, 4);
 });
 
 test("synthetic data alone cannot invoke Inkling outside an agentic harness", async () => {
@@ -168,7 +254,7 @@ test("synthetic data alone cannot invoke Inkling outside an agentic harness", as
     return Response.json({}, { status: 503 });
   } });
   await assert.rejects(generateText({ model, prompt: "Synthetic", maxRetries: 0 }), /agentic harness is required/);
-  assert.equal(calls, 2);
+  assert.equal(calls, 3);
 });
 
 test("network failures fall back without exposing network error text", async () => {
@@ -213,6 +299,14 @@ test("stream fallback suppresses failed step text and validates final JSON befor
   assert.deepEqual(ids, [PRIMARY_MODEL_ID, FALLBACK_MODEL_IDS[0]]);
 });
 
+test("streaming JSON fences are normalized before validated output is published", async () => {
+  const model = createPipelineModel({ getApiKey: () => "synthetic-test-key", requestFetch: async () => streamCompletion('```json\n{"value":"synthetic"}\n```') });
+  const result = streamText({ model, prompt: "Synthetic fixture", maxRetries: 0,
+    output: Output.object({ schema: z.object({ value: z.string() }) }) });
+  assert.equal(await result.text, '{"value":"synthetic"}');
+  assert.deepEqual(await result.output, { value: "synthetic" });
+});
+
 test("synthetic tool harness reaches Inkling without replaying completed tool executions", async () => {
   const ids = [];
   let executions = 0;
@@ -221,7 +315,7 @@ test("synthetic tool harness reaches Inkling without replaying completed tool ex
     ids.push(body.model);
     assert.ok(body.tools.some(t => t.function.name === "synthetic_lookup"));
     if (body.messages.some(m => m.role === "tool")) return completion({ content: '{"summary":"Synthetic fixture"}' });
-    if (body.model !== FALLBACK_MODEL_IDS[1]) return Response.json({}, { status: 503 });
+    if (body.model !== FALLBACK_MODEL_IDS.at(-1)) return Response.json({}, { status: 503 });
     return completion({ content: null, tool_calls: [{ id: "synthetic-call", type: "function", function: { name: "synthetic_lookup", arguments: '{"domain":"example.com"}' } }] }, "tool_calls");
   } });
   const agent = new ToolLoopAgent({ model, stopWhen: stepCountIs(3),
@@ -230,7 +324,7 @@ test("synthetic tool harness reaches Inkling without replaying completed tool ex
   });
   assert.equal((await agent.generate({ prompt: "Synthetic fixture only" })).output.summary, "Synthetic fixture");
   assert.equal(executions, 1);
-  assert.deepEqual(ids, [PRIMARY_MODEL_ID, ...FALLBACK_MODEL_IDS, PRIMARY_MODEL_ID]);
+  assert.deepEqual(ids, [PRIMARY_MODEL_ID, ...FALLBACK_MODEL_IDS, LIVE_FALLBACK_MODEL_ID]);
 });
 
 test("content-filtered responses stop without fallback", async () => {
@@ -287,6 +381,10 @@ for (const [name, usage] of [
   ["paygo enabled", { ...freeUsage, account: { ...freeUsage.account, paygo_limit: 10 } }],
   ["paid plan", { ...freeUsage, account: { ...freeUsage.account, current_plan: "Bootstrap" } }],
   ["unknown billing", {}],
+  ["uncapped key", { ...freeUsage, key: { usage: 0, limit: null } }],
+  ["key above free allowance", { ...freeUsage, key: { usage: 0, limit: 1001 } }],
+  ["other keys consumed free allowance", { ...freeUsage, account: { ...freeUsage.account, plan_usage: 10 } }],
+  ["unknown paygo limit", { ...freeUsage, account: { ...freeUsage.account, paygo_limit: undefined } }],
 ]) {
   test(`search fails closed when ${name}`, async () => {
     let requests = 0;
@@ -295,6 +393,18 @@ for (const [name, usage] of [
     assert.equal(requests, 1);
   });
 }
+
+test("a capped Researcher key accepts Tavily's null paygo limit", async () => {
+  const urls = [];
+  const search = createWebSearch({ getApiKey: () => "synthetic-test-key", requestFetch: async url => {
+    urls.push(url);
+    return url.endsWith("/usage")
+      ? Response.json({ ...freeUsage, account: { ...freeUsage.account, paygo_limit: null } })
+      : Response.json({ results: [] });
+  } });
+  assert.equal((await search({ query: "synthetic public company" })).provider, "tavily");
+  assert.equal(urls.length, 2);
+});
 
 test("missing search key fails before any request", async () => {
   let requests = 0;
@@ -308,4 +418,40 @@ test("search provider failure cannot activate Exa or paid Google Search", async 
   const search = createWebSearch({ getApiKey: () => "synthetic-test-key", requestFetch: async url => { urls.push(url); return url.endsWith("/usage") ? Response.json(freeUsage) : Response.json({}, { status: 432 }); } });
   await assert.rejects(search({ query: "synthetic" }), /no paid fallback/);
   assert.deepEqual(urls, ["https://api.tavily.com/usage", "https://api.tavily.com/search"]);
+});
+
+test("concurrent searches share one quota check and reserve credits before sending", async () => {
+  let usageCalls = 0;
+  let searchCalls = 0;
+  const search = createWebSearch({ getApiKey: () => "synthetic-test-key", requestFetch: async url => {
+    if (url.endsWith("/usage")) {
+      usageCalls++;
+      await new Promise(resolve => setTimeout(resolve, 5));
+      return Response.json({ ...freeUsage, key: { usage: 998, limit: 1000 }, account: { ...freeUsage.account, plan_usage: 998 } });
+    }
+    searchCalls++;
+    return Response.json({ results: [] });
+  } });
+  const results = await Promise.allSettled(Array.from({ length: 3 }, () => search({ query: "synthetic" })));
+  assert.equal(usageCalls, 1);
+  assert.equal(searchCalls, 2);
+  assert.equal(results.filter(result => result.status === "fulfilled").length, 2);
+  assert.match(results.find(result => result.status === "rejected").reason.message, /quota exhausted/);
+});
+
+test("a changed search credential cannot reuse the previous key's quota approval", async () => {
+  let key = "synthetic-first-key";
+  let usageCalls = 0;
+  const search = createWebSearch({ getApiKey: () => key, requestFetch: async url => {
+    if (url.endsWith("/usage")) {
+      usageCalls++;
+      return Response.json(usageCalls === 1 ? freeUsage : {});
+    }
+    return Response.json({ results: [] });
+  } });
+  await search({ query: "synthetic" });
+  await search({ query: "synthetic" });
+  key = "synthetic-second-key";
+  await assert.rejects(search({ query: "synthetic" }));
+  assert.equal(usageCalls, 2);
 });
